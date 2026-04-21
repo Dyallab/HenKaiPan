@@ -51,6 +51,7 @@ services:
       context: .
       dockerfile: docker/worker.Dockerfile
     environment:
+      JWT_SECRET: changeme-in-production
       DATABASE_URL: postgres://aspm:aspm@postgres:5432/aspm?sslmode=disable
       REDIS_ADDR: redis:6379
     volumes:
