@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+@theme {
+  /* Background / Surface */
+  --color-background: #0b1326;
+  --color-surface: #0b1326;
+  --color-surface-dim: #0b1326;
+  --color-surface-bright: #31394d;
+  --color-surface-container-lowest: #060e20;
+  --color-surface-container-low: #131b2e;
+  --color-surface-container: #171f33;
+  --color-surface-container-high: #222a3d;
+  --color-surface-container-highest: #2d3449;
+  --color-surface-variant: #2d3449;
+
+  /* On-surface */
+  --color-on-background: #dae2fd;
+  --color-on-surface: #dae2fd;
+  --color-on-surface-variant: #bec7d4;
+
+  /* Primary */
+  --color-primary: #98cbff;
+  --color-on-primary: #003354;
+  --color-primary-container: #00a3ff;
+  --color-on-primary-container: #00375a;
+  --color-primary-fixed: #cfe5ff;
+  --color-primary-fixed-dim: #98cbff;
+  --color-on-primary-fixed: #001d33;
+  --color-on-primary-fixed-variant: #004a77;
+  --color-inverse-primary: #00629d;
+  --color-surface-tint: #98cbff;
+
+  /* Secondary */
+  --color-secondary: #4edea3;
+  --color-on-secondary: #003824;
+  --color-secondary-container: #00a572;
+  --color-on-secondary-container: #00311f;
+  --color-secondary-fixed: #6ffbbe;
+  --color-secondary-fixed-dim: #4edea3;
+  --color-on-secondary-fixed: #002113;
+  --color-on-secondary-fixed-variant: #005236;
+
+  /* Tertiary */
+  --color-tertiary: #ffb690;
+  --color-on-tertiary: #552100;
+  --color-tertiary-container: #fc7519;
+  --color-on-tertiary-container: #5b2400;
+  --color-tertiary-fixed: #ffdbca;
+  --color-tertiary-fixed-dim: #ffb690;
+  --color-on-tertiary-fixed: #341100;
+  --color-on-tertiary-fixed-variant: #783200;
+
+  /* Error */
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  /* Outline */
+  --color-outline: #88919d;
+  --color-outline-variant: #3f4852;
+
+  /* Inverse */
+  --color-inverse-surface: #dae2fd;
+  --color-inverse-on-surface: #283044;
+
+  /* Legacy aliases for JS-generated HTML */
+  --color-surface-card: #171f33;
+  --color-surface-border: #3f4852;
+  --color-accent: #0ea5e9;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0b1326; }
+  ::-webkit-scrollbar-thumb { background: #3f4852; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #88919d; }
+}

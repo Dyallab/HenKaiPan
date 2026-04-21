@@ -1,0 +1,375 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Knowledge Center" active="knowledge">
+
+  <div class="flex gap-6 h-full min-h-0">
+
+    <!-- Left: article list + filters -->
+    <aside class="w-80 shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+
+      <div class="flex items-center justify-between">
+        <h1 class="text-lg font-black text-on-background">Knowledge Center</h1>
+        <button id="new-article-btn"
+          class="admin-only hidden flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg transition-all active:scale-95">
+          <span class="material-symbols-outlined text-sm">add</span>New
+        </button>
+      </div>
+
+      <!-- Search -->
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
+        <input id="kb-search" type="text" placeholder="Search CVE, CWE, scanner, topic…"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600" />
+      </div>
+
+      <!-- Scanner filter -->
+      <select id="kb-scanner" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All Scanners</option>
+        <option value="semgrep">Semgrep (SAST)</option>
+        <option value="gosec">Gosec (SAST)</option>
+        <option value="trivy">Trivy (SCA)</option>
+        <option value="grype">Grype (SCA)</option>
+        <option value="osv-scanner">OSV-Scanner (SCA)</option>
+        <option value="trufflehog">TruffleHog (Secrets)</option>
+        <option value="gitleaks">Gitleaks (Secrets)</option>
+        <option value="checkov">Checkov (IaC)</option>
+        <option value="kics">KICS (IaC)</option>
+        <option value="nuclei">Nuclei (DAST)</option>
+      </select>
+
+      <!-- Article list -->
+      <div id="article-list" class="space-y-2 flex-1">
+        <div class="text-xs text-slate-500 animate-pulse px-1">Loading articles…</div>
+      </div>
+    </aside>
+
+    <!-- Right: article content -->
+    <main class="flex-1 min-w-0 flex flex-col gap-0 overflow-y-auto">
+
+      <!-- Empty state -->
+      <div id="article-empty" class="flex-1 flex flex-col items-center justify-center text-center gap-4 text-slate-500">
+        <span class="material-symbols-outlined text-5xl text-slate-700">menu_book</span>
+        <p class="text-sm">Select an article or generate a remediation guide from a finding.</p>
+      </div>
+
+      <!-- Article view -->
+      <article id="article-view" class="hidden flex-1">
+        <div class="flex items-start justify-between gap-4 mb-6">
+          <div class="flex-1 min-w-0">
+            <div id="av-badges" class="flex flex-wrap gap-2 mb-3"></div>
+            <h2 id="av-title" class="text-2xl font-black text-on-background"></h2>
+            <p id="av-meta" class="text-xs text-slate-500 mt-1"></p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button id="edit-article-btn"
+              class="admin-only hidden flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-surface-container border border-outline-variant/20 text-on-background rounded-lg hover:bg-slate-800 transition-all">
+              <span class="material-symbols-outlined text-sm">edit</span>Edit
+            </button>
+            <button id="delete-article-btn"
+              class="admin-only hidden flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 border border-error/30 text-error rounded-lg hover:bg-error/10 transition-all">
+              <span class="material-symbols-outlined text-sm">delete</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="av-content"
+          class="prose prose-invert prose-sm max-w-none
+            prose-headings:font-bold prose-headings:text-on-background
+            prose-h2:text-lg prose-h2:mt-8 prose-h2:mb-3 prose-h2:border-b prose-h2:border-slate-800 prose-h2:pb-2
+            prose-h3:text-base prose-h3:mt-6 prose-h3:mb-2
+            prose-p:text-slate-300 prose-p:leading-relaxed
+            prose-code:text-sky-300 prose-code:bg-slate-900 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-xs prose-code:font-mono
+            prose-pre:bg-slate-950 prose-pre:border prose-pre:border-slate-800 prose-pre:rounded-xl prose-pre:p-4
+            prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline
+            prose-ul:text-slate-300 prose-li:my-1
+            prose-strong:text-on-background">
+        </div>
+      </article>
+
+      <!-- Editor (admin) -->
+      <div id="article-editor" class="hidden flex-1 flex flex-col gap-4">
+        <div class="flex items-center justify-between">
+          <h3 id="editor-title-label" class="text-lg font-bold text-on-background">New Article</h3>
+          <button id="cancel-edit-btn" class="text-xs text-slate-500 hover:text-slate-300">Cancel</button>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Title</label>
+            <input id="ed-title" type="text" placeholder="Vulnerability title"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner</label>
+            <input id="ed-scanner" type="text" placeholder="e.g. semgrep, gosec, checkov"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Rule IDs (comma-separated)</label>
+            <input id="ed-rules" type="text" placeholder="G304, G301"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">CWE IDs (comma-separated)</label>
+            <input id="ed-cwes" type="text" placeholder="CWE-22, CWE-73"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
+          </div>
+          <div class="col-span-2 space-y-1.5">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Tags (comma-separated)</label>
+            <input id="ed-tags" type="text" placeholder="path-traversal, go, file-inclusion"
+              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
+          </div>
+        </div>
+        <div class="flex-1 space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Content (Markdown)</label>
+            <button id="preview-toggle" class="text-xs text-sky-400 hover:underline">Preview</button>
+          </div>
+          <textarea id="ed-content" rows="20"
+            class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none resize-none leading-relaxed"></textarea>
+          <div id="ed-preview" class="hidden bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 min-h-[300px] prose prose-invert prose-sm max-w-none
+            prose-headings:font-bold prose-headings:text-on-background
+            prose-h2:text-lg prose-h2:mt-6 prose-h2:mb-2
+            prose-code:text-sky-300 prose-code:bg-slate-900 prose-code:px-1 prose-code:rounded prose-code:text-xs
+            prose-pre:bg-black prose-pre:border prose-pre:border-slate-800 prose-pre:rounded-xl prose-pre:p-4
+            prose-a:text-sky-400 prose-p:text-slate-300"></div>
+        </div>
+        <div class="flex gap-3">
+          <button id="save-article-btn" class="px-5 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95">Save Article</button>
+          <div id="editor-msg" class="hidden text-xs font-medium self-center"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+  import type { Article } from '../../lib/api';
+  import { marked } from 'marked';
+
+  marked.setOptions({ gfm: true, breaks: true });
+
+  // Normalize markdown: dedent lines and ensure blank lines around block elements
+  function normalizeMarkdown(md: string): string {
+    // Dedent: remove leading spaces from each line.
+    // Safe because all code uses ``` fences (not indented-code-block style).
+    const dedented = md
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map(line => line.trimStart())
+      .join('\n');
+
+    return dedented
+      // blank line before headings
+      .replace(/([^\n])\n(#{1,6} )/g, '$1\n\n$2')
+      // blank line after heading line
+      .replace(/(#{1,6} [^\n]+)\n([^\n#\n])/g, '$1\n\n$2')
+      // blank line before ``` fences
+      .replace(/([^\n])\n(```)/g, '$1\n\n$2')
+      // blank line after closing ```
+      .replace(/(```[^\n]*\n[\s\S]*?```)\n([^\n])/g, '$1\n\n$2');
+  }
+
+  // ── Role check ──────────────────────────────────────────────
+  const token = localStorage.getItem('aspm_token') ?? '';
+  let isAdmin = false;
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      isAdmin = payload.role === 'admin';
+    } catch {}
+  }
+  if (isAdmin) {
+    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+  }
+
+  // ── State ────────────────────────────────────────────────────
+  let articles: Article[] = [];
+  let currentSlug: string | null = null;
+  let editingSlug: string | null = null;
+  let previewMode = false;
+
+  // ── Load article list ─────────────────────────────────────────
+  async function loadList() {
+    const q       = (document.getElementById('kb-search')  as HTMLInputElement).value.trim();
+    const scanner = (document.getElementById('kb-scanner') as HTMLSelectElement).value;
+    try {
+      articles = await api.getArticles(q, scanner);
+    } catch { articles = []; }
+    renderList();
+  }
+
+  function renderList() {
+    const el = document.getElementById('article-list')!;
+    if (!articles.length) {
+      el.innerHTML = '<p class="text-xs text-slate-500 px-1">No articles found.</p>';
+      return;
+    }
+    el.innerHTML = articles.map(a => {
+      const isActive = a.slug === currentSlug;
+      return `
+        <button data-slug="${a.slug}"
+          class="article-btn w-full text-left px-3 py-3 rounded-lg border transition-all ${
+            isActive
+              ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+              : 'bg-surface-container border-outline-variant/20 text-on-background hover:border-sky-500/20 hover:bg-slate-900/50'
+          }">
+          <div class="flex items-start gap-2">
+            ${a.auto_generated
+              ? '<span class="material-symbols-outlined text-sm text-purple-400 shrink-0 mt-0.5">auto_awesome</span>'
+              : '<span class="material-symbols-outlined text-sm text-sky-400 shrink-0 mt-0.5">article</span>'
+            }
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold leading-snug truncate">${a.title}</p>
+              <div class="flex flex-wrap gap-1 mt-1.5">
+                ${a.scanner ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">${a.scanner}</span>` : ''}
+                ${a.cwe_ids.slice(0,2).map(c => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400">${c}</span>`).join('')}
+                ${a.auto_generated ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400">AI</span>' : ''}
+              </div>
+            </div>
+          </div>
+        </button>`;
+    }).join('');
+
+    el.querySelectorAll<HTMLButtonElement>('.article-btn').forEach(btn => {
+      btn.addEventListener('click', () => openArticle(btn.dataset.slug!));
+    });
+  }
+
+  // ── Open article ──────────────────────────────────────────────
+  async function openArticle(slug: string) {
+    currentSlug = slug;
+    renderList();
+    showPane('view');
+
+    let a: Article;
+    try {
+      a = await api.getArticle(slug);
+    } catch {
+      document.getElementById('av-content')!.innerHTML = '<p class="text-error">Failed to load article.</p>';
+      return;
+    }
+
+    document.getElementById('av-title')!.textContent = a.title;
+    document.getElementById('av-meta')!.textContent =
+      `Updated ${new Date(a.updated_at).toLocaleDateString()} · ${a.auto_generated ? 'AI Generated' : 'Curated'}`;
+
+    // Badges
+    const badges = document.getElementById('av-badges')!;
+    badges.innerHTML = [
+      a.scanner ? `<span class="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">${a.scanner}</span>` : '',
+      ...a.cwe_ids.map(c => `<a href="https://cwe.mitre.org/data/definitions/${c.replace('CWE-','')}.html" target="_blank" rel="noopener"
+          class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20">${c}</a>`),
+      ...a.tags.filter(t => t !== 'ai-generated').map(t => `<span class="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 border border-sky-500/20 text-sky-400">${t}</span>`),
+      a.auto_generated ? '<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center gap-1"><span class="material-symbols-outlined text-xs">auto_awesome</span>AI Generated</span>' : '',
+    ].filter(Boolean).join('');
+
+    // Render markdown
+    document.getElementById('av-content')!.innerHTML = await marked.parse(normalizeMarkdown(a.content_md));
+
+    // Edit/delete buttons
+    const editBtn = document.getElementById('edit-article-btn') as HTMLButtonElement;
+    const delBtn  = document.getElementById('delete-article-btn') as HTMLButtonElement;
+    editBtn.onclick = () => openEditor(a);
+    delBtn.onclick  = async () => {
+      if (!confirm('Delete this article?')) return;
+      await api.deleteArticle(slug);
+      currentSlug = null;
+      showPane('empty');
+      loadList();
+    };
+  }
+
+  // ── Editor ────────────────────────────────────────────────────
+  function openEditor(a?: Article) {
+    editingSlug = a?.slug ?? null;
+    showPane('editor');
+    document.getElementById('editor-title-label')!.textContent = a ? 'Edit Article' : 'New Article';
+    (document.getElementById('ed-title')   as HTMLInputElement).value   = a?.title    ?? '';
+    (document.getElementById('ed-scanner') as HTMLInputElement).value   = a?.scanner  ?? '';
+    (document.getElementById('ed-rules')   as HTMLInputElement).value   = (a?.rule_ids ?? []).join(', ');
+    (document.getElementById('ed-cwes')    as HTMLInputElement).value   = (a?.cwe_ids  ?? []).join(', ');
+    (document.getElementById('ed-tags')    as HTMLInputElement).value   = (a?.tags     ?? []).join(', ');
+    (document.getElementById('ed-content') as HTMLTextAreaElement).value = a?.content_md ?? '';
+  }
+
+  document.getElementById('new-article-btn')!.addEventListener('click', () => openEditor());
+  document.getElementById('cancel-edit-btn')!.addEventListener('click', () => {
+    if (currentSlug) openArticle(currentSlug);
+    else showPane('empty');
+  });
+
+  // Preview toggle
+  document.getElementById('preview-toggle')!.addEventListener('click', async () => {
+    previewMode = !previewMode;
+    const ta  = document.getElementById('ed-content') as HTMLTextAreaElement;
+    const pre = document.getElementById('ed-preview')!;
+    const btn = document.getElementById('preview-toggle')!;
+    if (previewMode) {
+      pre.innerHTML = await marked.parse(normalizeMarkdown(ta.value));
+      ta.classList.add('hidden');
+      pre.classList.remove('hidden');
+      btn.textContent = 'Edit';
+    } else {
+      ta.classList.remove('hidden');
+      pre.classList.add('hidden');
+      btn.textContent = 'Preview';
+    }
+  });
+
+  // Save article
+  document.getElementById('save-article-btn')!.addEventListener('click', async () => {
+    const msg = document.getElementById('editor-msg')!;
+    const split = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean);
+    const data = {
+      title:      (document.getElementById('ed-title')   as HTMLInputElement).value.trim(),
+      content_md: (document.getElementById('ed-content') as HTMLTextAreaElement).value,
+      scanner:    (document.getElementById('ed-scanner') as HTMLInputElement).value.trim(),
+      rule_ids:   split((document.getElementById('ed-rules') as HTMLInputElement).value),
+      cwe_ids:    split((document.getElementById('ed-cwes')  as HTMLInputElement).value),
+      tags:       split((document.getElementById('ed-tags')  as HTMLInputElement).value),
+    };
+    if (!data.title) {
+      msg.textContent = 'Title required'; msg.className = 'text-xs font-medium text-error'; msg.classList.remove('hidden');
+      return;
+    }
+    try {
+      const saved = editingSlug
+        ? await api.updateArticle(editingSlug, data)
+        : await api.createArticle(data);
+      msg.textContent = '✓ Saved.'; msg.className = 'text-xs font-medium text-secondary'; msg.classList.remove('hidden');
+      await loadList();
+      openArticle(saved.slug);
+    } catch (e: any) {
+      msg.textContent = e.message; msg.className = 'text-xs font-medium text-error'; msg.classList.remove('hidden');
+    }
+    setTimeout(() => msg.classList.add('hidden'), 3000);
+  });
+
+  // ── Pane switcher ─────────────────────────────────────────────
+  function showPane(pane: 'empty' | 'view' | 'editor') {
+    document.getElementById('article-empty')!.classList.toggle('hidden', pane !== 'empty');
+    document.getElementById('article-view')!.classList.toggle('hidden',  pane !== 'view');
+    document.getElementById('article-editor')!.classList.toggle('hidden', pane !== 'editor');
+  }
+
+  // ── Search / filter ───────────────────────────────────────────
+  let debounce: ReturnType<typeof setTimeout>;
+  document.getElementById('kb-search')!.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(loadList, 300);
+  });
+  document.getElementById('kb-scanner')!.addEventListener('change', loadList);
+
+  // ── URL param: open article directly (e.g. from finding modal) ─
+  const urlParams = new URLSearchParams(window.location.search);
+  const initSlug  = urlParams.get('slug');
+
+  loadList().then(() => {
+    if (initSlug) openArticle(initSlug);
+    else showPane('empty');
+  });
+</script>

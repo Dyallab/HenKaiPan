@@ -1,0 +1,202 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Security Scans" active="scans">
+
+  <!-- New scan form -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 mb-6">
+    <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">New Scan</h2>
+    <form id="scan-form" class="flex gap-3 flex-wrap">
+      <div class="relative flex-1 min-w-64">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+        <input
+          id="scan-target"
+          type="text"
+          placeholder="https://github.com/org/repo  or  https://target.com  (DAST)"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+        />
+      </div>
+      <select
+        id="scan-scanner"
+        class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all"
+      >
+        <option value="all">⚡ all git scanners</option>
+        <optgroup label="── SAST ──────────────">
+          <option value="semgrep">semgrep</option>
+          <option value="gosec">gosec (Go)</option>
+        </optgroup>
+        <optgroup label="── SCA ───────────────">
+          <option value="trivy">trivy</option>
+          <option value="grype">grype</option>
+          <option value="osv-scanner">osv-scanner</option>
+        </optgroup>
+        <optgroup label="── Secrets ───────────">
+          <option value="trufflehog">trufflehog</option>
+          <option value="gitleaks">gitleaks</option>
+        </optgroup>
+        <optgroup label="── IaC ───────────────">
+          <option value="checkov">checkov</option>
+          <option value="tfsec">tfsec</option>
+          <option value="kics">kics</option>
+        </optgroup>
+        <optgroup label="── Containers ────────">
+          <option value="trivy-image">trivy image</option>
+          <option value="grype-image">grype image</option>
+        </optgroup>
+        <optgroup label="── DAST ──────────────">
+          <option value="nuclei">nuclei</option>
+        </optgroup>
+      </select>
+      <button
+        type="submit"
+        id="scan-btn"
+        class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95"
+      >
+        <span class="material-symbols-outlined text-lg">add</span>
+        Run New Scan
+      </button>
+    </form>
+    <div id="scan-msg" class="hidden mt-3 text-sm"></div>
+  </div>
+
+  <!-- Scans table -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">All Scans</h2>
+      <span id="scans-total" class="text-xs text-slate-500 font-mono"></span>
+    </div>
+    <div id="scans-table" class="overflow-x-auto">
+      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
+    semgrep:       { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+    gosec:         { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+    trivy:         { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    grype:         { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    'osv-scanner': { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    trufflehog:    { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    gitleaks:      { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    checkov:       { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    tfsec:         { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    kics:          { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    'trivy-image': { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    'grype-image': { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    nuclei:        { label: 'DAST',      color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+    all:           { label: 'All',       color: 'text-slate-300 bg-slate-500/10 border-slate-500/20' },
+  };
+
+  const STATUS_DOT: Record<string, string> = {
+    completed: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]',
+    running:   'bg-sky-400 shadow-[0_0_6px_rgba(56,189,248,0.5)]',
+    pending:   'bg-amber-400',
+    failed:    'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.5)]',
+  };
+
+  const STATUS_TEXT: Record<string, string> = {
+    completed: 'text-emerald-400',
+    running:   'text-sky-400',
+    pending:   'text-amber-400',
+    failed:    'text-red-400',
+  };
+
+  function scannerType(scanner: string) {
+    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+  }
+
+  async function loadScans() {
+    const { scans, total } = await api.getScans(1, 50);
+    document.getElementById('scans-total')!.textContent = `${total} total`;
+
+    const el = document.getElementById('scans-table')!;
+    if (!scans.length) {
+      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No scans yet.</p>';
+      return;
+    }
+
+    el.innerHTML = `
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-950/50 border-b border-slate-800">
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Target</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Findings</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Started</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          ${scans.map(s => {
+            const type = scannerType(s.scanner);
+            const dot = STATUS_DOT[s.status] ?? 'bg-slate-600';
+            const txt = STATUS_TEXT[s.status] ?? 'text-slate-400';
+            return `
+              <tr class="hover:bg-slate-900/30 transition-colors">
+                <td class="px-6 py-4">
+                  <div class="flex flex-col">
+                    <a href="/dashboard/scans/detail?id=${s.id}" class="font-bold text-sky-400 hover:text-sky-300 truncate max-w-xs text-sm">${s.target}</a>
+                    <span class="text-[10px] text-slate-500 font-mono uppercase mt-0.5">ID: ${s.id}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${type.color}">${type.label}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="font-mono text-xs text-slate-400">${s.scanner}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full shrink-0 ${dot}"></div>
+                    <span class="text-xs font-bold capitalize ${txt}">${s.status}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <span class="font-mono text-sm text-on-surface-variant">${s.finding_count}</span>
+                </td>
+                <td class="px-6 py-4 text-right text-xs text-slate-500 font-mono">
+                  ${new Date(s.created_at).toLocaleString()}
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  document.getElementById('scan-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
+    const scanner = (document.getElementById('scan-scanner') as HTMLSelectElement).value;
+    const btn = document.getElementById('scan-btn') as HTMLButtonElement;
+    const msg = document.getElementById('scan-msg')!;
+
+    if (!target) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Queuing...';
+    msg.className = 'hidden mt-3 text-sm';
+
+    try {
+      await api.createScan(target, scanner);
+      msg.textContent = 'Scan queued successfully.';
+      msg.className = 'mt-3 text-sm text-emerald-400';
+      (document.getElementById('scan-target') as HTMLInputElement).value = '';
+      setTimeout(loadScans, 500);
+    } catch (err: any) {
+      msg.textContent = err.message;
+      msg.className = 'mt-3 text-sm text-red-400';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-lg">add</span> Run New Scan';
+    }
+  });
+
+  loadScans();
+  setInterval(loadScans, 5000);
+</script>

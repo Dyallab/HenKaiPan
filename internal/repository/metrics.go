@@ -1,0 +1,214 @@
+package repository
+
+import (
+	"context"
+	"fmt"
+
+	"aspm/internal/models"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type metricsRepo struct{ db *pgxpool.Pool }
+
+func (r *metricsRepo) Summary(ctx context.Context) (*models.MetricsSummary, error) {
+	m := &models.MetricsSummary{
+		FindingsBySeverity: make(map[string]int),
+		ScansByScanner:     make(map[string]int),
+	}
+
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans`).Scan(&m.TotalScans)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans WHERE status IN ('pending','running')`).Scan(&m.ActiveScans)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM findings`).Scan(&m.TotalFindings)
+
+	sevRows, _ := r.db.Query(ctx, `SELECT severity, COUNT(*) FROM findings GROUP BY severity`)
+	if sevRows != nil {
+		defer sevRows.Close()
+		for sevRows.Next() {
+			var sev string
+			var count int
+			sevRows.Scan(&sev, &count)
+			m.FindingsBySeverity[sev] = count
+		}
+	}
+
+	scanRows, _ := r.db.Query(ctx, `SELECT scanner, COUNT(*) FROM scans GROUP BY scanner`)
+	if scanRows != nil {
+		defer scanRows.Close()
+		for scanRows.Next() {
+			var scanner string
+			var count int
+			scanRows.Scan(&scanner, &count)
+			m.ScansByScanner[scanner] = count
+		}
+	}
+
+	recentRows, _ := r.db.Query(ctx, `
+		SELECT s.id, s.scanner, s.status, s.target, s.created_at, s.completed_at, COUNT(f.id)
+		FROM scans s
+		LEFT JOIN findings f ON f.scan_id = s.id
+		GROUP BY s.id
+		ORDER BY s.created_at DESC LIMIT 5`)
+	if recentRows != nil {
+		defer recentRows.Close()
+		for recentRows.Next() {
+			var s models.Scan
+			recentRows.Scan(&s.ID, &s.Scanner, &s.Status, &s.Target, &s.CreatedAt, &s.CompletedAt, &s.FindingCount)
+			m.RecentScans = append(m.RecentScans, s)
+		}
+	}
+	if m.RecentScans == nil {
+		m.RecentScans = []models.Scan{}
+	}
+
+	return m, nil
+}
+
+func (r *metricsRepo) Trends(ctx context.Context, days int) ([]models.TrendPoint, error) {
+	if days < 1 || days > 365 {
+		days = 30
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			DATE(created_at)::text AS day,
+			COUNT(*) FILTER (WHERE severity = 'critical') AS critical,
+			COUNT(*) FILTER (WHERE severity = 'high')     AS high,
+			COUNT(*) FILTER (WHERE severity = 'medium')   AS medium,
+			COUNT(*) FILTER (WHERE severity = 'low')      AS low,
+			COUNT(*) FILTER (WHERE severity = 'info')     AS info
+		FROM findings
+		WHERE created_at >= NOW() - make_interval(days => $1)
+		GROUP BY day
+		ORDER BY day`, days)
+	if err != nil {
+		return nil, fmt.Errorf("trends: %w", err)
+	}
+	defer rows.Close()
+
+	var points []models.TrendPoint
+	for rows.Next() {
+		var p models.TrendPoint
+		rows.Scan(&p.Date, &p.Critical, &p.High, &p.Medium, &p.Low, &p.Info)
+		points = append(points, p)
+	}
+	if points == nil {
+		points = []models.TrendPoint{}
+	}
+	return points, nil
+}
+
+func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			COALESCE(r.id::text, '')                       AS repo_id,
+			COALESCE(r.name, split_part(s.target,'/',5))   AS repo_name,
+			COALESCE(r.url,  s.target)                     AS repo_url,
+			COUNT(*) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')) AS critical,
+			COUNT(*) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')) AS high,
+			COUNT(*) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')) AS medium,
+			COUNT(*) FILTER (WHERE f.severity = 'low'      AND f.status NOT IN ('fixed','verified','accepted_risk')) AS low,
+			COUNT(*) FILTER (WHERE f.severity = 'info'     AND f.status NOT IN ('fixed','verified','accepted_risk')) AS info,
+			(COUNT(*) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')) * 100 +
+			 COUNT(*) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')) * 20  +
+			 COUNT(*) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')) * 5   +
+			 COUNT(*) FILTER (WHERE f.severity = 'low'      AND f.status NOT IN ('fixed','verified','accepted_risk')) * 1)  AS score
+		FROM scans s
+		LEFT JOIN repos r ON r.id = s.repo_id OR r.url = s.target
+		LEFT JOIN findings f ON f.scan_id = s.id
+		GROUP BY r.id, r.name, r.url, s.target
+		ORDER BY score DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("risk scores: %w", err)
+	}
+	defer rows.Close()
+
+	var scores []models.RepoRiskScore
+	for rows.Next() {
+		var rs models.RepoRiskScore
+		rows.Scan(&rs.RepoID, &rs.RepoName, &rs.RepoURL, &rs.Critical, &rs.High, &rs.Medium, &rs.Low, &rs.Info, &rs.Score)
+		scores = append(scores, rs)
+	}
+	if scores == nil {
+		scores = []models.RepoRiskScore{}
+	}
+	return scores, nil
+}
+
+func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			t.id::text,
+			t.name,
+			COUNT(DISTINCT a.id)::int,
+			COUNT(DISTINCT p.id)::int,
+			COUNT(DISTINCT r.id)::int,
+			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
+			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
+			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
+			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'low'      AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
+			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'info'     AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
+			(
+				COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')), 0) * 100 +
+				COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')), 0) * 20  +
+				COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')), 0) * 5   +
+				COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'low'      AND f.status NOT IN ('fixed','verified','accepted_risk')), 0) * 1
+			)::int AS score,
+			ROUND(
+				CASE
+					WHEN COUNT(f.id) FILTER (WHERE f.sla_deadline IS NOT NULL) = 0 THEN 100.0
+					ELSE 100.0
+						* COUNT(f.id) FILTER (WHERE f.sla_deadline IS NOT NULL AND (f.sla_deadline >= NOW() OR f.status IN ('fixed','verified','accepted_risk')))
+						/ NULLIF(COUNT(f.id) FILTER (WHERE f.sla_deadline IS NOT NULL), 0)
+				END
+			, 1)::float8,
+			MAX(s.completed_at)
+		FROM teams t
+		LEFT JOIN apps a      ON a.team_id  = t.id
+		LEFT JOIN projects p  ON p.app_id   = a.id
+		LEFT JOIN repos r     ON r.id        = p.repo_id
+		LEFT JOIN scans s     ON s.repo_id   = r.id AND s.status = 'completed'
+		LEFT JOIN findings f  ON f.scan_id   = s.id
+		GROUP BY t.id, t.name
+		ORDER BY score DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("team metrics: %w", err)
+	}
+	defer rows.Close()
+
+	var metrics []models.TeamMetrics
+	for rows.Next() {
+		var m models.TeamMetrics
+		rows.Scan(
+			&m.TeamID, &m.TeamName,
+			&m.AppCount, &m.ProjectCount, &m.RepoCount,
+			&m.Critical, &m.High, &m.Medium, &m.Low, &m.Info,
+			&m.Score, &m.SLACompliance, &m.LastScanAt,
+		)
+		metrics = append(metrics, m)
+	}
+	if metrics == nil {
+		metrics = []models.TeamMetrics{}
+	}
+	return metrics, nil
+}
+
+func (r *metricsRepo) SLACompliance(ctx context.Context) (*models.SLACompliance, error) {
+	var s models.SLACompliance
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL) AS total,
+			COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL
+			  AND (sla_deadline >= NOW() OR status IN ('fixed','verified','accepted_risk'))) AS on_time,
+			COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL
+			  AND sla_deadline < NOW()
+			  AND status NOT IN ('fixed','verified','accepted_risk')) AS overdue
+		FROM findings`).
+		Scan(&s.Total, &s.OnTime, &s.Overdue)
+	if err != nil {
+		return nil, fmt.Errorf("sla compliance: %w", err)
+	}
+	if s.Total > 0 {
+		s.Percent = float64(s.OnTime) / float64(s.Total) * 100
+	}
+	return &s, nil
+}

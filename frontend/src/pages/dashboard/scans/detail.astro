@@ -1,0 +1,449 @@
+---
+import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Scan Detail" active="scans">
+
+  <div id="loading" class="text-sm text-slate-500">Loading...</div>
+
+  <div id="content" class="hidden space-y-6">
+
+    <!-- Header card -->
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6">
+      <div class="flex items-start justify-between gap-4 flex-wrap mb-5">
+        <div class="min-w-0">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Target</p>
+          <p id="scan-target" class="text-on-background font-mono text-sm break-all"></p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="scan-scanner" class="font-mono text-xs text-slate-400 bg-surface-container border border-outline-variant/30 px-3 py-1 rounded"></span>
+          <span id="scan-status" class="text-xs font-bold capitalize px-3 py-1 rounded"></span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 border-t border-outline-variant/20">
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Created</p>
+          <p id="scan-created" class="text-sm text-on-surface-variant"></p>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Started</p>
+          <p id="scan-started" class="text-sm text-on-surface-variant">—</p>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Completed</p>
+          <p id="scan-completed" class="text-sm text-on-surface-variant">—</p>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Total Findings</p>
+          <p id="scan-finding-count" class="text-sm text-on-surface-variant"></p>
+        </div>
+      </div>
+
+      <div id="scan-error-row" class="hidden mt-4 pt-4 border-t border-outline-variant/20">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Error</p>
+        <p id="scan-error" class="text-sm text-red-400 font-mono break-all"></p>
+      </div>
+    </div>
+
+    <!-- Execution log -->
+    <div id="log-section" class="hidden bg-surface-container-low border border-outline-variant/20 rounded-xl">
+      <button
+        id="log-toggle"
+        class="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-slate-900/20 transition-colors rounded-xl"
+      >
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-slate-500 text-base">terminal</span>
+          <span class="text-sm font-bold text-on-surface-variant">Execution Log</span>
+          <span id="log-exit-badge" class="text-xs font-mono px-2 py-0.5 rounded hidden"></span>
+        </div>
+        <span id="log-chevron" class="material-symbols-outlined text-slate-500 text-base">expand_more</span>
+      </button>
+      <div id="log-body" class="hidden border-t border-outline-variant/20">
+        <pre id="log-content" class="px-6 py-4 text-xs font-mono text-slate-400 overflow-auto whitespace-pre-wrap max-h-[500px] leading-relaxed"></pre>
+      </div>
+    </div>
+
+    <!-- Severity summary -->
+    <div id="severity-summary" class="grid grid-cols-5 gap-3"></div>
+
+    <!-- Findings table -->
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+      <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+        <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Findings</h2>
+        <select id="sev-filter" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-sky-500 transition-all">
+          <option value="">All severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+          <option value="info">Info</option>
+        </select>
+      </div>
+      <div id="findings-table" class="overflow-x-auto">
+        <p class="px-6 py-4 text-sm text-slate-500">No findings.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Finding detail modal -->
+  <div id="modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-surface-container border border-outline-variant/30 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-auto">
+      <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+        <h3 id="modal-title" class="text-sm font-bold text-on-background"></h3>
+        <button id="modal-close" class="text-slate-500 hover:text-on-background transition-colors text-xl leading-none">×</button>
+      </div>
+      <div class="px-6 py-5 space-y-4">
+        <div class="flex gap-3 flex-wrap">
+          <span id="modal-severity" class="text-xs font-bold capitalize px-2.5 py-1 rounded border"></span>
+          <span id="modal-scanner" class="font-mono text-xs text-slate-400 bg-surface-container-low border border-outline-variant/20 px-2.5 py-1 rounded"></span>
+          <span id="modal-rule" class="font-mono text-xs text-slate-500"></span>
+          <span id="modal-cve" class="hidden"></span>
+          <span id="modal-cwe" class="hidden"></span>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Description</p>
+          <p id="modal-desc" class="text-sm text-on-surface-variant"></p>
+        </div>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Location</p>
+          <p id="modal-location" class="text-sm font-mono text-on-surface-variant"></p>
+        </div>
+        <div id="modal-snippet-row" class="hidden">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Code</p>
+          <pre id="modal-snippet" class="bg-surface-container-low border border-outline-variant/20 rounded-lg p-4 text-xs text-slate-300 overflow-auto whitespace-pre-wrap"></pre>
+        </div>
+
+        <!-- Lifecycle triage -->
+        <div class="border-t border-outline-variant/20 pt-4 space-y-4">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Triage</p>
+          <div id="modal-sla-row" class="hidden">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">SLA Deadline</p>
+            <p id="modal-sla" class="text-sm"></p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Status</label>
+              <select id="modal-status" class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+                <option value="open">Open</option>
+                <option value="in_review">In Review</option>
+                <option value="accepted_risk">Accepted Risk</option>
+                <option value="fixed">Fixed</option>
+                <option value="verified">Verified</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Assigned To</label>
+              <input id="modal-assigned" type="text" placeholder="username or email"
+                class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600" />
+            </div>
+          </div>
+          <div>
+            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5 block">Notes</label>
+            <textarea id="modal-notes" rows="2" placeholder="Remediation notes, risk acceptance reason..."
+              class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input id="modal-fp" type="checkbox" class="rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer" />
+            <span class="text-sm text-slate-400">False Positive</span>
+          </label>
+          <div class="flex items-center justify-between">
+            <p id="modal-save-msg" class="text-xs"></p>
+            <button id="modal-save" class="flex items-center gap-2 px-4 py-2 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95">
+              <span class="material-symbols-outlined text-sm">save</span>
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../../lib/api';
+  import type { Finding } from '../../../lib/api';
+
+  let currentModalFindingId = '';
+
+  const SEV_STYLES: Record<string, string> = {
+    critical: 'text-red-400 bg-red-500/10 border-red-500/20',
+    high:     'text-orange-400 bg-orange-500/10 border-orange-500/20',
+    medium:   'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    low:      'text-sky-400 bg-sky-500/10 border-sky-500/20',
+    info:     'text-slate-400 bg-slate-500/10 border-slate-500/20',
+  };
+  const SEV_BAR: Record<string, string> = {
+    critical: 'bg-red-500',
+    high:     'bg-orange-500',
+    medium:   'bg-amber-500',
+    low:      'bg-sky-500',
+    info:     'bg-slate-500',
+  };
+  const STATUS_STYLES: Record<string, string> = {
+    completed: 'text-emerald-400 bg-emerald-500/10',
+    running:   'text-sky-400 bg-sky-500/10',
+    pending:   'text-amber-400 bg-amber-500/10',
+    failed:    'text-red-400 bg-red-500/10',
+  };
+
+  const scanId = new URLSearchParams(window.location.search).get('id');
+
+  if (!scanId) {
+    window.location.href = '/dashboard/scans';
+  }
+
+  let allFindings: Finding[] = [];
+
+  function fmt(d?: string | null) {
+    return d ? new Date(d).toLocaleString() : '—';
+  }
+
+  function renderFindings(findings: Finding[]) {
+    const el = document.getElementById('findings-table')!;
+    if (!findings.length) {
+      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No findings.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-950/50 border-b border-slate-800">
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden sm:table-cell">File</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden sm:table-cell">Line</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          ${findings.map((f, i) => `
+            <tr class="hover:bg-slate-900/30 transition-colors cursor-pointer" data-idx="${i}">
+              <td class="px-6 py-4">
+                <p class="font-bold text-on-background">${f.title}</p>
+                <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
+              </td>
+              <td class="px-6 py-4">
+                <span class="text-[10px] font-bold capitalize px-2 py-1 rounded border ${SEV_STYLES[f.severity] ?? ''}">
+                  ${f.severity}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-slate-400 text-xs font-mono truncate max-w-xs hidden sm:table-cell">
+                ${f.file_path || '—'}
+              </td>
+              <td class="px-6 py-4 text-right text-slate-500 text-xs font-mono hidden sm:table-cell">
+                ${f.line_start > 0 ? f.line_start : '—'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+
+    el.querySelectorAll('tr[data-idx]').forEach(row => {
+      row.addEventListener('click', () => {
+        openModal(findings[parseInt((row as HTMLElement).dataset.idx!)]);
+      });
+    });
+  }
+
+  function slaHTML(f: Finding): string {
+    if (!f.sla_deadline) return '';
+    const resolved = f.status === 'fixed' || f.status === 'verified' || f.status === 'accepted_risk';
+    if (resolved) return `<span class="text-xs text-slate-500">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
+    const diff = new Date(f.sla_deadline).getTime() - Date.now();
+    if (diff < 0)
+      return `<span class="text-xs font-bold text-red-400">Overdue — ${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
+    if (diff < 86400000)
+      return `<span class="text-xs font-bold text-amber-400">Due Soon — ${new Date(f.sla_deadline).toLocaleString()}</span>`;
+    return `<span class="text-xs text-slate-400">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
+  }
+
+  function openModal(f: Finding) {
+    currentModalFindingId = f.id;
+
+    document.getElementById('modal-title')!.textContent = f.title;
+    const sevEl = document.getElementById('modal-severity')!;
+    sevEl.textContent = f.severity;
+    sevEl.className = `text-xs font-bold capitalize px-2.5 py-1 rounded border ${SEV_STYLES[f.severity] ?? ''}`;
+    document.getElementById('modal-scanner')!.textContent = f.scanner;
+    document.getElementById('modal-rule')!.textContent = f.rule_id;
+    document.getElementById('modal-desc')!.textContent = f.description || '—';
+
+    // CVE / CWE badges
+    const cveEl = document.getElementById('modal-cve')!;
+    const cweEl = document.getElementById('modal-cwe')!;
+    if (f.cve_id) {
+      const num = f.cve_id.replace(/^CVE-/i, '');
+      cveEl.innerHTML = `<a href="https://nvd.nist.gov/vuln/detail/${f.cve_id}" target="_blank" rel="noopener"
+        class="font-mono text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded hover:bg-red-500/20 transition-colors">${f.cve_id}</a>`;
+      cveEl.classList.remove('hidden');
+    } else {
+      cveEl.innerHTML = '';
+      cveEl.classList.add('hidden');
+    }
+    if (f.cwe_id) {
+      const cweNum = f.cwe_id.match(/\d+/)?.[0] ?? '';
+      const href = cweNum ? `https://cwe.mitre.org/data/definitions/${cweNum}.html` : '#';
+      cweEl.innerHTML = `<a href="${href}" target="_blank" rel="noopener"
+        class="font-mono text-xs font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded hover:bg-purple-500/20 transition-colors">${f.cwe_id}</a>`;
+      cweEl.classList.remove('hidden');
+    } else {
+      cweEl.innerHTML = '';
+      cweEl.classList.add('hidden');
+    }
+    document.getElementById('modal-location')!.textContent =
+      f.file_path ? `${f.file_path}${f.line_start > 0 ? `:${f.line_start}` : ''}` : '—';
+
+    const snippetRow = document.getElementById('modal-snippet-row')!;
+    const snippetEl  = document.getElementById('modal-snippet')!;
+    if (f.code_snippet) {
+      snippetEl.textContent = f.code_snippet;
+      snippetRow.classList.remove('hidden');
+    } else {
+      snippetRow.classList.add('hidden');
+    }
+
+    // lifecycle fields
+    const slaRow = document.getElementById('modal-sla-row')!;
+    if (f.sla_deadline) {
+      slaRow.classList.remove('hidden');
+      document.getElementById('modal-sla')!.innerHTML = slaHTML(f);
+    } else {
+      slaRow.classList.add('hidden');
+    }
+    (document.getElementById('modal-status')   as HTMLSelectElement).value    = f.status ?? 'open';
+    (document.getElementById('modal-assigned')  as HTMLInputElement).value    = f.assigned_to ?? '';
+    (document.getElementById('modal-notes')     as HTMLTextAreaElement).value = f.notes ?? '';
+    (document.getElementById('modal-fp')        as HTMLInputElement).checked  = f.false_positive ?? false;
+    document.getElementById('modal-save-msg')!.textContent = '';
+
+    document.getElementById('modal')!.classList.remove('hidden');
+  }
+
+  document.getElementById('modal-close')!.addEventListener('click', () => {
+    document.getElementById('modal')!.classList.add('hidden');
+  });
+  document.getElementById('modal')!.addEventListener('click', e => {
+    if (e.target === e.currentTarget) document.getElementById('modal')!.classList.add('hidden');
+  });
+
+  document.getElementById('modal-save')!.addEventListener('click', async () => {
+    const btn    = document.getElementById('modal-save') as HTMLButtonElement;
+    const msgEl  = document.getElementById('modal-save-msg')!;
+    btn.disabled = true;
+    msgEl.textContent = '';
+    try {
+      const status        = (document.getElementById('modal-status')   as HTMLSelectElement).value;
+      const assigned_to   = (document.getElementById('modal-assigned')  as HTMLInputElement).value.trim() || undefined;
+      const notes         = (document.getElementById('modal-notes')    as HTMLTextAreaElement).value.trim() || undefined;
+      const false_positive = (document.getElementById('modal-fp')      as HTMLInputElement).checked;
+      await api.updateFinding(currentModalFindingId, { status, assigned_to, notes, false_positive });
+      msgEl.textContent  = 'Saved';
+      msgEl.className    = 'text-xs text-emerald-400';
+    } catch (err: any) {
+      msgEl.textContent = err.message;
+      msgEl.className   = 'text-xs text-red-400';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('sev-filter')!.addEventListener('change', e => {
+    const val = (e.target as HTMLSelectElement).value;
+    renderFindings(val ? allFindings.filter(f => f.severity === val) : allFindings);
+  });
+
+  async function load() {
+    try {
+      const [scan, findings] = await Promise.all([
+        api.getScan(scanId!),
+        api.getScanFindings(scanId!),
+      ]);
+
+      document.getElementById('loading')!.classList.add('hidden');
+      document.getElementById('content')!.classList.remove('hidden');
+
+      document.getElementById('scan-target')!.textContent = scan.target;
+      document.getElementById('scan-scanner')!.textContent = scan.scanner;
+      document.getElementById('scan-finding-count')!.textContent = String(scan.finding_count);
+      document.getElementById('scan-created')!.textContent = fmt(scan.created_at);
+      document.getElementById('scan-started')!.textContent = fmt((scan as any).started_at);
+      document.getElementById('scan-completed')!.textContent = fmt(scan.completed_at);
+
+      const statusEl = document.getElementById('scan-status')!;
+      statusEl.textContent = scan.status;
+      statusEl.className = `text-xs font-bold capitalize px-3 py-1 rounded ${STATUS_STYLES[scan.status] ?? ''}`;
+
+      if (scan.error && !scan.container_log) {
+        document.getElementById('scan-error-row')!.classList.remove('hidden');
+        document.getElementById('scan-error')!.textContent = scan.error;
+      }
+
+      if (scan.container_log) {
+        const logSection = document.getElementById('log-section')!;
+        logSection.classList.remove('hidden');
+        document.getElementById('log-content')!.textContent = scan.container_log;
+
+        const exitMatch = scan.container_log.match(/# exit: (.+)/);
+        const failed = scan.status === 'failed' || (exitMatch && exitMatch[1].trim() !== '0');
+
+        if (exitMatch) {
+          const badge = document.getElementById('log-exit-badge')!;
+          const exitVal = exitMatch[1].trim();
+          badge.textContent = exitVal === '0' ? 'exit 0' : exitVal;
+          badge.className = `text-xs font-mono px-2 py-0.5 rounded ${
+            exitVal === '0'
+              ? 'text-emerald-400 bg-emerald-500/10'
+              : 'text-red-400 bg-red-500/10'
+          }`;
+          badge.classList.remove('hidden');
+        }
+
+        const body    = document.getElementById('log-body')!;
+        const chevron = document.getElementById('log-chevron')!;
+        if (failed) {
+          body.classList.remove('hidden');
+          chevron.textContent = 'expand_less';
+        }
+
+        document.getElementById('log-toggle')!.addEventListener('click', () => {
+          const isHidden = body.classList.toggle('hidden');
+          chevron.textContent = isHidden ? 'expand_more' : 'expand_less';
+        });
+      }
+
+      const sevOrder = ['critical','high','medium','low','info'];
+      const counts: Record<string, number> = {};
+      findings.forEach(f => { counts[f.severity] = (counts[f.severity] ?? 0) + 1; });
+
+      document.getElementById('severity-summary')!.innerHTML = sevOrder.map(s => `
+        <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-center cursor-pointer hover:border-sky-500/20 transition-all"
+             data-sev="${s}">
+          <div class="h-1 ${SEV_BAR[s]} rounded-full mb-3 mx-auto w-8"></div>
+          <p class="text-xl font-black ${SEV_STYLES[s].split(' ')[0]}">${counts[s] ?? 0}</p>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">${s}</p>
+        </div>
+      `).join('');
+
+      document.getElementById('severity-summary')!.querySelectorAll('[data-sev]').forEach(card => {
+        card.addEventListener('click', () => {
+          const sev    = (card as HTMLElement).dataset.sev!;
+          const filter = document.getElementById('sev-filter') as HTMLSelectElement;
+          filter.value = filter.value === sev ? '' : sev;
+          filter.dispatchEvent(new Event('change'));
+        });
+      });
+
+      allFindings = findings;
+      renderFindings(findings);
+
+      if (scan.status === 'running' || scan.status === 'pending') {
+        setTimeout(load, 3000);
+      }
+    } catch {
+      document.getElementById('loading')!.textContent = 'Failed to load scan.';
+    }
+  }
+
+  load();
+</script>
