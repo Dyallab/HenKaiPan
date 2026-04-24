@@ -6,11 +6,12 @@ import (
 )
 
 type Config struct {
-	DatabaseURL     string // required
-	JWTSecret       string // required
-	RedisAddr       string // default: localhost:6379
-	Port            string // default: 8080
-	AnthropicAPIKey string // optional — AI features disabled if empty
+	DatabaseURL      string // required
+	JWTSecret        string // required
+	RedisAddr        string // default: localhost:6379
+	Port             string // default: 8080
+	OpenRouterAPIKey string // optional — AI features disabled if empty
+	OpenRouterModel  string // default: openai/gpt-4.1-mini
 }
 
 // Load reads env vars, fatals on missing required vars, returns typed config.
@@ -27,11 +28,12 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		DatabaseURL:     get("DATABASE_URL"),
-		JWTSecret:       get("JWT_SECRET"),
-		RedisAddr:       envOr("REDIS_ADDR", "localhost:6379"),
-		Port:            envOr("PORT", "8080"),
-		AnthropicAPIKey: os.Getenv("ANTHROPIC_API_KEY"),
+		DatabaseURL:      get("DATABASE_URL"),
+		JWTSecret:        get("JWT_SECRET"),
+		RedisAddr:        envOr("REDIS_ADDR", "localhost:6379"),
+		Port:             envOr("PORT", "8080"),
+		OpenRouterAPIKey: os.Getenv("OPENROUTER_API_KEY"),
+		OpenRouterModel:  envOr("OPENROUTER_MODEL", "xiaomi/mimo-v2-flash"),
 	}
 
 	if len(errs) > 0 {
@@ -44,7 +46,8 @@ func Load() *Config {
 	slog.Info("config loaded",
 		"redis_addr", cfg.RedisAddr,
 		"port", cfg.Port,
-		"ai_enabled", cfg.AnthropicAPIKey != "",
+		"ai_enabled", cfg.OpenRouterAPIKey != "",
+		"openrouter_model", cfg.OpenRouterModel,
 	)
 
 	return cfg

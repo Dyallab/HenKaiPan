@@ -56,18 +56,16 @@ func (r *agentRepo) GetCorrelatedFindings(ctx context.Context, findingID string)
 		       f2.severity, f2.file_path, f2.line_start, f2.line_end,
 		       COALESCE(f2.code_snippet, ''), f2.created_at, f2.status,
 		       f2.assigned_to, f2.false_positive, f2.notes, f2.resolved_at,
-		       f2.sla_deadline, f2.cve_id, f2.cwe_id, f2.suppressed, f2.remediation_slug
-		FROM findings f1
-		JOIN findings f2 ON (
-			f2.id != f1.id AND f2.suppressed = false AND (
-				(f2.rule_id = f1.rule_id AND f2.scanner != f1.scanner)
-				OR (f2.file_path = f1.file_path AND f1.file_path != ''
-				    AND ABS(f2.line_start - f1.line_start) <= 5
-				    AND f2.scanner != f1.scanner)
-				OR (f1.cve_id IS NOT NULL AND f2.cve_id = f1.cve_id)
-			)
-		)
-		WHERE f1.id = $1
+		       f2.sla_deadline, f2.cve_id, f2.cwe_id, f2.confidence_score, f2.corroboration_count, f2.suppressed, f2.remediation_slug
+		FROM finding_correlations fc
+		JOIN findings f1 ON f1.id = $1
+		JOIN findings f2 ON f2.id = CASE
+			WHEN fc.finding_id_a = f1.id THEN fc.finding_id_b
+			ELSE fc.finding_id_a
+		END
+		WHERE fc.correlation_type = 'same_family_batch'
+		  AND (fc.finding_id_a = f1.id OR fc.finding_id_b = f1.id)
+		  AND f2.suppressed = false
 		LIMIT 20
 	`, findingID)
 	if err != nil {
@@ -82,11 +80,14 @@ func (r *agentRepo) GetCorrelatedFindings(ctx context.Context, findingID string)
 			&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet,
 			&f.CreatedAt, &f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes,
-			&f.ResolvedAt, &f.SLADeadline, &f.CVEID, &f.CWEID, &f.Suppressed, &f.RemediationSlug,
+			&f.ResolvedAt, &f.SLADeadline, &f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.Suppressed, &f.RemediationSlug,
 		); err != nil {
 			return nil, err
 		}
 		findings = append(findings, f)
+	}
+	if findings == nil {
+		findings = []models.Finding{}
 	}
 	return findings, rows.Err()
 }

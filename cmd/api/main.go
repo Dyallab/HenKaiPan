@@ -25,7 +25,7 @@ func main() {
 	cfg := config.Load()
 
 	auth.SetSecret(cfg.JWTSecret)
-	ai.SetAPIKey(cfg.AnthropicAPIKey)
+	ai.SetConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
@@ -54,6 +54,7 @@ func main() {
 		r.Get("/api/findings", h.ListFindings)
 		r.Patch("/api/findings/{id}", h.UpdateFinding)
 		r.Get("/api/findings/sla", h.GetSLASummary)
+		r.Get("/api/findings/{id}/correlations", h.GetFindingCorrelations)
 		r.Get("/api/findings/{id}/analysis", h.GetFindingAnalysis)
 		r.Post("/api/findings/{id}/analyze", h.AnalyzeFinding)
 

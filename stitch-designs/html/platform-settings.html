@@ -1,560 +1,1199 @@
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Vigilance ASPM - Settings &amp; Integrations</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    "colors": {
-                        "on-tertiary": "#552100",
-                        "on-background": "#dae2fd",
-                        "on-error": "#690005",
-                        "tertiary-fixed": "#ffdbca",
-                        "tertiary-container": "#fc7519",
-                        "background": "#0b1326",
-                        "error": "#ffb4ab",
-                        "on-surface": "#dae2fd",
-                        "on-secondary-container": "#00311f",
-                        "on-error-container": "#ffdad6",
-                        "primary-fixed": "#cfe5ff",
-                        "tertiary": "#ffb690",
-                        "surface-variant": "#2d3449",
-                        "error-container": "#93000a",
-                        "on-primary": "#003354",
-                        "surface-container-lowest": "#060e20",
-                        "on-tertiary-fixed-variant": "#783200",
-                        "surface-container-high": "#222a3d",
-                        "surface-container-highest": "#2d3449",
-                        "on-surface-variant": "#bec7d4",
-                        "primary-fixed-dim": "#98cbff",
-                        "surface": "#0b1326",
-                        "on-tertiary-container": "#5b2400",
-                        "primary": "#98cbff",
-                        "on-primary-fixed-variant": "#004a77",
-                        "tertiary-fixed-dim": "#ffb690",
-                        "surface-tint": "#98cbff",
-                        "outline": "#88919d",
-                        "secondary-container": "#00a572",
-                        "surface-container-low": "#131b2e",
-                        "surface-container": "#171f33",
-                        "on-tertiary-fixed": "#341100",
-                        "on-primary-fixed": "#001d33",
-                        "on-secondary": "#003824",
-                        "secondary": "#4edea3",
-                        "inverse-surface": "#dae2fd",
-                        "primary-container": "#00a3ff",
-                        "inverse-on-surface": "#283044",
-                        "secondary-fixed": "#6ffbbe",
-                        "secondary-fixed-dim": "#4edea3",
-                        "inverse-primary": "#00629d",
-                        "surface-bright": "#31394d",
-                        "on-secondary-fixed-variant": "#005236",
-                        "surface-dim": "#0b1326",
-                        "on-secondary-fixed": "#002113",
-                        "on-primary-container": "#00375a",
-                        "outline-variant": "#3f4852"
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>HenKaiPan - Settings &amp; Integrations</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "on-tertiary": "#552100",
+                            "on-background": "#dae2fd",
+                            "on-error": "#690005",
+                            "tertiary-fixed": "#ffdbca",
+                            "tertiary-container": "#fc7519",
+                            background: "#0b1326",
+                            error: "#ffb4ab",
+                            "on-surface": "#dae2fd",
+                            "on-secondary-container": "#00311f",
+                            "on-error-container": "#ffdad6",
+                            "primary-fixed": "#cfe5ff",
+                            tertiary: "#ffb690",
+                            "surface-variant": "#2d3449",
+                            "error-container": "#93000a",
+                            "on-primary": "#003354",
+                            "surface-container-lowest": "#060e20",
+                            "on-tertiary-fixed-variant": "#783200",
+                            "surface-container-high": "#222a3d",
+                            "surface-container-highest": "#2d3449",
+                            "on-surface-variant": "#bec7d4",
+                            "primary-fixed-dim": "#98cbff",
+                            surface: "#0b1326",
+                            "on-tertiary-container": "#5b2400",
+                            primary: "#98cbff",
+                            "on-primary-fixed-variant": "#004a77",
+                            "tertiary-fixed-dim": "#ffb690",
+                            "surface-tint": "#98cbff",
+                            outline: "#88919d",
+                            "secondary-container": "#00a572",
+                            "surface-container-low": "#131b2e",
+                            "surface-container": "#171f33",
+                            "on-tertiary-fixed": "#341100",
+                            "on-primary-fixed": "#001d33",
+                            "on-secondary": "#003824",
+                            secondary: "#4edea3",
+                            "inverse-surface": "#dae2fd",
+                            "primary-container": "#00a3ff",
+                            "inverse-on-surface": "#283044",
+                            "secondary-fixed": "#6ffbbe",
+                            "secondary-fixed-dim": "#4edea3",
+                            "inverse-primary": "#00629d",
+                            "surface-bright": "#31394d",
+                            "on-secondary-fixed-variant": "#005236",
+                            "surface-dim": "#0b1326",
+                            "on-secondary-fixed": "#002113",
+                            "on-primary-container": "#00375a",
+                            "outline-variant": "#3f4852",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.125rem",
+                            lg: "0.25rem",
+                            xl: "0.5rem",
+                            full: "0.75rem",
+                        },
+                        spacing: {
+                            gutter: "20px",
+                            md: "24px",
+                            xl: "48px",
+                            lg: "32px",
+                            sm: "16px",
+                            base: "4px",
+                            xs: "8px",
+                            margin: "32px",
+                        },
+                        fontFamily: {
+                            h2: ["Inter"],
+                            "body-lg": ["Inter"],
+                            "mono-data": ["Space Grotesk"],
+                            "body-md": ["Inter"],
+                            h3: ["Inter"],
+                            h1: ["Inter"],
+                            "label-caps": ["Space Grotesk"],
+                        },
+                        fontSize: {
+                            h2: [
+                                "24px",
+                                { lineHeight: "1.3", fontWeight: "600" },
+                            ],
+                            "body-lg": [
+                                "16px",
+                                { lineHeight: "1.6", fontWeight: "400" },
+                            ],
+                            "mono-data": [
+                                "13px",
+                                { lineHeight: "1.4", fontWeight: "400" },
+                            ],
+                            "body-md": [
+                                "14px",
+                                { lineHeight: "1.5", fontWeight: "400" },
+                            ],
+                            h3: [
+                                "20px",
+                                { lineHeight: "1.4", fontWeight: "600" },
+                            ],
+                            h1: [
+                                "32px",
+                                {
+                                    lineHeight: "1.2",
+                                    letterSpacing: "-0.02em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-caps": [
+                                "12px",
+                                {
+                                    lineHeight: "1",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "500",
+                                },
+                            ],
+                        },
                     },
-                    "borderRadius": {
-                        "DEFAULT": "0.125rem",
-                        "lg": "0.25rem",
-                        "xl": "0.5rem",
-                        "full": "0.75rem"
-                    },
-                    "spacing": {
-                        "gutter": "20px",
-                        "md": "24px",
-                        "xl": "48px",
-                        "lg": "32px",
-                        "sm": "16px",
-                        "base": "4px",
-                        "xs": "8px",
-                        "margin": "32px"
-                    },
-                    "fontFamily": {
-                        "h2": ["Inter"],
-                        "body-lg": ["Inter"],
-                        "mono-data": ["Space Grotesk"],
-                        "body-md": ["Inter"],
-                        "h3": ["Inter"],
-                        "h1": ["Inter"],
-                        "label-caps": ["Space Grotesk"]
-                    },
-                    "fontSize": {
-                        "h2": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
-                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
-                        "mono-data": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
-                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
-                        "h3": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
-                        "h1": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                        "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "500"}]
-                    }
-                }
+                },
+            };
+        </script>
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
             }
-        }
-    </script>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #0b1326;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2d3449;
-            border-radius: 10px;
-        }
-    </style>
-</head>
-<body class="bg-background text-on-background font-body-md overflow-hidden flex h-screen">
-<!-- SideNavBar Component -->
-<nav class="bg-slate-950/90 backdrop-blur-lg border-r border-slate-800 fixed left-0 h-screen w-64 flex flex-col py-4 space-y-2 z-50">
-<div class="px-6 py-4 flex items-center gap-3">
-<div class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center">
-<span class="material-symbols-outlined text-slate-950 font-bold" data-icon="security">security</span>
-</div>
-<div>
-<div class="text-sky-500 font-black font-inter tracking-tight">Vigilance</div>
-<div class="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Enterprise Tier</div>
-</div>
-</div>
-<div class="flex-1 px-3 space-y-1 mt-6">
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Dashboard</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="security_update_good">security_update_good</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Scans</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="biotech">biotech</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Findings</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="verified_user">verified_user</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Compliance</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="hub">hub</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Integrations</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 bg-sky-500/10 text-sky-500 border-l-2 border-sky-500 group cursor-pointer transition-all duration-150">
-<span class="material-symbols-outlined" data-icon="settings">settings</span>
-<span class="font-inter text-sm uppercase tracking-wider font-bold">Settings</span>
-</div>
-</div>
-<div class="px-3 border-t border-slate-900 pt-4 space-y-1">
-<div class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-sky-500 cursor-pointer transition-all">
-<span class="material-symbols-outlined" data-icon="menu_book">menu_book</span>
-<span class="text-xs font-bold uppercase tracking-widest">Documentation</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-error cursor-pointer transition-all">
-<span class="material-symbols-outlined" data-icon="logout">logout</span>
-<span class="text-xs font-bold uppercase tracking-widest">Log Out</span>
-</div>
-</div>
-</nav>
-<!-- Main Canvas -->
-<main class="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
-<!-- TopNavBar Component -->
-<header class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm">
-<div class="flex items-center gap-8">
-<div class="text-xl font-black tracking-tighter text-sky-500 font-inter antialiased">Settings</div>
-<div class="hidden md:flex gap-6 items-center">
-<a class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200" href="#">Docs</a>
-<a class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200" href="#">API</a>
-<a class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200" href="#">Support</a>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex items-center gap-2 mr-4">
-<button class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-lg transition-colors">
-<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
-</button>
-<button class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-lg transition-colors">
-<span class="material-symbols-outlined" data-icon="help">help</span>
-</button>
-</div>
-<button class="px-4 py-2 bg-slate-900 border border-slate-700 text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors">
-                    System Status
-                </button>
-<button class="px-4 py-2 bg-sky-500 text-slate-950 text-sm font-bold rounded-lg hover:bg-sky-400 transition-colors">
-                    Deploy Agent
-                </button>
-<div class="ml-4 w-8 h-8 rounded-full border-2 border-sky-500 overflow-hidden">
-<img alt="Security Analyst Profile" class="w-full h-full object-cover" data-alt="Professional security analyst profile headshot in a high-tech office setting with neon blue accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAExUcR77wOu4XiNJ87NJgYoWEv67-m_QT3fVvUjUz8Lg_RUGoNgElih3LeqHj63Et7aQTxRf-lepPQgINJQuZHN6tLUSyrDc3gn3pRZSlX6Y2wCY2j8l5DLUH4wKuj2q6zCKSPR7HljscmBXOoZptoVVKnEkwEL91F5LR-mdS_GdK7vHytby38FM7SrLFmtfLcDBOAR9OJqU7FIv0Y8ztj0oapMyOhL838Siq15AwLhVxBKUSZqZL69b1jTT5Vzos_H69mhL_1Qg"/>
-</div>
-</div>
-</header>
-<!-- Page Content -->
-<div class="flex-1 flex overflow-hidden">
-<!-- Contextual Settings Nav -->
-<aside class="w-64 bg-surface-container-low border-r border-slate-900 p-6 flex flex-col gap-2 shrink-0">
-<div class="text-label-caps text-slate-500 mb-4 px-2">CONFIGURATION</div>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 font-semibold text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="manage_accounts">manage_accounts</span>
-                    General
-                </button>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="integration_instructions">integration_instructions</span>
-                    Integrations
-                </button>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="group">group</span>
-                    User Management
-                </button>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="notifications_active">notifications_active</span>
-                    Notifications
-                </button>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="shield_lock">shield_lock</span>
-                    Security &amp; SSO
-                </button>
-<button class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left">
-<span class="material-symbols-outlined text-[20px]" data-icon="receipt_long">receipt_long</span>
-                    Billing
-                </button>
-</aside>
-<!-- Scrollable Content Area -->
-<div class="flex-1 overflow-y-auto custom-scrollbar bg-surface p-8">
-<div class="max-w-6xl mx-auto space-y-12">
-<!-- General Section -->
-<section class="space-y-6" id="general">
-<div class="border-b border-slate-800 pb-4">
-<h2 class="font-h2 text-h2 text-on-background">General Settings</h2>
-<p class="text-slate-400 mt-1">Manage your personal profile and organization identity.</p>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-<div class="col-span-2 space-y-6">
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 space-y-4">
-<div class="grid grid-cols-2 gap-4">
-<div class="space-y-2">
-<label class="text-label-caps text-slate-500">FIRST NAME</label>
-<input class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background" type="text" value="Alex"/>
-</div>
-<div class="space-y-2">
-<label class="text-label-caps text-slate-500">LAST NAME</label>
-<input class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background" type="text" value="Chen"/>
-</div>
-</div>
-<div class="space-y-2">
-<label class="text-label-caps text-slate-500">ORGANIZATION NAME</label>
-<input class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background" type="text" value="Vigilance Cyber Corp"/>
-</div>
-</div>
-<button class="bg-sky-500 text-slate-950 font-bold px-6 py-3 rounded-lg hover:bg-sky-400 transition-colors">Save Changes</button>
-</div>
-<div class="space-y-4">
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 text-center space-y-4">
-<div class="w-24 h-24 rounded-full mx-auto border-4 border-slate-800 relative group cursor-pointer">
-<img alt="Profile" class="w-full h-full object-cover rounded-full" data-alt="Modern close-up portrait of a technology professional against a dark moody background with soft blue lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9e-invJIxire0rQQXB_eiowcDkLoKMv0UAfnTSgr9IFVultUSSQ6VkewRRTQuAGwXVSR5cOES-hYMuXSX-wefaPMLBY_L8oiXeiKIEiqIOpH9U2QtHuKuAFFCFKYUz4q2d9RKT6cxsaeVRUlgDyhBL-0XOebSA1B0hZAefp6gpHUJ9HOa7pW4rR4AeeeQqxSSlVK_WVT0o0tL80zIzCTIXQbEkMJ2D6jldwoSoPszwSg0scXRYIuVzpsAHzr4qe1dZ6wFQyPsBA"/>
-<div class="absolute inset-0 bg-slate-950/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-<span class="material-symbols-outlined text-white" data-icon="photo_camera">photo_camera</span>
-</div>
-</div>
-<div>
-<h4 class="font-bold text-on-background">Profile Photo</h4>
-<p class="text-xs text-slate-500 mt-1">Update your photo for team visibility.</p>
-</div>
-</div>
-</div>
-</div>
-</section>
-<!-- Integrations Section -->
-<section class="space-y-6" id="integrations">
-<div class="border-b border-slate-800 pb-4 flex justify-between items-end">
-<div>
-<h2 class="font-h2 text-h2 text-on-background">Integrations</h2>
-<p class="text-slate-400 mt-1">Connect your development and cloud ecosystem.</p>
-</div>
-<button class="text-sky-500 text-sm font-bold flex items-center gap-1 hover:underline">
-<span class="material-symbols-outlined text-sm" data-icon="add">add</span> Request Integration
-                            </button>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-<!-- GitHub Card -->
-<div class="bg-surface-container-high rounded-xl border border-sky-500/30 p-6 flex flex-col gap-4 relative overflow-hidden">
-<div class="absolute top-0 right-0 p-2">
-<span class="bg-secondary-container text-on-secondary-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter">Connected</span>
-</div>
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
-<span class="material-symbols-outlined text-white text-3xl" data-icon="code">code</span>
-</div>
-<div>
-<h3 class="font-bold">GitHub</h3>
-<p class="text-xs text-slate-500">SCM &amp; Actions</p>
-</div>
-</div>
-<p class="text-sm text-slate-400">Scanning 42 repositories for secrets and vulnerabilities.</p>
-<div class="mt-auto pt-4 flex gap-2">
-<button class="flex-1 bg-slate-900 border border-slate-800 text-xs font-bold py-2 rounded-lg hover:bg-slate-800 transition-colors">Configure</button>
-<button class="bg-slate-900 border border-slate-800 text-xs font-bold px-3 py-2 rounded-lg text-error hover:bg-error/10 transition-colors">
-<span class="material-symbols-outlined text-sm" data-icon="link_off">link_off</span>
-</button>
-</div>
-</div>
-<!-- AWS Card -->
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
-<span class="material-symbols-outlined text-[#FF9900] text-3xl" data-icon="cloud">cloud</span>
-</div>
-<div>
-<h3 class="font-bold">AWS</h3>
-<p class="text-xs text-slate-500">Cloud Infrastructure</p>
-</div>
-</div>
-<p class="text-sm text-slate-400">Monitor IAM, S3, and Lambda security posture.</p>
-<div class="mt-auto pt-4">
-<button class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors">Connect AWS</button>
-</div>
-</div>
-<!-- Jira Card -->
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
-<span class="material-symbols-outlined text-[#0052CC] text-3xl" data-icon="task_alt">task_alt</span>
-</div>
-<div>
-<h3 class="font-bold">Jira</h3>
-<p class="text-xs text-slate-500">Issue Tracking</p>
-</div>
-</div>
-<p class="text-sm text-slate-400">Sync findings as tickets for dev team remediation.</p>
-<div class="mt-auto pt-4">
-<button class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors">Connect Jira</button>
-</div>
-</div>
-<!-- GitLab Card -->
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
-<span class="material-symbols-outlined text-[#FC6D26] text-3xl" data-icon="terminal">terminal</span>
-</div>
-<div>
-<h3 class="font-bold">GitLab</h3>
-<p class="text-xs text-slate-500">SCM &amp; CI/CD</p>
-</div>
-</div>
-<p class="text-sm text-slate-400">Deep integration for self-hosted GitLab instances.</p>
-<div class="mt-auto pt-4">
-<button class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors">Connect GitLab</button>
-</div>
-</div>
-<!-- Azure Card -->
-<div class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800">
-<span class="material-symbols-outlined text-[#0078D4] text-3xl" data-icon="widgets">widgets</span>
-</div>
-<div>
-<h3 class="font-bold">Azure</h3>
-<p class="text-xs text-slate-500">Cloud &amp; DevOps</p>
-</div>
-</div>
-<p class="text-sm text-slate-400">Analyze Azure Resource Manager and Entra ID.</p>
-<div class="mt-auto pt-4">
-<button class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors">Connect Azure</button>
-</div>
-</div>
-</div>
-</section>
-<!-- User Management Section -->
-<section class="space-y-6" id="users">
-<div class="border-b border-slate-800 pb-4 flex justify-between items-end">
-<div>
-<h2 class="font-h2 text-h2 text-on-background">User Management</h2>
-<p class="text-slate-400 mt-1">Control access with granular role-based permissions.</p>
-</div>
-<button class="bg-sky-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm hover:bg-sky-400 transition-colors flex items-center gap-2">
-<span class="material-symbols-outlined text-sm" data-icon="person_add">person_add</span> Invite User
-                            </button>
-</div>
-<div class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="bg-slate-950/50 border-b border-slate-800">
-<th class="px-6 py-4 text-label-caps text-slate-500 font-medium">USER</th>
-<th class="px-6 py-4 text-label-caps text-slate-500 font-medium">ROLE</th>
-<th class="px-6 py-4 text-label-caps text-slate-500 font-medium">STATUS</th>
-<th class="px-6 py-4 text-label-caps text-slate-500 font-medium">LAST ACTIVE</th>
-<th class="px-6 py-4 text-label-caps text-slate-500 font-medium text-right">ACTIONS</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-slate-800">
-<tr class="hover:bg-slate-900/30 transition-colors">
-<td class="px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-bold">AC</div>
-<div>
-<div class="font-semibold text-sm">Alex Chen</div>
-<div class="text-xs text-slate-500">alex@vigilance.io</div>
-</div>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700">Administrator</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-1.5 text-xs text-secondary">
-<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div> Active
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: #0b1326;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #2d3449;
+                border-radius: 10px;
+            }
+        </style>
+    </head>
+    <body
+        class="bg-background text-on-background font-body-md overflow-hidden flex h-screen"
+    >
+        <!-- SideNavBar Component -->
+        <nav
+            class="bg-slate-950/90 backdrop-blur-lg border-r border-slate-800 fixed left-0 h-screen w-64 flex flex-col py-4 space-y-2 z-50"
+        >
+            <div class="px-6 py-4 flex items-center gap-3">
+                <div
+                    class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center"
+                >
+                    <span
+                        class="material-symbols-outlined text-slate-950 font-bold"
+                        data-icon="security"
+                        >security</span
+                    >
+                </div>
+                <div>
+                    <div
+                        class="text-sky-500 font-black font-inter tracking-tight"
+                    >
+                        HenKaiPan
+                    </div>
+                    <div
+                        class="text-[10px] uppercase tracking-widest text-slate-500 font-bold"
+                    >
+                        Enterprise Tier
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 px-3 space-y-1 mt-6">
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="dashboard"
+                        >dashboard</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Dashboard</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="security_update_good"
+                        >security_update_good</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Scans</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="biotech"
+                        >biotech</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Findings</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="verified_user"
+                        >verified_user</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Compliance</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="hub"
+                        >hub</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Integrations</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 bg-sky-500/10 text-sky-500 border-l-2 border-sky-500 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="settings"
+                        >settings</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Settings</span
+                    >
+                </div>
+            </div>
+            <div class="px-3 border-t border-slate-900 pt-4 space-y-1">
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-sky-500 cursor-pointer transition-all"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="menu_book"
+                        >menu_book</span
+                    >
+                    <span class="text-xs font-bold uppercase tracking-widest"
+                        >Documentation</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-error cursor-pointer transition-all"
+                >
+                    <span class="material-symbols-outlined" data-icon="logout"
+                        >logout</span
+                    >
+                    <span class="text-xs font-bold uppercase tracking-widest"
+                        >Log Out</span
+                    >
+                </div>
+            </div>
+        </nav>
+        <!-- Main Canvas -->
+        <main class="flex-1 ml-64 flex flex-col h-screen overflow-hidden">
+            <!-- TopNavBar Component -->
+            <header
+                class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm"
+            >
+                <div class="flex items-center gap-8">
+                    <div
+                        class="text-xl font-black tracking-tighter text-sky-500 font-inter antialiased"
+                    >
+                        Settings
+                    </div>
+                    <div class="hidden md:flex gap-6 items-center">
+                        <a
+                            class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200"
+                            href="#"
+                            >Docs</a
+                        >
+                        <a
+                            class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200"
+                            href="#"
+                            >API</a
+                        >
+                        <a
+                            class="text-slate-400 font-medium hover:text-slate-200 text-sm font-inter transition-colors duration-200"
+                            href="#"
+                            >Support</a
+                        >
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 mr-4">
+                        <button
+                            class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-lg transition-colors"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="notifications"
+                                >notifications</span
+                            >
+                        </button>
+                        <button
+                            class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-lg transition-colors"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="help"
+                                >help</span
+                            >
+                        </button>
+                    </div>
+                    <button
+                        class="px-4 py-2 bg-slate-900 border border-slate-700 text-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+                    >
+                        System Status
+                    </button>
+                    <button
+                        class="px-4 py-2 bg-sky-500 text-slate-950 text-sm font-bold rounded-lg hover:bg-sky-400 transition-colors"
+                    >
+                        Deploy Agent
+                    </button>
+                    <div
+                        class="ml-4 w-8 h-8 rounded-full border-2 border-sky-500 overflow-hidden"
+                    >
+                        <img
+                            alt="Security Analyst Profile"
+                            class="w-full h-full object-cover"
+                            data-alt="Professional security analyst profile headshot in a high-tech office setting with neon blue accents"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAExUcR77wOu4XiNJ87NJgYoWEv67-m_QT3fVvUjUz8Lg_RUGoNgElih3LeqHj63Et7aQTxRf-lepPQgINJQuZHN6tLUSyrDc3gn3pRZSlX6Y2wCY2j8l5DLUH4wKuj2q6zCKSPR7HljscmBXOoZptoVVKnEkwEL91F5LR-mdS_GdK7vHytby38FM7SrLFmtfLcDBOAR9OJqU7FIv0Y8ztj0oapMyOhL838Siq15AwLhVxBKUSZqZL69b1jTT5Vzos_H69mhL_1Qg"
+                        />
+                    </div>
+                </div>
+            </header>
+            <!-- Page Content -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Contextual Settings Nav -->
+                <aside
+                    class="w-64 bg-surface-container-low border-r border-slate-900 p-6 flex flex-col gap-2 shrink-0"
+                >
+                    <div class="text-label-caps text-slate-500 mb-4 px-2">
+                        CONFIGURATION
+                    </div>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sky-500/10 text-sky-400 font-semibold text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="manage_accounts"
+                            >manage_accounts</span
+                        >
+                        General
+                    </button>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="integration_instructions"
+                            >integration_instructions</span
+                        >
+                        Integrations
+                    </button>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="group"
+                            >group</span
+                        >
+                        User Management
+                    </button>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="notifications_active"
+                            >notifications_active</span
+                        >
+                        Notifications
+                    </button>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="shield_lock"
+                            >shield_lock</span
+                        >
+                        Security &amp; SSO
+                    </button>
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-900 transition-colors text-left"
+                    >
+                        <span
+                            class="material-symbols-outlined text-[20px]"
+                            data-icon="receipt_long"
+                            >receipt_long</span
+                        >
+                        Billing
+                    </button>
+                </aside>
+                <!-- Scrollable Content Area -->
+                <div
+                    class="flex-1 overflow-y-auto custom-scrollbar bg-surface p-8"
+                >
+                    <div class="max-w-6xl mx-auto space-y-12">
+                        <!-- General Section -->
+                        <section class="space-y-6" id="general">
+                            <div class="border-b border-slate-800 pb-4">
+                                <h2 class="font-h2 text-h2 text-on-background">
+                                    General Settings
+                                </h2>
+                                <p class="text-slate-400 mt-1">
+                                    Manage your personal profile and
+                                    organization identity.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div class="col-span-2 space-y-6">
+                                    <div
+                                        class="bg-surface-container rounded-xl border border-outline-variant p-6 space-y-4"
+                                    >
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-label-caps text-slate-500"
+                                                    >FIRST NAME</label
+                                                >
+                                                <input
+                                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background"
+                                                    type="text"
+                                                    value="Alex"
+                                                />
                                             </div>
-</td>
-<td class="px-6 py-4 text-mono-data text-slate-400">Just now</td>
-<td class="px-6 py-4 text-right">
-<button class="text-slate-500 hover:text-white transition-colors">
-<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
-</button>
-</td>
-</tr>
-<tr class="hover:bg-slate-900/30 transition-colors">
-<td class="px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-bold">SM</div>
-<div>
-<div class="font-semibold text-sm">Sarah Miller</div>
-<div class="text-xs text-slate-500">sarah.m@vigilance.io</div>
-</div>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700">Security Analyst</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-1.5 text-xs text-secondary">
-<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div> Active
+                                            <div class="space-y-2">
+                                                <label
+                                                    class="text-label-caps text-slate-500"
+                                                    >LAST NAME</label
+                                                >
+                                                <input
+                                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background"
+                                                    type="text"
+                                                    value="Chen"
+                                                />
                                             </div>
-</td>
-<td class="px-6 py-4 text-mono-data text-slate-400">2 hours ago</td>
-<td class="px-6 py-4 text-right">
-<button class="text-slate-500 hover:text-white transition-colors">
-<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
-</button>
-</td>
-</tr>
-<tr class="hover:bg-slate-900/30 transition-colors">
-<td class="px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold">JK</div>
-<div>
-<div class="font-semibold text-sm">Jason Kim</div>
-<div class="text-xs text-slate-500">jason@dev-external.com</div>
-</div>
-</div>
-</td>
-<td class="px-6 py-4">
-<span class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700">ReadOnly</span>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-1.5 text-xs text-slate-500">
-<div class="w-1.5 h-1.5 rounded-full bg-slate-500"></div> Pending
+                                        </div>
+                                        <div class="space-y-2">
+                                            <label
+                                                class="text-label-caps text-slate-500"
+                                                >ORGANIZATION NAME</label
+                                            >
+                                            <input
+                                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-sky-500 outline-none text-on-background"
+                                                type="text"
+                                                value="Vigilance Cyber Corp"
+                                            />
+                                        </div>
+                                    </div>
+                                    <button
+                                        class="bg-sky-500 text-slate-950 font-bold px-6 py-3 rounded-lg hover:bg-sky-400 transition-colors"
+                                    >
+                                        Save Changes
+                                    </button>
+                                </div>
+                                <div class="space-y-4">
+                                    <div
+                                        class="bg-surface-container rounded-xl border border-outline-variant p-6 text-center space-y-4"
+                                    >
+                                        <div
+                                            class="w-24 h-24 rounded-full mx-auto border-4 border-slate-800 relative group cursor-pointer"
+                                        >
+                                            <img
+                                                alt="Profile"
+                                                class="w-full h-full object-cover rounded-full"
+                                                data-alt="Modern close-up portrait of a technology professional against a dark moody background with soft blue lighting"
+                                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9e-invJIxire0rQQXB_eiowcDkLoKMv0UAfnTSgr9IFVultUSSQ6VkewRRTQuAGwXVSR5cOES-hYMuXSX-wefaPMLBY_L8oiXeiKIEiqIOpH9U2QtHuKuAFFCFKYUz4q2d9RKT6cxsaeVRUlgDyhBL-0XOebSA1B0hZAefp6gpHUJ9HOa7pW4rR4AeeeQqxSSlVK_WVT0o0tL80zIzCTIXQbEkMJ2D6jldwoSoPszwSg0scXRYIuVzpsAHzr4qe1dZ6wFQyPsBA"
+                                            />
+                                            <div
+                                                class="absolute inset-0 bg-slate-950/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-white"
+                                                    data-icon="photo_camera"
+                                                    >photo_camera</span
+                                                >
                                             </div>
-</td>
-<td class="px-6 py-4 text-mono-data text-slate-400">Invited Mar 12</td>
-<td class="px-6 py-4 text-right">
-<button class="text-slate-500 hover:text-white transition-colors">
-<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
-</button>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</section>
-<!-- Notifications Section -->
-<section class="space-y-6" id="notifications">
-<div class="border-b border-slate-800 pb-4">
-<h2 class="font-h2 text-h2 text-on-background">Notifications &amp; Webhooks</h2>
-<p class="text-slate-400 mt-1">Configure alert routing and external service hooks.</p>
-</div>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-6">
-<h4 class="font-bold text-on-background flex items-center gap-2">
-<span class="material-symbols-outlined text-sky-500" data-icon="mail">mail</span> Email Alerts
-                                </h4>
-<div class="space-y-4">
-<div class="flex items-center justify-between">
-<div>
-<div class="text-sm font-medium">Critical Vulnerabilities</div>
-<div class="text-xs text-slate-500">Notify immediately on detection</div>
-</div>
-<div class="w-10 h-5 bg-sky-500 rounded-full relative cursor-pointer">
-<div class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"></div>
-</div>
-</div>
-<div class="flex items-center justify-between">
-<div>
-<div class="text-sm font-medium">Weekly Security Digest</div>
-<div class="text-xs text-slate-500">Summary of posture changes</div>
-</div>
-<div class="w-10 h-5 bg-slate-700 rounded-full relative cursor-pointer">
-<div class="absolute left-0.5 top-0.5 w-4 h-4 bg-slate-400 rounded-full"></div>
-</div>
-</div>
-</div>
-</div>
-<div class="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-6">
-<div class="flex justify-between items-center">
-<h4 class="font-bold text-on-background flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary" data-icon="webhook">webhook</span> Webhooks
+                                        </div>
+                                        <div>
+                                            <h4
+                                                class="font-bold text-on-background"
+                                            >
+                                                Profile Photo
+                                            </h4>
+                                            <p
+                                                class="text-xs text-slate-500 mt-1"
+                                            >
+                                                Update your photo for team
+                                                visibility.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- Integrations Section -->
+                        <section class="space-y-6" id="integrations">
+                            <div
+                                class="border-b border-slate-800 pb-4 flex justify-between items-end"
+                            >
+                                <div>
+                                    <h2
+                                        class="font-h2 text-h2 text-on-background"
+                                    >
+                                        Integrations
+                                    </h2>
+                                    <p class="text-slate-400 mt-1">
+                                        Connect your development and cloud
+                                        ecosystem.
+                                    </p>
+                                </div>
+                                <button
+                                    class="text-sky-500 text-sm font-bold flex items-center gap-1 hover:underline"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        data-icon="add"
+                                        >add</span
+                                    >
+                                    Request Integration
+                                </button>
+                            </div>
+                            <div
+                                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                            >
+                                <!-- GitHub Card -->
+                                <div
+                                    class="bg-surface-container-high rounded-xl border border-sky-500/30 p-6 flex flex-col gap-4 relative overflow-hidden"
+                                >
+                                    <div class="absolute top-0 right-0 p-2">
+                                        <span
+                                            class="bg-secondary-container text-on-secondary-container text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter"
+                                            >Connected</span
+                                        >
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-white text-3xl"
+                                                data-icon="code"
+                                                >code</span
+                                            >
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold">GitHub</h3>
+                                            <p class="text-xs text-slate-500">
+                                                SCM &amp; Actions
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-400">
+                                        Scanning 42 repositories for secrets and
+                                        vulnerabilities.
+                                    </p>
+                                    <div class="mt-auto pt-4 flex gap-2">
+                                        <button
+                                            class="flex-1 bg-slate-900 border border-slate-800 text-xs font-bold py-2 rounded-lg hover:bg-slate-800 transition-colors"
+                                        >
+                                            Configure
+                                        </button>
+                                        <button
+                                            class="bg-slate-900 border border-slate-800 text-xs font-bold px-3 py-2 rounded-lg text-error hover:bg-error/10 transition-colors"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-sm"
+                                                data-icon="link_off"
+                                                >link_off</span
+                                            >
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- AWS Card -->
+                                <div
+                                    class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-[#FF9900] text-3xl"
+                                                data-icon="cloud"
+                                                >cloud</span
+                                            >
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold">AWS</h3>
+                                            <p class="text-xs text-slate-500">
+                                                Cloud Infrastructure
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-400">
+                                        Monitor IAM, S3, and Lambda security
+                                        posture.
+                                    </p>
+                                    <div class="mt-auto pt-4">
+                                        <button
+                                            class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors"
+                                        >
+                                            Connect AWS
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Jira Card -->
+                                <div
+                                    class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-[#0052CC] text-3xl"
+                                                data-icon="task_alt"
+                                                >task_alt</span
+                                            >
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold">Jira</h3>
+                                            <p class="text-xs text-slate-500">
+                                                Issue Tracking
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-400">
+                                        Sync findings as tickets for dev team
+                                        remediation.
+                                    </p>
+                                    <div class="mt-auto pt-4">
+                                        <button
+                                            class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors"
+                                        >
+                                            Connect Jira
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- GitLab Card -->
+                                <div
+                                    class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-[#FC6D26] text-3xl"
+                                                data-icon="terminal"
+                                                >terminal</span
+                                            >
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold">GitLab</h3>
+                                            <p class="text-xs text-slate-500">
+                                                SCM &amp; CI/CD
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-400">
+                                        Deep integration for self-hosted GitLab
+                                        instances.
+                                    </p>
+                                    <div class="mt-auto pt-4">
+                                        <button
+                                            class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors"
+                                        >
+                                            Connect GitLab
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Azure Card -->
+                                <div
+                                    class="bg-surface-container rounded-xl border border-outline-variant p-6 flex flex-col gap-4 hover:border-sky-500/50 transition-colors"
+                                >
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 bg-slate-950 rounded-lg flex items-center justify-center border border-slate-800"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-[#0078D4] text-3xl"
+                                                data-icon="widgets"
+                                                >widgets</span
+                                            >
+                                        </div>
+                                        <div>
+                                            <h3 class="font-bold">Azure</h3>
+                                            <p class="text-xs text-slate-500">
+                                                Cloud &amp; DevOps
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <p class="text-sm text-slate-400">
+                                        Analyze Azure Resource Manager and Entra
+                                        ID.
+                                    </p>
+                                    <div class="mt-auto pt-4">
+                                        <button
+                                            class="w-full bg-sky-500 text-slate-950 text-xs font-bold py-2 rounded-lg hover:bg-sky-400 transition-colors"
+                                        >
+                                            Connect Azure
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- User Management Section -->
+                        <section class="space-y-6" id="users">
+                            <div
+                                class="border-b border-slate-800 pb-4 flex justify-between items-end"
+                            >
+                                <div>
+                                    <h2
+                                        class="font-h2 text-h2 text-on-background"
+                                    >
+                                        User Management
+                                    </h2>
+                                    <p class="text-slate-400 mt-1">
+                                        Control access with granular role-based
+                                        permissions.
+                                    </p>
+                                </div>
+                                <button
+                                    class="bg-sky-500 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm hover:bg-sky-400 transition-colors flex items-center gap-2"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        data-icon="person_add"
+                                        >person_add</span
+                                    >
+                                    Invite User
+                                </button>
+                            </div>
+                            <div
+                                class="bg-surface-container border border-outline-variant rounded-xl overflow-hidden"
+                            >
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr
+                                            class="bg-slate-950/50 border-b border-slate-800"
+                                        >
+                                            <th
+                                                class="px-6 py-4 text-label-caps text-slate-500 font-medium"
+                                            >
+                                                USER
+                                            </th>
+                                            <th
+                                                class="px-6 py-4 text-label-caps text-slate-500 font-medium"
+                                            >
+                                                ROLE
+                                            </th>
+                                            <th
+                                                class="px-6 py-4 text-label-caps text-slate-500 font-medium"
+                                            >
+                                                STATUS
+                                            </th>
+                                            <th
+                                                class="px-6 py-4 text-label-caps text-slate-500 font-medium"
+                                            >
+                                                LAST ACTIVE
+                                            </th>
+                                            <th
+                                                class="px-6 py-4 text-label-caps text-slate-500 font-medium text-right"
+                                            >
+                                                ACTIONS
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-800">
+                                        <tr
+                                            class="hover:bg-slate-900/30 transition-colors"
+                                        >
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-3"
+                                                >
+                                                    <div
+                                                        class="w-8 h-8 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-xs font-bold"
+                                                    >
+                                                        AC
+                                                    </div>
+                                                    <div>
+                                                        <div
+                                                            class="font-semibold text-sm"
+                                                        >
+                                                            Alex Chen
+                                                        </div>
+                                                        <div
+                                                            class="text-xs text-slate-500"
+                                                        >
+                                                            alex@vigilance.io
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span
+                                                    class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700"
+                                                    >Administrator</span
+                                                >
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-1.5 text-xs text-secondary"
+                                                >
+                                                    <div
+                                                        class="w-1.5 h-1.5 rounded-full bg-secondary"
+                                                    ></div>
+                                                    Active
+                                                </div>
+                                            </td>
+                                            <td
+                                                class="px-6 py-4 text-mono-data text-slate-400"
+                                            >
+                                                Just now
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button
+                                                    class="text-slate-500 hover:text-white transition-colors"
+                                                >
+                                                    <span
+                                                        class="material-symbols-outlined"
+                                                        data-icon="more_vert"
+                                                        >more_vert</span
+                                                    >
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr
+                                            class="hover:bg-slate-900/30 transition-colors"
+                                        >
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-3"
+                                                >
+                                                    <div
+                                                        class="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-xs font-bold"
+                                                    >
+                                                        SM
+                                                    </div>
+                                                    <div>
+                                                        <div
+                                                            class="font-semibold text-sm"
+                                                        >
+                                                            Sarah Miller
+                                                        </div>
+                                                        <div
+                                                            class="text-xs text-slate-500"
+                                                        >
+                                                            sarah.m@vigilance.io
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span
+                                                    class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700"
+                                                    >Security Analyst</span
+                                                >
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-1.5 text-xs text-secondary"
+                                                >
+                                                    <div
+                                                        class="w-1.5 h-1.5 rounded-full bg-secondary"
+                                                    ></div>
+                                                    Active
+                                                </div>
+                                            </td>
+                                            <td
+                                                class="px-6 py-4 text-mono-data text-slate-400"
+                                            >
+                                                2 hours ago
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button
+                                                    class="text-slate-500 hover:text-white transition-colors"
+                                                >
+                                                    <span
+                                                        class="material-symbols-outlined"
+                                                        data-icon="more_vert"
+                                                        >more_vert</span
+                                                    >
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        <tr
+                                            class="hover:bg-slate-900/30 transition-colors"
+                                        >
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-3"
+                                                >
+                                                    <div
+                                                        class="w-8 h-8 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center text-xs font-bold"
+                                                    >
+                                                        JK
+                                                    </div>
+                                                    <div>
+                                                        <div
+                                                            class="font-semibold text-sm"
+                                                        >
+                                                            Jason Kim
+                                                        </div>
+                                                        <div
+                                                            class="text-xs text-slate-500"
+                                                        >
+                                                            jason@dev-external.com
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span
+                                                    class="text-sm px-2 py-1 bg-slate-800 rounded border border-slate-700"
+                                                    >ReadOnly</span
+                                                >
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <div
+                                                    class="flex items-center gap-1.5 text-xs text-slate-500"
+                                                >
+                                                    <div
+                                                        class="w-1.5 h-1.5 rounded-full bg-slate-500"
+                                                    ></div>
+                                                    Pending
+                                                </div>
+                                            </td>
+                                            <td
+                                                class="px-6 py-4 text-mono-data text-slate-400"
+                                            >
+                                                Invited Mar 12
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button
+                                                    class="text-slate-500 hover:text-white transition-colors"
+                                                >
+                                                    <span
+                                                        class="material-symbols-outlined"
+                                                        data-icon="more_vert"
+                                                        >more_vert</span
+                                                    >
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                        <!-- Notifications Section -->
+                        <section class="space-y-6" id="notifications">
+                            <div class="border-b border-slate-800 pb-4">
+                                <h2 class="font-h2 text-h2 text-on-background">
+                                    Notifications &amp; Webhooks
+                                </h2>
+                                <p class="text-slate-400 mt-1">
+                                    Configure alert routing and external service
+                                    hooks.
+                                </p>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div
+                                    class="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-6"
+                                >
+                                    <h4
+                                        class="font-bold text-on-background flex items-center gap-2"
+                                    >
+                                        <span
+                                            class="material-symbols-outlined text-sky-500"
+                                            data-icon="mail"
+                                            >mail</span
+                                        >
+                                        Email Alerts
                                     </h4>
-<button class="text-xs text-sky-500 font-bold hover:underline">Add New</button>
-</div>
-<div class="space-y-3">
-<div class="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center">
-<span class="material-symbols-outlined text-sm" data-icon="slack">chat</span>
-</div>
-<div>
-<div class="text-xs font-bold">#security-alerts</div>
-<div class="text-[10px] text-slate-500 font-mono-data">hooks.slack.com/...a82f</div>
-</div>
-</div>
-<span class="material-symbols-outlined text-slate-600 text-sm cursor-pointer hover:text-error" data-icon="delete">delete</span>
-</div>
-<div class="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center">
-<span class="material-symbols-outlined text-sm" data-icon="api">api</span>
-</div>
-<div>
-<div class="text-xs font-bold">Splunk SIEM Ingest</div>
-<div class="text-[10px] text-slate-500 font-mono-data">siem-api.internal.net/vigilance</div>
-</div>
-</div>
-<span class="material-symbols-outlined text-slate-600 text-sm cursor-pointer hover:text-error" data-icon="delete">delete</span>
-</div>
-</div>
-</div>
-</div>
-</section>
-</div>
-<!-- Footer Component -->
-<footer class="w-full py-8 mt-12 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4">
-<div class="text-xs text-slate-500 font-inter">© 2024 Vigilance Security Platform. All rights reserved.</div>
-<div class="flex gap-6">
-<a class="text-xs text-slate-500 hover:text-sky-500 transition-colors" href="#">Privacy Policy</a>
-<a class="text-xs text-slate-500 hover:text-sky-500 transition-colors" href="#">Terms of Service</a>
-<a class="text-xs text-slate-500 hover:text-sky-500 transition-colors" href="#">Security Disclosure</a>
-<a class="text-xs text-slate-500 hover:text-sky-500 transition-colors" href="#">Trust Center</a>
-</div>
-</footer>
-</div>
-</div>
-</main>
-<!-- FAB Suppression: No FAB on Settings Page -->
-</body></html>
+                                    <div class="space-y-4">
+                                        <div
+                                            class="flex items-center justify-between"
+                                        >
+                                            <div>
+                                                <div
+                                                    class="text-sm font-medium"
+                                                >
+                                                    Critical Vulnerabilities
+                                                </div>
+                                                <div
+                                                    class="text-xs text-slate-500"
+                                                >
+                                                    Notify immediately on
+                                                    detection
+                                                </div>
+                                            </div>
+                                            <div
+                                                class="w-10 h-5 bg-sky-500 rounded-full relative cursor-pointer"
+                                            >
+                                                <div
+                                                    class="absolute right-0.5 top-0.5 w-4 h-4 bg-white rounded-full"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="flex items-center justify-between"
+                                        >
+                                            <div>
+                                                <div
+                                                    class="text-sm font-medium"
+                                                >
+                                                    Weekly Security Digest
+                                                </div>
+                                                <div
+                                                    class="text-xs text-slate-500"
+                                                >
+                                                    Summary of posture changes
+                                                </div>
+                                            </div>
+                                            <div
+                                                class="w-10 h-5 bg-slate-700 rounded-full relative cursor-pointer"
+                                            >
+                                                <div
+                                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-slate-400 rounded-full"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    class="bg-surface-container border border-outline-variant rounded-xl p-6 space-y-6"
+                                >
+                                    <div
+                                        class="flex justify-between items-center"
+                                    >
+                                        <h4
+                                            class="font-bold text-on-background flex items-center gap-2"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-secondary"
+                                                data-icon="webhook"
+                                                >webhook</span
+                                            >
+                                            Webhooks
+                                        </h4>
+                                        <button
+                                            class="text-xs text-sky-500 font-bold hover:underline"
+                                        >
+                                            Add New
+                                        </button>
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div
+                                            class="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between"
+                                        >
+                                            <div
+                                                class="flex items-center gap-3"
+                                            >
+                                                <div
+                                                    class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center"
+                                                >
+                                                    <span
+                                                        class="material-symbols-outlined text-sm"
+                                                        data-icon="slack"
+                                                        >chat</span
+                                                    >
+                                                </div>
+                                                <div>
+                                                    <div
+                                                        class="text-xs font-bold"
+                                                    >
+                                                        #security-alerts
+                                                    </div>
+                                                    <div
+                                                        class="text-[10px] text-slate-500 font-mono-data"
+                                                    >
+                                                        hooks.slack.com/...a82f
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span
+                                                class="material-symbols-outlined text-slate-600 text-sm cursor-pointer hover:text-error"
+                                                data-icon="delete"
+                                                >delete</span
+                                            >
+                                        </div>
+                                        <div
+                                            class="p-3 bg-slate-950 border border-slate-800 rounded-lg flex items-center justify-between"
+                                        >
+                                            <div
+                                                class="flex items-center gap-3"
+                                            >
+                                                <div
+                                                    class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center"
+                                                >
+                                                    <span
+                                                        class="material-symbols-outlined text-sm"
+                                                        data-icon="api"
+                                                        >api</span
+                                                    >
+                                                </div>
+                                                <div>
+                                                    <div
+                                                        class="text-xs font-bold"
+                                                    >
+                                                        Splunk SIEM Ingest
+                                                    </div>
+                                                    <div
+                                                        class="text-[10px] text-slate-500 font-mono-data"
+                                                    >
+                                                        siem-api.internal.net/vigilance
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span
+                                                class="material-symbols-outlined text-slate-600 text-sm cursor-pointer hover:text-error"
+                                                data-icon="delete"
+                                                >delete</span
+                                            >
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <!-- Footer Component -->
+                    <footer
+                        class="w-full py-8 mt-12 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-4"
+                    >
+                        <div class="text-xs text-slate-500 font-inter">
+                            © 2026 Security Platform. All rights reserved.
+                        </div>
+                        <div class="flex gap-6">
+                            <a
+                                class="text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                                href="#"
+                                >Privacy Policy</a
+                            >
+                            <a
+                                class="text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                                href="#"
+                                >Terms of Service</a
+                            >
+                            <a
+                                class="text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                                href="#"
+                                >Security Disclosure</a
+                            >
+                            <a
+                                class="text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                                href="#"
+                                >Trust Center</a
+                            >
+                        </div>
+                    </footer>
+                </div>
+            </div>
+        </main>
+        <!-- FAB Suppression: No FAB on Settings Page -->
+    </body>
+</html>

@@ -57,10 +57,10 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				return err
 			}
 			defer os.RemoveAll(dir)
-			result = runDocker(ctx, sc, dir)
+			result = runDocker(sc, dir)
 
 		case scanner.TargetURL:
-			result = runDockerURL(ctx, sc, p.Target)
+			result = runDockerURL(sc, p.Target)
 		}
 
 		if result.err != nil && len(result.stdout) == 0 {
@@ -103,6 +103,9 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				continue
 			}
 			inserted++
+			if err := findings.RefreshBatchCorrelation(ctx, findingID); err != nil {
+				log.Warn("refresh batch correlation failed", "finding_id", findingID, "err", err)
+			}
 			if !suppressed {
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)
 				enqueueAgentValidate(ctx, queue, findingID)
@@ -149,7 +152,7 @@ func buildDockerCmd(sc scanner.Scanner, args []string) *exec.Cmd {
 	return exec.Command("docker", base...)
 }
 
-func runDocker(ctx context.Context, sc scanner.Scanner, mountSrc string) runResult {
+func runDocker(sc scanner.Scanner, mountSrc string) runResult {
 	args := []string{}
 	if sc.MountDst != "" {
 		args = append(args, "-v", fmt.Sprintf("%s:%s", mountSrc, sc.MountDst))
@@ -159,16 +162,16 @@ func runDocker(ctx context.Context, sc scanner.Scanner, mountSrc string) runResu
 	}
 	args = append(args, sc.Image)
 	args = append(args, sc.BuildArgs(sc.MountDst)...)
-	return execute(ctx, sc, args)
+	return execute(sc, args)
 }
 
-func runDockerURL(ctx context.Context, sc scanner.Scanner, target string) runResult {
+func runDockerURL(sc scanner.Scanner, target string) runResult {
 	args := []string{sc.Image}
 	args = append(args, sc.BuildArgs(target)...)
-	return execute(ctx, sc, args)
+	return execute(sc, args)
 }
 
-func execute(ctx context.Context, sc scanner.Scanner, dockerArgs []string) runResult {
+func execute(sc scanner.Scanner, dockerArgs []string) runResult {
 	cmd := buildDockerCmd(sc, dockerArgs)
 	cmdStr := "docker " + strings.Join(cmd.Args[1:], " ")
 
@@ -190,10 +193,10 @@ func buildSimpleLog(cmdStr string, stdout, stderr []byte, err error, elapsed tim
 	var b strings.Builder
 
 	b.WriteString("$ " + cmdStr + "\n")
-	b.WriteString(fmt.Sprintf("# elapsed: %s\n", elapsed.Round(time.Millisecond)))
+	fmt.Fprintf(&b, "# elapsed: %s\n", elapsed.Round(time.Millisecond))
 
 	if err != nil {
-		b.WriteString(fmt.Sprintf("# exit: %s\n", err))
+		fmt.Fprintf(&b, "# exit: %s\n", err)
 	} else {
 		b.WriteString("# exit: 0\n")
 	}
@@ -202,7 +205,7 @@ func buildSimpleLog(cmdStr string, stdout, stderr []byte, err error, elapsed tim
 		b.WriteString("\n─── STDOUT ────────────────────────────────\n")
 		b.Write(truncate(stdout, maxLogBytes))
 		if len(stdout) > maxLogBytes {
-			b.WriteString(fmt.Sprintf("\n[... truncated %d bytes ...]", len(stdout)-maxLogBytes))
+			fmt.Fprintf(&b, "\n[... truncated %d bytes ...]", len(stdout)-maxLogBytes)
 		}
 	}
 
@@ -210,7 +213,7 @@ func buildSimpleLog(cmdStr string, stdout, stderr []byte, err error, elapsed tim
 		b.WriteString("\n─── STDERR ────────────────────────────────\n")
 		b.Write(truncate(stderr, maxLogBytes))
 		if len(stderr) > maxLogBytes {
-			b.WriteString(fmt.Sprintf("\n[... truncated %d bytes ...]", len(stderr)-maxLogBytes))
+			fmt.Fprintf(&b, "\n[... truncated %d bytes ...]", len(stderr)-maxLogBytes)
 		}
 	}
 

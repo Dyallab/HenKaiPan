@@ -10,6 +10,26 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+func (h *Handler) GetFindingCorrelations(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if _, err := h.store.Findings.GetByID(r.Context(), id); err != nil {
+		writeError(w, http.StatusNotFound, "finding not found")
+		return
+	}
+
+	findings, err := h.store.Agents.GetCorrelatedFindings(r.Context(), id)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get correlations")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"findings": findings,
+		"total":    len(findings),
+	})
+}
+
 // GetFindingAnalysis returns stored agent analysis for a finding.
 func (h *Handler) GetFindingAnalysis(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
