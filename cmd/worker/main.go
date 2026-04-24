@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"aspm/internal/agents"
+	"aspm/internal/ai"
 	"aspm/internal/config"
 	"aspm/internal/db"
 	"aspm/internal/logger"
@@ -19,6 +20,7 @@ import (
 func main() {
 	logger.Init()
 	cfg := config.Load()
+	ai.SetConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
@@ -38,16 +40,12 @@ func main() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, queueClient))
 
-	if cfg.AnthropicAPIKey != "" {
-		validator, err := agents.NewValidator(cfg.AnthropicAPIKey, store.Agents, store.Findings)
-		if err != nil {
-			slog.Error("init validator agent", "err", err)
-			os.Exit(1)
-		}
+	if cfg.OpenRouterAPIKey != "" {
+		validator := agents.NewValidator(store.Agents, store.Findings)
 		mux.HandleFunc(tasks.TypeAgentValidate, tasks.HandleAgentValidate(validator))
 		slog.Info("agent:validate handler registered")
 	} else {
-		slog.Warn("ANTHROPIC_API_KEY not set — agent:validate tasks will not be processed")
+		slog.Warn("OPENROUTER_API_KEY not set — agent:validate tasks will not be processed")
 	}
 
 	slog.Info("worker started, waiting for tasks")

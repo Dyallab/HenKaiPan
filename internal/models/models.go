@@ -53,28 +53,30 @@ const (
 )
 
 type Finding struct {
-	ID            string        `json:"id"`
-	ScanID        string        `json:"scan_id"`
-	Scanner       string        `json:"scanner"`
-	RuleID        string        `json:"rule_id"`
-	Title         string        `json:"title"`
-	Description   string        `json:"description"`
-	Severity      Severity      `json:"severity"`
-	FilePath      string        `json:"file_path"`
-	LineStart     int           `json:"line_start"`
-	LineEnd       int           `json:"line_end"`
-	CodeSnippet   string        `json:"code_snippet,omitempty"`
-	CreatedAt     time.Time     `json:"created_at"`
-	Status        FindingStatus `json:"status"`
-	AssignedTo    *string       `json:"assigned_to,omitempty"`
-	FalsePositive bool          `json:"false_positive"`
-	Notes         *string       `json:"notes,omitempty"`
-	ResolvedAt    *time.Time    `json:"resolved_at,omitempty"`
-	SLADeadline   *time.Time    `json:"sla_deadline,omitempty"`
-	CVEID         *string       `json:"cve_id,omitempty"`
-	CWEID         *string       `json:"cwe_id,omitempty"`
-	Suppressed       bool    `json:"suppressed"`
-	RemediationSlug  *string `json:"remediation_slug,omitempty"`
+	ID                 string        `json:"id"`
+	ScanID             string        `json:"scan_id"`
+	Scanner            string        `json:"scanner"`
+	RuleID             string        `json:"rule_id"`
+	Title              string        `json:"title"`
+	Description        string        `json:"description"`
+	Severity           Severity      `json:"severity"`
+	FilePath           string        `json:"file_path"`
+	LineStart          int           `json:"line_start"`
+	LineEnd            int           `json:"line_end"`
+	CodeSnippet        string        `json:"code_snippet,omitempty"`
+	CreatedAt          time.Time     `json:"created_at"`
+	Status             FindingStatus `json:"status"`
+	AssignedTo         *string       `json:"assigned_to,omitempty"`
+	FalsePositive      bool          `json:"false_positive"`
+	Notes              *string       `json:"notes,omitempty"`
+	ResolvedAt         *time.Time    `json:"resolved_at,omitempty"`
+	SLADeadline        *time.Time    `json:"sla_deadline,omitempty"`
+	CVEID              *string       `json:"cve_id,omitempty"`
+	CWEID              *string       `json:"cwe_id,omitempty"`
+	ConfidenceScore    float64       `json:"confidence_score"`
+	CorroborationCount int           `json:"corroboration_count"`
+	Suppressed         bool          `json:"suppressed"`
+	RemediationSlug    *string       `json:"remediation_slug,omitempty"`
 }
 
 type SLASummary struct {

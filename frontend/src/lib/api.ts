@@ -53,6 +53,9 @@ export const api = {
       `/api/findings?severity=${severity}&scanner=${scanner}&page=${page}&limit=${limit}&status=${status}&overdue=${overdue}&category=${category}&cve_id=${encodeURIComponent(cve_id)}&suppressed=${suppressed}`
     ),
 
+  getFindingCorrelations: (id: string) =>
+    req<{ findings: Finding[]; total: number }>(`/api/findings/${id}/correlations`),
+
   updateFinding: (id: string, updates: {
     status?: string;
     assigned_to?: string;
@@ -238,6 +241,8 @@ export interface Finding {
   sla_deadline?: string;
   cve_id?: string;
   cwe_id?: string;
+  confidence_score: number;
+  corroboration_count: number;
   suppressed: boolean;
   remediation_slug?: string;
 }

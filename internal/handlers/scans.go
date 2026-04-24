@@ -9,6 +9,7 @@ import (
 	"aspm/internal/tasks"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/hibiken/asynq"
 )
 
@@ -49,10 +50,11 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	repoID, _ := h.store.Scans.FindRepoIDByTarget(r.Context(), req.Target)
+	batchID := uuid.NewString()
 
 	var ids []string
 	for _, name := range scannerNames {
-		scanID, err := h.store.Scans.Insert(r.Context(), req.Target, name, repoID)
+		scanID, err := h.store.Scans.Insert(r.Context(), req.Target, name, batchID, repoID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to create scan")
 			return

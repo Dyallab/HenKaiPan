@@ -1,479 +1,985 @@
-<!DOCTYPE html>
+<!doctype html>
 
-<html class="dark" lang="en"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<style>
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-        }
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0b1326;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 10px;
-        }
-    </style>
-<script id="tailwind-config">
-        tailwind.config = {
-          darkMode: "class",
-          theme: {
-            extend: {
-              "colors": {
-                      "on-tertiary": "#552100",
-                      "on-background": "#dae2fd",
-                      "on-error": "#690005",
-                      "tertiary-fixed": "#ffdbca",
-                      "tertiary-container": "#fc7519",
-                      "background": "#0b1326",
-                      "error": "#ffb4ab",
-                      "on-surface": "#dae2fd",
-                      "on-secondary-container": "#00311f",
-                      "on-error-container": "#ffdad6",
-                      "primary-fixed": "#cfe5ff",
-                      "tertiary": "#ffb690",
-                      "surface-variant": "#2d3449",
-                      "error-container": "#93000a",
-                      "on-primary": "#003354",
-                      "surface-container-lowest": "#060e20",
-                      "on-tertiary-fixed-variant": "#783200",
-                      "surface-container-high": "#222a3d",
-                      "surface-container-highest": "#2d3449",
-                      "on-surface-variant": "#bec7d4",
-                      "primary-fixed-dim": "#98cbff",
-                      "surface": "#0b1326",
-                      "on-tertiary-container": "#5b2400",
-                      "primary": "#98cbff",
-                      "on-primary-fixed-variant": "#004a77",
-                      "tertiary-fixed-dim": "#ffb690",
-                      "surface-tint": "#98cbff",
-                      "outline": "#88919d",
-                      "secondary-container": "#00a572",
-                      "surface-container-low": "#131b2e",
-                      "surface-container": "#171f33",
-                      "on-tertiary-fixed": "#341100",
-                      "on-primary-fixed": "#001d33",
-                      "on-secondary": "#003824",
-                      "secondary": "#4edea3",
-                      "inverse-surface": "#dae2fd",
-                      "primary-container": "#00a3ff",
-                      "inverse-on-surface": "#283044",
-                      "secondary-fixed": "#6ffbbe",
-                      "secondary-fixed-dim": "#4edea3",
-                      "inverse-primary": "#00629d",
-                      "surface-bright": "#31394d",
-                      "on-secondary-fixed-variant": "#005236",
-                      "surface-dim": "#0b1326",
-                      "on-secondary-fixed": "#002113",
-                      "on-primary-container": "#00375a",
-                      "outline-variant": "#3f4852"
-              },
-              "borderRadius": {
-                      "DEFAULT": "0.125rem",
-                      "lg": "0.25rem",
-                      "xl": "0.5rem",
-                      "full": "0.75rem"
-              },
-              "spacing": {
-                      "gutter": "20px",
-                      "md": "24px",
-                      "xl": "48px",
-                      "lg": "32px",
-                      "sm": "16px",
-                      "base": "4px",
-                      "xs": "8px",
-                      "margin": "32px"
-              },
-              "fontFamily": {
-                      "h2": ["Inter"],
-                      "body-lg": ["Inter"],
-                      "mono-data": ["Space Grotesk"],
-                      "body-md": ["Inter"],
-                      "h3": ["Inter"],
-                      "h1": ["Inter"],
-                      "label-caps": ["Space Grotesk"]
-              },
-              "fontSize": {
-                      "h2": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
-                      "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
-                      "mono-data": ["13px", {"lineHeight": "1.4", "fontWeight": "400"}],
-                      "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
-                      "h3": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
-                      "h1": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-                      "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "500"}]
-              }
-            },
-          },
-        }
-    </script>
-</head>
-<body class="bg-background text-on-background font-body-md overflow-hidden h-screen flex flex-col">
-<!-- TopAppBar -->
-<header class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm font-inter text-sm antialiased">
-<div class="flex items-center gap-8">
-<span class="text-xl font-black tracking-tighter text-sky-500">Vigilance ASPM</span>
-<nav class="hidden md:flex gap-6">
-<a class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80">Docs</a>
-<a class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80">API</a>
-<a class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80">Support</a>
-</nav>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex items-center gap-2 mr-4">
-<button class="px-3 py-1.5 bg-slate-900/50 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 hover:bg-slate-800 transition-colors">System Status</button>
-<button class="px-3 py-1.5 bg-primary text-on-primary rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">Deploy Agent</button>
-</div>
-<div class="flex gap-3 text-slate-400">
-<span class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors">notifications</span>
-<span class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors">help</span>
-<span class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors">settings</span>
-</div>
-<div class="h-8 w-8 rounded-full bg-surface-container overflow-hidden border border-slate-700 ml-2">
-<img class="h-full w-full object-cover" data-alt="Security Analyst Profile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBvj8sJ04NnObroPGIusUnbV_sbWItfuJij-mLWEUILgj5cNWj13n40StZXi6tzOgGJPz-U9tPdcV4kOlxi_9l-XQua1mvXSHK2Qdph0BeuKgPumGsORVlqMpIWyCOYTWvfTPkobj2BR1K26h5JZ9gsq6e6enQNRBQohWHoTyNcE0SxOGxiceMAw_DKTcMoT4GLNagOTnKDIJgSy9CQqqyhD_DcFb4qhfGz_iONuHPZ8wCOEzUkEdPYhpdVFwfTRv9q4In643bvPw"/>
-</div>
-</div>
-</header>
-<div class="flex flex-1 overflow-hidden">
-<!-- SideNavBar -->
-<aside class="fixed left-0 h-screen w-64 border-r border-slate-800 bg-slate-950/90 backdrop-blur-lg flex flex-col h-full py-4 space-y-2 z-40">
-<div class="px-6 py-4 flex items-center gap-3">
-<div class="h-8 w-8 bg-sky-500 rounded flex items-center justify-center">
-<span class="material-symbols-outlined text-on-primary" data-weight="fill">security</span>
-</div>
-<div>
-<div class="text-sky-500 font-black font-inter text-sm uppercase tracking-wider font-bold">Vigilance</div>
-<div class="text-[10px] text-slate-500 font-mono-data tracking-widest">Enterprise Tier</div>
-</div>
-</div>
-<nav class="flex-1 px-3 space-y-1 mt-6">
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined">dashboard</span>
-<span>Dashboard</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined">security_update_good</span>
-<span>Scans</span>
-</div>
-<!-- Active Item -->
-<div class="flex items-center gap-3 px-4 py-3 bg-sky-500/10 text-sky-500 border-l-2 border-sky-500 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">biotech</span>
-<span>Findings</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined">verified_user</span>
-<span>Compliance</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined">hub</span>
-<span>Integrations</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined">settings</span>
-<span>Settings</span>
-</div>
-</nav>
-<div class="px-6 py-4 border-t border-slate-900">
-<button class="w-full py-2 bg-slate-900 text-sky-500 border border-sky-500/30 rounded font-label-caps hover:bg-sky-500/10 transition-colors">Run Global Scan</button>
-</div>
-<div class="px-3 pb-8 space-y-1">
-<div class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 group cursor-pointer transition-colors text-xs font-inter uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined text-sm">menu_book</span>
-<span>Documentation</span>
-</div>
-<div class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 group cursor-pointer transition-colors text-xs font-inter uppercase tracking-wider font-bold">
-<span class="material-symbols-outlined text-sm">logout</span>
-<span>Log Out</span>
-</div>
-</div>
-</aside>
-<!-- Main Content Canvas -->
-<main class="flex-1 ml-64 overflow-y-auto bg-background flex flex-col">
-<!-- Page Header Area -->
-<div class="p-8 border-b border-slate-900">
-<div class="flex justify-between items-end mb-8">
-<div>
-<h1 class="font-h1 text-h1 text-on-background">Security Findings</h1>
-<p class="text-on-surface-variant font-body-md mt-1">Manage and remediate identified vulnerabilities across your stack.</p>
-</div>
-<div class="flex gap-4">
-<button class="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-label-caps">
-<span class="material-symbols-outlined text-sm">file_download</span> Export CSV
-                        </button>
-<button class="flex items-center gap-2 px-4 py-2 bg-primary-container text-on-primary-container rounded hover:opacity-90 transition-opacity font-label-caps">
-<span class="material-symbols-outlined text-sm">refresh</span> Re-scan Assets
-                        </button>
-</div>
-</div>
-<!-- Status Summary Cards -->
-<div class="grid grid-cols-4 gap-6">
-<div class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm">
-<div class="text-sky-500 font-label-caps mb-2">New</div>
-<div class="flex items-baseline gap-2">
-<span class="text-3xl font-h2 font-mono-data">142</span>
-<span class="text-xs text-error font-mono-data">+12%</span>
-</div>
-</div>
-<div class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm">
-<div class="text-tertiary font-label-caps mb-2">In Progress</div>
-<div class="flex items-baseline gap-2">
-<span class="text-3xl font-h2 font-mono-data">68</span>
-</div>
-</div>
-<div class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm">
-<div class="text-slate-400 font-label-caps mb-2">Risk Accepted</div>
-<div class="flex items-baseline gap-2">
-<span class="text-3xl font-h2 font-mono-data">24</span>
-</div>
-</div>
-<div class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm">
-<div class="text-secondary font-label-caps mb-2">Resolved</div>
-<div class="flex items-baseline gap-2">
-<span class="text-3xl font-h2 font-mono-data">942</span>
-<span class="text-xs text-secondary font-mono-data">Total</span>
-</div>
-</div>
-</div>
-</div>
-<!-- Filters & Main Layout -->
-<div class="flex flex-1 overflow-hidden">
-<!-- Data Table Section -->
-<div class="flex-1 p-8 overflow-y-auto">
-<!-- Advanced Filters -->
-<div class="flex flex-wrap gap-4 mb-6 items-center">
-<div class="relative flex-1 max-w-sm">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">search</span>
-<input class="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-sky-500 text-on-surface placeholder-slate-500" placeholder="Search by finding name or asset..." type="text"/>
-</div>
-<div class="flex items-center gap-2">
-<label class="font-label-caps text-slate-500 mr-2">Filters:</label>
-<select class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500">
-<option>Severity: All</option>
-<option>Critical</option>
-<option>High</option>
-<option>Medium</option>
-</select>
-<select class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500">
-<option>Status: All</option>
-<option>New</option>
-<option>In Progress</option>
-</select>
-<select class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500">
-<option>Asset: All</option>
-<option>API Gateway</option>
-<option>Auth Service</option>
-</select>
-<select class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500">
-<option>Type: All</option>
-<option>SQL Injection</option>
-<option>XSS</option>
-<option>Broken Auth</option>
-</select>
-</div>
-<button class="text-sky-500 font-label-caps hover:underline ml-auto">Clear Filters</button>
-</div>
-<!-- Findings Table -->
-<div class="bg-surface-container-low rounded-xl border border-outline-variant overflow-hidden">
-<table class="w-full text-left border-collapse">
-<thead>
-<tr class="bg-slate-900/50 border-b border-outline-variant">
-<th class="px-6 py-4 font-label-caps text-slate-400">Severity</th>
-<th class="px-6 py-4 font-label-caps text-slate-400">Finding Name</th>
-<th class="px-6 py-4 font-label-caps text-slate-400">Asset Affected</th>
-<th class="px-6 py-4 font-label-caps text-slate-400">First Seen</th>
-<th class="px-6 py-4 font-label-caps text-slate-400">Status</th>
-<th class="px-6 py-4 font-label-caps text-slate-400 text-right">Action</th>
-</tr>
-</thead>
-<tbody class="divide-y divide-slate-800">
-<tr class="hover:bg-slate-900/40 transition-colors cursor-pointer border-l-2 border-l-error">
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">warning</span>
-<span class="text-xs font-bold text-error uppercase">Critical</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="font-h3 text-body-md text-sky-400">SQL Injection in User Login</div>
-<div class="text-xs text-slate-500 font-mono-data mt-1">CVE-2024-1234 • CWE-89</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-slate-400 text-sm">cloud</span>
-<span class="font-body-md">auth-prod-us-east-1</span>
-</div>
-</td>
-<td class="px-6 py-4 text-xs font-mono-data text-slate-400">24 Oct 2024, 08:42</td>
-<td class="px-6 py-4">
-<span class="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-[10px] font-bold uppercase">New</span>
-</td>
-<td class="px-6 py-4 text-right">
-<button class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors">more_vert</button>
-</td>
-</tr>
-<tr class="hover:bg-slate-900/40 transition-colors cursor-pointer bg-sky-500/5">
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-error" style="font-variation-settings: 'FILL' 1;">error</span>
-<span class="text-xs font-bold text-error uppercase">High</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="font-h3 text-body-md text-sky-400">Insecure Direct Object Reference</div>
-<div class="text-xs text-slate-500 font-mono-data mt-1">CVE-2024-5678 • CWE-639</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-slate-400 text-sm">storage</span>
-<span class="font-body-md">billing-api-svc</span>
-</div>
-</td>
-<td class="px-6 py-4 text-xs font-mono-data text-slate-400">23 Oct 2024, 14:15</td>
-<td class="px-6 py-4">
-<span class="px-2 py-0.5 bg-tertiary-container/10 text-tertiary border border-tertiary-container/20 rounded text-[10px] font-bold uppercase">In Progress</span>
-</td>
-<td class="px-6 py-4 text-right">
-<button class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors">more_vert</button>
-</td>
-</tr>
-<tr class="hover:bg-slate-900/40 transition-colors cursor-pointer">
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-tertiary-container" style="font-variation-settings: 'FILL' 1;">change_history</span>
-<span class="text-xs font-bold text-tertiary-container uppercase">Medium</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="font-h3 text-body-md text-sky-400">Cross-Site Scripting (Reflected)</div>
-<div class="text-xs text-slate-500 font-mono-data mt-1">CVE-2023-9999 • CWE-79</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-slate-400 text-sm">web</span>
-<span class="font-body-md">customer-portal-ui</span>
-</div>
-</td>
-<td class="px-6 py-4 text-xs font-mono-data text-slate-400">21 Oct 2024, 09:00</td>
-<td class="px-6 py-4">
-<span class="px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded text-[10px] font-bold uppercase">New</span>
-</td>
-<td class="px-6 py-4 text-right">
-<button class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors">more_vert</button>
-</td>
-</tr>
-<tr class="hover:bg-slate-900/40 transition-colors cursor-pointer opacity-70">
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-sky-500" style="font-variation-settings: 'FILL' 1;">info</span>
-<span class="text-xs font-bold text-sky-500 uppercase">Low</span>
-</div>
-</td>
-<td class="px-6 py-4">
-<div class="font-h3 text-body-md text-slate-400">Information Disclosure in Header</div>
-<div class="text-xs text-slate-500 font-mono-data mt-1">CWE-200</div>
-</td>
-<td class="px-6 py-4">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-slate-400 text-sm">lan</span>
-<span class="font-body-md">edge-balancer-01</span>
-</div>
-</td>
-<td class="px-6 py-4 text-xs font-mono-data text-slate-400">18 Oct 2024, 11:22</td>
-<td class="px-6 py-4">
-<span class="px-2 py-0.5 bg-slate-800 text-slate-500 border border-slate-700 rounded text-[10px] font-bold uppercase">Risk Accepted</span>
-</td>
-<td class="px-6 py-4 text-right">
-<button class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors">more_vert</button>
-</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-<!-- Remediation Side Panel -->
-<aside class="w-96 border-l border-slate-800 bg-surface-container-low flex flex-col z-10">
-<div class="p-6 border-b border-slate-800">
-<div class="flex justify-between items-center mb-4">
-<span class="px-2 py-1 bg-error-container text-on-error-container rounded text-[10px] font-bold uppercase">Selected Finding</span>
-<button class="material-symbols-outlined text-slate-500 hover:text-on-surface">close</button>
-</div>
-<h2 class="font-h2 text-h2 text-on-background mb-2 leading-tight">SQL Injection in User Login</h2>
-<div class="flex gap-2 items-center text-xs font-mono-data text-slate-400">
-<span class="bg-slate-800 px-2 py-0.5 rounded">ID: VIG-10492</span>
-<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">calendar_today</span> Oct 24, 2024</span>
-</div>
-</div>
-<div class="flex-1 overflow-y-auto p-6 space-y-8">
-<!-- Summary -->
-<section>
-<h4 class="font-label-caps text-slate-500 mb-3">Overview</h4>
-<p class="text-sm text-on-surface-variant leading-relaxed">
-                                The login endpoint at <code class="bg-slate-900 text-sky-400 px-1 rounded">/api/v1/auth/login</code> is vulnerable to SQL injection through the <code class="bg-slate-900 text-sky-400 px-1 rounded">username</code> parameter. An attacker could bypass authentication or extract sensitive database contents.
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+            ::-webkit-scrollbar {
+                width: 4px;
+                height: 4px;
+            }
+            ::-webkit-scrollbar-track {
+                background: #0b1326;
+            }
+            ::-webkit-scrollbar-thumb {
+                background: #334155;
+                border-radius: 10px;
+            }
+        </style>
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "on-tertiary": "#552100",
+                            "on-background": "#dae2fd",
+                            "on-error": "#690005",
+                            "tertiary-fixed": "#ffdbca",
+                            "tertiary-container": "#fc7519",
+                            background: "#0b1326",
+                            error: "#ffb4ab",
+                            "on-surface": "#dae2fd",
+                            "on-secondary-container": "#00311f",
+                            "on-error-container": "#ffdad6",
+                            "primary-fixed": "#cfe5ff",
+                            tertiary: "#ffb690",
+                            "surface-variant": "#2d3449",
+                            "error-container": "#93000a",
+                            "on-primary": "#003354",
+                            "surface-container-lowest": "#060e20",
+                            "on-tertiary-fixed-variant": "#783200",
+                            "surface-container-high": "#222a3d",
+                            "surface-container-highest": "#2d3449",
+                            "on-surface-variant": "#bec7d4",
+                            "primary-fixed-dim": "#98cbff",
+                            surface: "#0b1326",
+                            "on-tertiary-container": "#5b2400",
+                            primary: "#98cbff",
+                            "on-primary-fixed-variant": "#004a77",
+                            "tertiary-fixed-dim": "#ffb690",
+                            "surface-tint": "#98cbff",
+                            outline: "#88919d",
+                            "secondary-container": "#00a572",
+                            "surface-container-low": "#131b2e",
+                            "surface-container": "#171f33",
+                            "on-tertiary-fixed": "#341100",
+                            "on-primary-fixed": "#001d33",
+                            "on-secondary": "#003824",
+                            secondary: "#4edea3",
+                            "inverse-surface": "#dae2fd",
+                            "primary-container": "#00a3ff",
+                            "inverse-on-surface": "#283044",
+                            "secondary-fixed": "#6ffbbe",
+                            "secondary-fixed-dim": "#4edea3",
+                            "inverse-primary": "#00629d",
+                            "surface-bright": "#31394d",
+                            "on-secondary-fixed-variant": "#005236",
+                            "surface-dim": "#0b1326",
+                            "on-secondary-fixed": "#002113",
+                            "on-primary-container": "#00375a",
+                            "outline-variant": "#3f4852",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.125rem",
+                            lg: "0.25rem",
+                            xl: "0.5rem",
+                            full: "0.75rem",
+                        },
+                        spacing: {
+                            gutter: "20px",
+                            md: "24px",
+                            xl: "48px",
+                            lg: "32px",
+                            sm: "16px",
+                            base: "4px",
+                            xs: "8px",
+                            margin: "32px",
+                        },
+                        fontFamily: {
+                            h2: ["Inter"],
+                            "body-lg": ["Inter"],
+                            "mono-data": ["Space Grotesk"],
+                            "body-md": ["Inter"],
+                            h3: ["Inter"],
+                            h1: ["Inter"],
+                            "label-caps": ["Space Grotesk"],
+                        },
+                        fontSize: {
+                            h2: [
+                                "24px",
+                                { lineHeight: "1.3", fontWeight: "600" },
+                            ],
+                            "body-lg": [
+                                "16px",
+                                { lineHeight: "1.6", fontWeight: "400" },
+                            ],
+                            "mono-data": [
+                                "13px",
+                                { lineHeight: "1.4", fontWeight: "400" },
+                            ],
+                            "body-md": [
+                                "14px",
+                                { lineHeight: "1.5", fontWeight: "400" },
+                            ],
+                            h3: [
+                                "20px",
+                                { lineHeight: "1.4", fontWeight: "600" },
+                            ],
+                            h1: [
+                                "32px",
+                                {
+                                    lineHeight: "1.2",
+                                    letterSpacing: "-0.02em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-caps": [
+                                "12px",
+                                {
+                                    lineHeight: "1",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "500",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+    </head>
+    <body
+        class="bg-background text-on-background font-body-md overflow-hidden h-screen flex flex-col"
+    >
+        <!-- TopAppBar -->
+        <header
+            class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800 shadow-sm font-inter text-sm antialiased"
+        >
+            <div class="flex items-center gap-8">
+                <span class="text-xl font-black tracking-tighter text-sky-500"
+                    >Vigilance ASPM</span
+                >
+                <nav class="hidden md:flex gap-6">
+                    <a
+                        class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80"
+                        >Docs</a
+                    >
+                    <a
+                        class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80"
+                        >API</a
+                    >
+                    <a
+                        class="text-slate-400 font-medium hover:text-slate-200 hover:bg-slate-900/50 transition-colors duration-200 cursor-pointer active:opacity-80"
+                        >Support</a
+                    >
+                </nav>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 mr-4">
+                    <button
+                        class="px-3 py-1.5 bg-slate-900/50 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 hover:bg-slate-800 transition-colors"
+                    >
+                        System Status
+                    </button>
+                    <button
+                        class="px-3 py-1.5 bg-primary text-on-primary rounded-lg text-xs font-bold hover:opacity-90 transition-opacity"
+                    >
+                        Deploy Agent
+                    </button>
+                </div>
+                <div class="flex gap-3 text-slate-400">
+                    <span
+                        class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors"
+                        >notifications</span
+                    >
+                    <span
+                        class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors"
+                        >help</span
+                    >
+                    <span
+                        class="material-symbols-outlined cursor-pointer hover:text-sky-500 transition-colors"
+                        >settings</span
+                    >
+                </div>
+                <div
+                    class="h-8 w-8 rounded-full bg-surface-container overflow-hidden border border-slate-700 ml-2"
+                >
+                    <img
+                        class="h-full w-full object-cover"
+                        data-alt="Security Analyst Profile"
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBvj8sJ04NnObroPGIusUnbV_sbWItfuJij-mLWEUILgj5cNWj13n40StZXi6tzOgGJPz-U9tPdcV4kOlxi_9l-XQua1mvXSHK2Qdph0BeuKgPumGsORVlqMpIWyCOYTWvfTPkobj2BR1K26h5JZ9gsq6e6enQNRBQohWHoTyNcE0SxOGxiceMAw_DKTcMoT4GLNagOTnKDIJgSy9CQqqyhD_DcFb4qhfGz_iONuHPZ8wCOEzUkEdPYhpdVFwfTRv9q4In643bvPw"
+                    />
+                </div>
+            </div>
+        </header>
+        <div class="flex flex-1 overflow-hidden">
+            <!-- SideNavBar -->
+            <aside
+                class="fixed left-0 h-screen w-64 border-r border-slate-800 bg-slate-950/90 backdrop-blur-lg flex flex-col h-full py-4 space-y-2 z-40"
+            >
+                <div class="px-6 py-4 flex items-center gap-3">
+                    <div
+                        class="h-8 w-8 bg-sky-500 rounded flex items-center justify-center"
+                    >
+                        <span
+                            class="material-symbols-outlined text-on-primary"
+                            data-weight="fill"
+                            >security</span
+                        >
+                    </div>
+                    <div>
+                        <div
+                            class="text-sky-500 font-black font-inter text-sm uppercase tracking-wider font-bold"
+                        >
+                            Vigilance
+                        </div>
+                        <div
+                            class="text-[10px] text-slate-500 font-mono-data tracking-widest"
+                        >
+                            Enterprise Tier
+                        </div>
+                    </div>
+                </div>
+                <nav class="flex-1 px-3 space-y-1 mt-6">
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined">dashboard</span>
+                        <span>Dashboard</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined"
+                            >security_update_good</span
+                        >
+                        <span>Scans</span>
+                    </div>
+                    <!-- Active Item -->
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 bg-sky-500/10 text-sky-500 border-l-2 border-sky-500 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span
+                            class="material-symbols-outlined"
+                            style="font-variation-settings: &quot;FILL&quot; 1"
+                            >biotech</span
+                        >
+                        <span>Findings</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined"
+                            >verified_user</span
+                        >
+                        <span>Compliance</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined">hub</span>
+                        <span>Integrations</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all duration-150 group cursor-pointer font-inter text-sm uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined">settings</span>
+                        <span>Settings</span>
+                    </div>
+                </nav>
+                <div class="px-6 py-4 border-t border-slate-900">
+                    <button
+                        class="w-full py-2 bg-slate-900 text-sky-500 border border-sky-500/30 rounded font-label-caps hover:bg-sky-500/10 transition-colors"
+                    >
+                        Run Global Scan
+                    </button>
+                </div>
+                <div class="px-3 pb-8 space-y-1">
+                    <div
+                        class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 group cursor-pointer transition-colors text-xs font-inter uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined text-sm"
+                            >menu_book</span
+                        >
+                        <span>Documentation</span>
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-4 py-2 text-slate-500 hover:text-slate-300 group cursor-pointer transition-colors text-xs font-inter uppercase tracking-wider font-bold"
+                    >
+                        <span class="material-symbols-outlined text-sm"
+                            >logout</span
+                        >
+                        <span>Log Out</span>
+                    </div>
+                </div>
+            </aside>
+            <!-- Main Content Canvas -->
+            <main
+                class="flex-1 ml-64 overflow-y-auto bg-background flex flex-col"
+            >
+                <!-- Page Header Area -->
+                <div class="p-8 border-b border-slate-900">
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <h1 class="font-h1 text-h1 text-on-background">
+                                Security Findings
+                            </h1>
+                            <p
+                                class="text-on-surface-variant font-body-md mt-1"
+                            >
+                                Manage and remediate identified vulnerabilities
+                                across your stack.
                             </p>
-</section>
-<!-- Remediation Steps -->
-<section>
-<h4 class="font-label-caps text-slate-500 mb-3">Remediation Steps</h4>
-<div class="space-y-4">
-<div class="flex gap-3">
-<div class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40">1</div>
-<div class="text-sm">
-<div class="font-semibold text-on-surface">Use Prepared Statements</div>
-<p class="text-xs text-slate-500 mt-1">Replace dynamic SQL string concatenation with parameterized queries using your ORM or native drivers.</p>
-</div>
-</div>
-<div class="flex gap-3">
-<div class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40">2</div>
-<div class="text-sm">
-<div class="font-semibold text-on-surface">Input Validation</div>
-<p class="text-xs text-slate-500 mt-1">Implement strict validation on the username field to allow only expected characters (e.g., alphanumeric).</p>
-</div>
-</div>
-<div class="flex gap-3">
-<div class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40">3</div>
-<div class="text-sm">
-<div class="font-semibold text-on-surface">WAF Update</div>
-<p class="text-xs text-slate-500 mt-1">Ensure the Web Application Firewall has the latest SQLi signature patterns enabled for the auth path.</p>
-</div>
-</div>
-</div>
-</section>
-<!-- Code Example -->
-<section>
-<h4 class="font-label-caps text-slate-500 mb-3">Code Evidence</h4>
-<div class="bg-slate-950 rounded border border-slate-800 p-4 font-mono-data text-[12px] overflow-x-auto text-slate-400">
-<pre class="whitespace-pre"><code><span class="text-error font-bold">- query = "SELECT * FROM users WHERE uname = '" + user + "'"</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 bg-surface-container text-on-surface border border-outline-variant rounded hover:bg-surface-container-high transition-colors font-label-caps"
+                            >
+                                <span class="material-symbols-outlined text-sm"
+                                    >file_download</span
+                                >
+                                Export CSV
+                            </button>
+                            <button
+                                class="flex items-center gap-2 px-4 py-2 bg-primary-container text-on-primary-container rounded hover:opacity-90 transition-opacity font-label-caps"
+                            >
+                                <span class="material-symbols-outlined text-sm"
+                                    >refresh</span
+                                >
+                                Re-scan Assets
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Status Summary Cards -->
+                    <div class="grid grid-cols-4 gap-6">
+                        <div
+                            class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm"
+                        >
+                            <div class="text-sky-500 font-label-caps mb-2">
+                                New
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-h2 font-mono-data"
+                                    >142</span
+                                >
+                                <span class="text-xs text-error font-mono-data"
+                                    >+12%</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm"
+                        >
+                            <div class="text-tertiary font-label-caps mb-2">
+                                In Progress
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-h2 font-mono-data"
+                                    >68</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm"
+                        >
+                            <div class="text-slate-400 font-label-caps mb-2">
+                                Risk Accepted
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-h2 font-mono-data"
+                                    >24</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="bg-surface-container-low p-4 border border-outline-variant rounded shadow-sm"
+                        >
+                            <div class="text-secondary font-label-caps mb-2">
+                                Resolved
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-3xl font-h2 font-mono-data"
+                                    >942</span
+                                >
+                                <span
+                                    class="text-xs text-secondary font-mono-data"
+                                    >Total</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Filters & Main Layout -->
+                <div class="flex flex-1 overflow-hidden">
+                    <!-- Data Table Section -->
+                    <div class="flex-1 p-8 overflow-y-auto">
+                        <!-- Advanced Filters -->
+                        <div class="flex flex-wrap gap-4 mb-6 items-center">
+                            <div class="relative flex-1 max-w-sm">
+                                <span
+                                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                                    >search</span
+                                >
+                                <input
+                                    class="w-full bg-surface-container-highest border-none rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-1 focus:ring-sky-500 text-on-surface placeholder-slate-500"
+                                    placeholder="Search by finding name or asset..."
+                                    type="text"
+                                />
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <label
+                                    class="font-label-caps text-slate-500 mr-2"
+                                    >Filters:</label
+                                >
+                                <select
+                                    class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500"
+                                >
+                                    <option>Severity: All</option>
+                                    <option>Critical</option>
+                                    <option>High</option>
+                                    <option>Medium</option>
+                                </select>
+                                <select
+                                    class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500"
+                                >
+                                    <option>Status: All</option>
+                                    <option>New</option>
+                                    <option>In Progress</option>
+                                </select>
+                                <select
+                                    class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500"
+                                >
+                                    <option>Asset: All</option>
+                                    <option>API Gateway</option>
+                                    <option>Auth Service</option>
+                                </select>
+                                <select
+                                    class="bg-surface-container text-xs border border-outline-variant rounded px-3 py-1.5 focus:ring-sky-500"
+                                >
+                                    <option>Type: All</option>
+                                    <option>SQL Injection</option>
+                                    <option>XSS</option>
+                                    <option>Broken Auth</option>
+                                </select>
+                            </div>
+                            <button
+                                class="text-sky-500 font-label-caps hover:underline ml-auto"
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                        <!-- Findings Table -->
+                        <div
+                            class="bg-surface-container-low rounded-xl border border-outline-variant overflow-hidden"
+                        >
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr
+                                        class="bg-slate-900/50 border-b border-outline-variant"
+                                    >
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400"
+                                        >
+                                            Severity
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400"
+                                        >
+                                            Finding Name
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400"
+                                        >
+                                            Asset Affected
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400"
+                                        >
+                                            First Seen
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400"
+                                        >
+                                            Status
+                                        </th>
+                                        <th
+                                            class="px-6 py-4 font-label-caps text-slate-400 text-right"
+                                        >
+                                            Action
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    <tr
+                                        class="hover:bg-slate-900/40 transition-colors cursor-pointer border-l-2 border-l-error"
+                                    >
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-error"
+                                                    style="
+                                                        font-variation-settings: &quot;FILL&quot;
+                                                            1;
+                                                    "
+                                                    >warning</span
+                                                >
+                                                <span
+                                                    class="text-xs font-bold text-error uppercase"
+                                                    >Critical</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="font-h3 text-body-md text-sky-400"
+                                            >
+                                                SQL Injection in User Login
+                                            </div>
+                                            <div
+                                                class="text-xs text-slate-500 font-mono-data mt-1"
+                                            >
+                                                CVE-2024-1234 • CWE-89
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-slate-400 text-sm"
+                                                    >cloud</span
+                                                >
+                                                <span class="font-body-md"
+                                                    >auth-prod-us-east-1</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 text-xs font-mono-data text-slate-400"
+                                        >
+                                            24 Oct 2024, 08:42
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-[10px] font-bold uppercase"
+                                                >New</span
+                                            >
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button
+                                                class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors"
+                                            >
+                                                more_vert
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        class="hover:bg-slate-900/40 transition-colors cursor-pointer bg-sky-500/5"
+                                    >
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-error"
+                                                    style="
+                                                        font-variation-settings: &quot;FILL&quot;
+                                                            1;
+                                                    "
+                                                    >error</span
+                                                >
+                                                <span
+                                                    class="text-xs font-bold text-error uppercase"
+                                                    >High</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="font-h3 text-body-md text-sky-400"
+                                            >
+                                                Insecure Direct Object Reference
+                                            </div>
+                                            <div
+                                                class="text-xs text-slate-500 font-mono-data mt-1"
+                                            >
+                                                CVE-2024-5678 • CWE-639
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-slate-400 text-sm"
+                                                    >storage</span
+                                                >
+                                                <span class="font-body-md"
+                                                    >billing-api-svc</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 text-xs font-mono-data text-slate-400"
+                                        >
+                                            23 Oct 2024, 14:15
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="px-2 py-0.5 bg-tertiary-container/10 text-tertiary border border-tertiary-container/20 rounded text-[10px] font-bold uppercase"
+                                                >In Progress</span
+                                            >
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button
+                                                class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors"
+                                            >
+                                                more_vert
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        class="hover:bg-slate-900/40 transition-colors cursor-pointer"
+                                    >
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-tertiary-container"
+                                                    style="
+                                                        font-variation-settings: &quot;FILL&quot;
+                                                            1;
+                                                    "
+                                                    >change_history</span
+                                                >
+                                                <span
+                                                    class="text-xs font-bold text-tertiary-container uppercase"
+                                                    >Medium</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="font-h3 text-body-md text-sky-400"
+                                            >
+                                                Cross-Site Scripting (Reflected)
+                                            </div>
+                                            <div
+                                                class="text-xs text-slate-500 font-mono-data mt-1"
+                                            >
+                                                CVE-2023-9999 • CWE-79
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-slate-400 text-sm"
+                                                    >web</span
+                                                >
+                                                <span class="font-body-md"
+                                                    >customer-portal-ui</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 text-xs font-mono-data text-slate-400"
+                                        >
+                                            21 Oct 2024, 09:00
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="px-2 py-0.5 bg-slate-500/10 text-slate-400 border border-slate-500/20 rounded text-[10px] font-bold uppercase"
+                                                >New</span
+                                            >
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button
+                                                class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors"
+                                            >
+                                                more_vert
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr
+                                        class="hover:bg-slate-900/40 transition-colors cursor-pointer opacity-70"
+                                    >
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-sky-500"
+                                                    style="
+                                                        font-variation-settings: &quot;FILL&quot;
+                                                            1;
+                                                    "
+                                                    >info</span
+                                                >
+                                                <span
+                                                    class="text-xs font-bold text-sky-500 uppercase"
+                                                    >Low</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="font-h3 text-body-md text-slate-400"
+                                            >
+                                                Information Disclosure in Header
+                                            </div>
+                                            <div
+                                                class="text-xs text-slate-500 font-mono-data mt-1"
+                                            >
+                                                CWE-200
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div
+                                                class="flex items-center gap-2"
+                                            >
+                                                <span
+                                                    class="material-symbols-outlined text-slate-400 text-sm"
+                                                    >lan</span
+                                                >
+                                                <span class="font-body-md"
+                                                    >edge-balancer-01</span
+                                                >
+                                            </div>
+                                        </td>
+                                        <td
+                                            class="px-6 py-4 text-xs font-mono-data text-slate-400"
+                                        >
+                                            18 Oct 2024, 11:22
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span
+                                                class="px-2 py-0.5 bg-slate-800 text-slate-500 border border-slate-700 rounded text-[10px] font-bold uppercase"
+                                                >Risk Accepted</span
+                                            >
+                                        </td>
+                                        <td class="px-6 py-4 text-right">
+                                            <button
+                                                class="material-symbols-outlined text-slate-500 hover:text-on-surface transition-colors"
+                                            >
+                                                more_vert
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <!-- Remediation Side Panel -->
+                    <aside
+                        class="w-96 border-l border-slate-800 bg-surface-container-low flex flex-col z-10"
+                    >
+                        <div class="p-6 border-b border-slate-800">
+                            <div class="flex justify-between items-center mb-4">
+                                <span
+                                    class="px-2 py-1 bg-error-container text-on-error-container rounded text-[10px] font-bold uppercase"
+                                    >Selected Finding</span
+                                >
+                                <button
+                                    class="material-symbols-outlined text-slate-500 hover:text-on-surface"
+                                >
+                                    close
+                                </button>
+                            </div>
+                            <h2
+                                class="font-h2 text-h2 text-on-background mb-2 leading-tight"
+                            >
+                                SQL Injection in User Login
+                            </h2>
+                            <div
+                                class="flex gap-2 items-center text-xs font-mono-data text-slate-400"
+                            >
+                                <span class="bg-slate-800 px-2 py-0.5 rounded"
+                                    >ID: VIG-10492</span
+                                >
+                                <span class="flex items-center gap-1"
+                                    ><span
+                                        class="material-symbols-outlined text-[14px]"
+                                        >calendar_today</span
+                                    >
+                                    Oct 24, 2024</span
+                                >
+                            </div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-6 space-y-8">
+                            <!-- Summary -->
+                            <section>
+                                <h4 class="font-label-caps text-slate-500 mb-3">
+                                    Overview
+                                </h4>
+                                <p
+                                    class="text-sm text-on-surface-variant leading-relaxed"
+                                >
+                                    The login endpoint at
+                                    <code
+                                        class="bg-slate-900 text-sky-400 px-1 rounded"
+                                        >/api/v1/auth/login</code
+                                    >
+                                    is vulnerable to SQL injection through the
+                                    <code
+                                        class="bg-slate-900 text-sky-400 px-1 rounded"
+                                        >username</code
+                                    >
+                                    parameter. An attacker could bypass
+                                    authentication or extract sensitive database
+                                    contents.
+                                </p>
+                            </section>
+                            <!-- Remediation Steps -->
+                            <section>
+                                <h4 class="font-label-caps text-slate-500 mb-3">
+                                    Remediation Steps
+                                </h4>
+                                <div class="space-y-4">
+                                    <div class="flex gap-3">
+                                        <div
+                                            class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40"
+                                        >
+                                            1
+                                        </div>
+                                        <div class="text-sm">
+                                            <div
+                                                class="font-semibold text-on-surface"
+                                            >
+                                                Use Prepared Statements
+                                            </div>
+                                            <p
+                                                class="text-xs text-slate-500 mt-1"
+                                            >
+                                                Replace dynamic SQL string
+                                                concatenation with parameterized
+                                                queries using your ORM or native
+                                                drivers.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <div
+                                            class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40"
+                                        >
+                                            2
+                                        </div>
+                                        <div class="text-sm">
+                                            <div
+                                                class="font-semibold text-on-surface"
+                                            >
+                                                Input Validation
+                                            </div>
+                                            <p
+                                                class="text-xs text-slate-500 mt-1"
+                                            >
+                                                Implement strict validation on
+                                                the username field to allow only
+                                                expected characters (e.g.,
+                                                alphanumeric).
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <div
+                                            class="flex-shrink-0 w-6 h-6 rounded-full bg-sky-500/20 text-sky-500 flex items-center justify-center text-xs font-bold border border-sky-500/40"
+                                        >
+                                            3
+                                        </div>
+                                        <div class="text-sm">
+                                            <div
+                                                class="font-semibold text-on-surface"
+                                            >
+                                                WAF Update
+                                            </div>
+                                            <p
+                                                class="text-xs text-slate-500 mt-1"
+                                            >
+                                                Ensure the Web Application
+                                                Firewall has the latest SQLi
+                                                signature patterns enabled for
+                                                the auth path.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                            <!-- Code Example -->
+                            <section>
+                                <h4 class="font-label-caps text-slate-500 mb-3">
+                                    Code Evidence
+                                </h4>
+                                <div
+                                    class="bg-slate-950 rounded border border-slate-800 p-4 font-mono-data text-[12px] overflow-x-auto text-slate-400"
+                                >
+                                    <pre
+                                        class="whitespace-pre"
+                                    ><code><span class="text-error font-bold">- query = "SELECT * FROM users WHERE uname = '" + user + "'"</span>
 <span class="text-secondary font-bold">+ db.execute("SELECT * FROM users WHERE uname = ?", [user])</span></code></pre>
-</div>
-</section>
-</div>
-<div class="p-6 border-t border-slate-800 bg-slate-950/50">
-<div class="flex gap-3">
-<button class="flex-1 py-2 bg-slate-800 text-on-surface border border-outline-variant rounded hover:bg-slate-700 transition-colors font-label-caps">Assign Ticket</button>
-<button class="flex-1 py-2 bg-secondary text-on-secondary rounded hover:opacity-90 transition-opacity font-label-caps">Fix Confirmed</button>
-</div>
-</div>
-</aside>
-</div>
-<!-- Footer -->
-<footer class="w-full py-8 px-12 flex justify-between items-center bg-slate-950 border-t border-slate-900 font-inter text-xs text-slate-500">
-<span class="text-slate-400 font-bold">Vigilance Platform</span>
-<div class="flex gap-6">
-<a class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer">Privacy Policy</a>
-<a class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer">Terms of Service</a>
-<a class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer">Security Disclosure</a>
-<a class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer">Trust Center</a>
-</div>
-<div>© 2024 Vigilance Security Platform. All rights reserved.</div>
-</footer>
-</main>
-</div>
-</body></html>
+                                </div>
+                            </section>
+                        </div>
+                        <div
+                            class="p-6 border-t border-slate-800 bg-slate-950/50"
+                        >
+                            <div class="flex gap-3">
+                                <button
+                                    class="flex-1 py-2 bg-slate-800 text-on-surface border border-outline-variant rounded hover:bg-slate-700 transition-colors font-label-caps"
+                                >
+                                    Assign Ticket
+                                </button>
+                                <button
+                                    class="flex-1 py-2 bg-secondary text-on-secondary rounded hover:opacity-90 transition-opacity font-label-caps"
+                                >
+                                    Fix Confirmed
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+                <!-- Footer -->
+                <footer
+                    class="w-full py-8 px-12 flex justify-between items-center bg-slate-950 border-t border-slate-900 font-inter text-xs text-slate-500"
+                >
+                    <span class="text-slate-400 font-bold"
+                        >Vigilance Platform</span
+                    >
+                    <div class="flex gap-6">
+                        <a
+                            class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
+                            >Privacy Policy</a
+                        >
+                        <a
+                            class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
+                            >Terms of Service</a
+                        >
+                        <a
+                            class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
+                            >Security Disclosure</a
+                        >
+                        <a
+                            class="text-slate-500 hover:text-sky-500 transition-colors cursor-pointer"
+                            >Trust Center</a
+                        >
+                    </div>
+                    <div>© 2026 Security Platform. All rights reserved.</div>
+                </footer>
+            </main>
+        </div>
+    </body>
+</html>

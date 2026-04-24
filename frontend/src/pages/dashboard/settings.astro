@@ -1,562 +1,1122 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
 ---
+
 <DashboardLayout title="Settings" active="settings">
+    <div class="flex gap-8 h-full">
+        <!-- Settings nav -->
+        <aside class="w-56 shrink-0">
+            <p
+                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4 px-2"
+            >
+                Configuration
+            </p>
+            <nav class="space-y-1">
+                {
+                    [
+                        {
+                            id: "general",
+                            label: "General",
+                            icon: "manage_accounts",
+                        },
+                        {
+                            id: "integrations",
+                            label: "Integrations",
+                            icon: "integration_instructions",
+                        },
+                        {
+                            id: "notifications",
+                            label: "Notifications",
+                            icon: "notifications_active",
+                        },
+                        {
+                            id: "security",
+                            label: "Security",
+                            icon: "shield_lock",
+                        },
+                        { id: "users", label: "Users", icon: "group" },
+                        { id: "teams", label: "Teams", icon: "groups" },
+                        { id: "policies", label: "Policies", icon: "policy" },
+                        {
+                            id: "suppressions",
+                            label: "Suppressions",
+                            icon: "do_not_disturb_on",
+                        },
+                    ].map((s) => (
+                        <button
+                            data-section={s.id}
+                            class={`settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
+                                s.id === "general"
+                                    ? "bg-sky-500/10 text-sky-400"
+                                    : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                            }`}
+                        >
+                            <span class="material-symbols-outlined text-xl">
+                                {s.icon}
+                            </span>
+                            {s.label}
+                        </button>
+                    ))
+                }
+            </nav>
+        </aside>
 
-  <div class="flex gap-8 h-full">
-
-    <!-- Settings nav -->
-    <aside class="w-56 shrink-0">
-      <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4 px-2">Configuration</p>
-      <nav class="space-y-1">
-        {[
-          { id: 'general',       label: 'General',          icon: 'manage_accounts' },
-          { id: 'integrations',  label: 'Integrations',     icon: 'integration_instructions' },
-          { id: 'notifications', label: 'Notifications',    icon: 'notifications_active' },
-          { id: 'security',      label: 'Security',         icon: 'shield_lock' },
-          { id: 'users',         label: 'Users',            icon: 'group' },
-          { id: 'teams',         label: 'Teams',            icon: 'groups' },
-          { id: 'policies',      label: 'Policies',         icon: 'policy' },
-          { id: 'suppressions',  label: 'Suppressions',     icon: 'do_not_disturb_on' },
-        ].map(s => (
-          <button
-            data-section={s.id}
-            class={`settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
-              s.id === 'general'
-                ? 'bg-sky-500/10 text-sky-400'
-                : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
-            }`}
-          >
-            <span class="material-symbols-outlined text-xl">{s.icon}</span>
-            {s.label}
-          </button>
-        ))}
-      </nav>
-    </aside>
-
-    <!-- Content -->
-    <div class="flex-1 min-w-0 space-y-10">
-
-      <!-- General -->
-      <section id="section-general" class="settings-section space-y-6">
-        <div class="border-b border-slate-800 pb-4">
-          <h2 class="text-xl font-bold text-on-background">General Settings</h2>
-          <p class="text-sm text-slate-400 mt-1">Platform identity and API configuration.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div class="col-span-2 space-y-5">
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
-              <div class="space-y-2">
-                <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Platform Name</label>
-                <input id="org-name" type="text" value="ASPM — Security Posture Manager"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all" />
-              </div>
-              <div class="space-y-2">
-                <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">API Base URL</label>
-                <input id="api-url" type="text" value="http://localhost:8080"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all" />
-              </div>
-              <div class="space-y-2">
-                <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Admin Username</label>
-                <input id="admin-user" type="text" value="admin"
-                  class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all" />
-              </div>
-            </div>
-            <button id="save-general" class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition-all active:scale-95">
-              Save Changes
-            </button>
-            <div id="save-general-msg" class="hidden text-xs font-medium"></div>
-          </div>
-          <div class="space-y-4">
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 text-center space-y-4">
-              <div class="w-20 h-20 rounded-xl mx-auto bg-sky-500 flex items-center justify-center">
-                <span class="material-symbols-outlined ms-fill text-slate-950 text-4xl">security</span>
-              </div>
-              <div>
-                <h4 class="font-bold text-on-background">ASPM</h4>
-                <p class="text-xs text-slate-500 mt-1">Application Security Posture Manager</p>
-                <p class="text-[10px] font-mono text-slate-600 mt-2">v0.1.0 · itti.digital</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Integrations -->
-      <section id="section-integrations" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4">
-          <h2 class="text-xl font-bold text-on-background">Integrations</h2>
-          <p class="text-sm text-slate-400 mt-1">Scanner availability and external service connections.</p>
-        </div>
-
-        <!-- Scanner status -->
-        <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Available Scanners</p>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { name: 'semgrep',     label: 'Semgrep',       type: 'SAST',      icon: 'code', color: 'text-sky-400',    desc: 'Static analysis for 30+ languages.' },
-              { name: 'trivy',       label: 'Trivy',         type: 'SCA',       icon: 'inventory_2', color: 'text-purple-400', desc: 'CVEs in dependencies and containers.' },
-              { name: 'trufflehog', label: 'TruffleHog',    type: 'Secrets',   icon: 'key', color: 'text-amber-400',  desc: 'Leaked credentials and API keys.' },
-              { name: 'gosec',       label: 'Gosec',         type: 'SAST',      icon: 'code', color: 'text-sky-400',    desc: 'Go security checker.' },
-              { name: 'gitleaks',    label: 'Gitleaks',      type: 'Secrets',   icon: 'key', color: 'text-amber-400',  desc: 'Secret detection in git history.' },
-              { name: 'grype',       label: 'Grype',         type: 'SCA',       icon: 'inventory_2', color: 'text-purple-400', desc: 'Vulnerability scanner for container images.' },
-              { name: 'checkov',     label: 'Checkov',       type: 'IaC',       icon: 'cloud', color: 'text-green-400', desc: 'Terraform, CloudFormation, Kubernetes.' },
-              { name: 'nuclei',      label: 'Nuclei',        type: 'DAST',      icon: 'language', color: 'text-orange-400', desc: 'Fast web vulnerability scanner.' },
-            ].map(s => (
-              <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex flex-col gap-3 hover:border-sky-500/30 transition-all">
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-surface-container-lowest rounded-lg border border-outline-variant/20 flex items-center justify-center shrink-0">
-                    <span class={`material-symbols-outlined text-xl ${s.color}`}>{s.icon}</span>
-                  </div>
-                  <div class="min-w-0">
-                    <p class="font-bold text-sm text-on-background">{s.label}</p>
-                    <span class={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                      s.type === 'SAST'    ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                      s.type === 'SCA'     ? 'text-purple-400 bg-purple-500/10 border-purple-500/20' :
-                      s.type === 'Secrets' ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' :
-                      s.type === 'IaC'     ? 'text-green-400 bg-green-500/10 border-green-500/20' :
-                                             'text-orange-400 bg-orange-500/10 border-orange-500/20'
-                    }`}>{s.type}</span>
-                  </div>
+        <!-- Content -->
+        <div class="flex-1 min-w-0 space-y-10">
+            <!-- General -->
+            <section id="section-general" class="settings-section space-y-6">
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-bold text-on-background">
+                        General Settings
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Platform identity and API configuration.
+                    </p>
                 </div>
-                <p class="text-xs text-slate-500 leading-relaxed">{s.desc}</p>
-                <div class="flex items-center gap-2 mt-auto pt-2">
-                  <div class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_6px_rgba(78,222,163,0.5)]"></div>
-                  <span class="text-xs text-secondary font-bold">Via Docker</span>
-                  <span class="font-mono text-[10px] text-slate-600 ml-auto">{s.name}</span>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="col-span-2 space-y-5">
+                        <div
+                            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                        >
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Platform Name</label
+                                >
+                                <input
+                                    id="org-name"
+                                    type="text"
+                                    value="HenKaiPan — Security Posture Manager"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >API Base URL</label
+                                >
+                                <input
+                                    id="api-url"
+                                    type="text"
+                                    value="http://localhost:8080"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Admin Username</label
+                                >
+                                <input
+                                    id="admin-user"
+                                    type="text"
+                                    value="admin"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                />
+                            </div>
+                        </div>
+                        <button
+                            id="save-general"
+                            class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition-all active:scale-95"
+                        >
+                            Save Changes
+                        </button>
+                        <div
+                            id="save-general-msg"
+                            class="hidden text-xs font-medium"
+                        >
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div
+                            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 text-center space-y-4"
+                        >
+                            <div
+                                class="w-20 h-20 rounded-xl mx-auto bg-sky-500 flex items-center justify-center"
+                            >
+                                <span
+                                    class="material-symbols-outlined ms-fill text-slate-950 text-4xl"
+                                    >security</span
+                                >
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-on-background">
+                                    ASPM
+                                </h4>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    Application Security Posture Manager
+                                </p>
+                                <p
+                                    class="text-[10px] font-mono text-slate-600 mt-2"
+                                >
+                                    v0.1.0 · itti.digital
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+            </section>
 
-        <!-- GitHub token -->
-        <div>
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">SCM Credentials</p>
-          <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
-            <div class="space-y-2">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">GitHub Personal Access Token</label>
-              <div class="flex gap-3">
-                <input id="github-token" type="password" placeholder="ghp_••••••••••••••••••••••••••••••••••••••"
-                  class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all" />
-                <button id="save-token" class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95">
-                  Save
-                </button>
-              </div>
-              <p class="text-xs text-slate-500">Used for private repository access. Stored locally in your browser.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Notifications -->
-      <section id="section-notifications" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4">
-          <h2 class="text-xl font-bold text-on-background">Notifications & Webhooks</h2>
-          <p class="text-sm text-slate-400 mt-1">Configure scan completion alerts and external service hooks.</p>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-          <!-- Alert toggles -->
-          <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
-            <h4 class="font-bold text-on-background flex items-center gap-2">
-              <span class="material-symbols-outlined text-sky-400 text-xl">mail</span>
-              Alert Preferences
-            </h4>
-            <div class="space-y-4">
-              {[
-                { id: 'alert-critical', label: 'Critical Findings',     sub: 'Alert on any critical severity detection', default: true },
-                { id: 'alert-high',     label: 'High Findings',         sub: 'Alert on high severity findings',         default: false },
-                { id: 'alert-complete', label: 'Scan Completed',        sub: 'Notify when a scan finishes',             default: true },
-                { id: 'alert-failed',   label: 'Scan Failed',           sub: 'Notify when a scan encounters an error',  default: true },
-              ].map(a => (
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm font-semibold text-on-background">{a.label}</p>
-                    <p class="text-xs text-slate-500">{a.sub}</p>
-                  </div>
-                  <button
-                    data-toggle={a.id}
-                    class={`toggle-btn relative w-10 h-5 rounded-full transition-all ${a.default ? 'bg-sky-500' : 'bg-slate-700'}`}
-                    aria-pressed={String(a.default)}
-                  >
-                    <span class={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${a.default ? 'right-0.5' : 'left-0.5'}`}></span>
-                  </button>
+            <!-- Integrations -->
+            <section
+                id="section-integrations"
+                class="settings-section hidden space-y-6"
+            >
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-bold text-on-background">
+                        Integrations
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Scanner availability and external service connections.
+                    </p>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <!-- Webhooks -->
-          <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
-            <div class="flex items-center justify-between">
-              <h4 class="font-bold text-on-background flex items-center gap-2">
-                <span class="material-symbols-outlined text-secondary text-xl">webhook</span>
-                Webhooks
-              </h4>
-              <button id="add-webhook-btn" class="text-xs text-sky-400 font-bold hover:underline">+ Add New</button>
-            </div>
+                <!-- Scanner status -->
+                <div>
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
+                    >
+                        Available Scanners
+                    </p>
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+                    >
+                        {
+                            [
+                                {
+                                    name: "semgrep",
+                                    label: "Semgrep",
+                                    type: "SAST",
+                                    icon: "code",
+                                    color: "text-sky-400",
+                                    desc: "Static analysis for 30+ languages.",
+                                },
+                                {
+                                    name: "trivy",
+                                    label: "Trivy",
+                                    type: "SCA",
+                                    icon: "inventory_2",
+                                    color: "text-purple-400",
+                                    desc: "CVEs in dependencies and containers.",
+                                },
+                                {
+                                    name: "trufflehog",
+                                    label: "TruffleHog",
+                                    type: "Secrets",
+                                    icon: "key",
+                                    color: "text-amber-400",
+                                    desc: "Leaked credentials and API keys.",
+                                },
+                                {
+                                    name: "gosec",
+                                    label: "Gosec",
+                                    type: "SAST",
+                                    icon: "code",
+                                    color: "text-sky-400",
+                                    desc: "Go security checker.",
+                                },
+                                {
+                                    name: "gitleaks",
+                                    label: "Gitleaks",
+                                    type: "Secrets",
+                                    icon: "key",
+                                    color: "text-amber-400",
+                                    desc: "Secret detection in git history.",
+                                },
+                                {
+                                    name: "grype",
+                                    label: "Grype",
+                                    type: "SCA",
+                                    icon: "inventory_2",
+                                    color: "text-purple-400",
+                                    desc: "Vulnerability scanner for container images.",
+                                },
+                                {
+                                    name: "checkov",
+                                    label: "Checkov",
+                                    type: "IaC",
+                                    icon: "cloud",
+                                    color: "text-green-400",
+                                    desc: "Terraform, CloudFormation, Kubernetes.",
+                                },
+                                {
+                                    name: "nuclei",
+                                    label: "Nuclei",
+                                    type: "DAST",
+                                    icon: "language",
+                                    color: "text-orange-400",
+                                    desc: "Fast web vulnerability scanner.",
+                                },
+                            ].map((s) => (
+                                <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex flex-col gap-3 hover:border-sky-500/30 transition-all">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-surface-container-lowest rounded-lg border border-outline-variant/20 flex items-center justify-center shrink-0">
+                                            <span
+                                                class={`material-symbols-outlined text-xl ${s.color}`}
+                                            >
+                                                {s.icon}
+                                            </span>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <p class="font-bold text-sm text-on-background">
+                                                {s.label}
+                                            </p>
+                                            <span
+                                                class={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                                    s.type === "SAST"
+                                                        ? "text-sky-400 bg-sky-500/10 border-sky-500/20"
+                                                        : s.type === "SCA"
+                                                          ? "text-purple-400 bg-purple-500/10 border-purple-500/20"
+                                                          : s.type === "Secrets"
+                                                            ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                                            : s.type === "IaC"
+                                                              ? "text-green-400 bg-green-500/10 border-green-500/20"
+                                                              : "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                                                }`}
+                                            >
+                                                {s.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-slate-500 leading-relaxed">
+                                        {s.desc}
+                                    </p>
+                                    <div class="flex items-center gap-2 mt-auto pt-2">
+                                        <div class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_6px_rgba(78,222,163,0.5)]" />
+                                        <span class="text-xs text-secondary font-bold">
+                                            Via Docker
+                                        </span>
+                                        <span class="font-mono text-[10px] text-slate-600 ml-auto">
+                                            {s.name}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        }
+                    </div>
+                </div>
 
-            <!-- Add webhook form -->
-            <div id="webhook-form" class="hidden space-y-3 pb-4 border-b border-slate-800">
-              <input id="webhook-label" type="text" placeholder="Label (e.g. Slack #security)"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-              <input id="webhook-url" type="url" placeholder="https://hooks.example.com/..."
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none" />
-              <div class="flex gap-2">
-                <button id="save-webhook" class="px-3 py-1.5 bg-sky-500 text-slate-950 text-xs font-bold rounded transition-all hover:bg-sky-400">Save</button>
-                <button id="cancel-webhook" class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-400 font-bold rounded transition-all hover:bg-slate-800">Cancel</button>
-              </div>
-            </div>
+                <!-- GitHub token -->
+                <div>
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
+                    >
+                        SCM Credentials
+                    </p>
+                    <div
+                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                    >
+                        <div class="space-y-2">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >GitHub Personal Access Token</label
+                            >
+                            <div class="flex gap-3">
+                                <input
+                                    id="github-token"
+                                    type="password"
+                                    placeholder="ghp_••••••••••••••••••••••••••••••••••••••"
+                                    class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                />
+                                <button
+                                    id="save-token"
+                                    class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95"
+                                >
+                                    Save
+                                </button>
+                            </div>
+                            <p class="text-xs text-slate-500">
+                                Used for private repository access. Stored
+                                locally in your browser.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-            <div id="webhook-list" class="space-y-2">
-              <p class="text-xs text-slate-500">No webhooks configured.</p>
-            </div>
-          </div>
+            <!-- Notifications -->
+            <section
+                id="section-notifications"
+                class="settings-section hidden space-y-6"
+            >
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-bold text-on-background">
+                        Notifications & Webhooks
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Configure scan completion alerts and external service
+                        hooks.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Alert toggles -->
+                    <div
+                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                    >
+                        <h4
+                            class="font-bold text-on-background flex items-center gap-2"
+                        >
+                            <span
+                                class="material-symbols-outlined text-sky-400 text-xl"
+                                >mail</span
+                            >
+                            Alert Preferences
+                        </h4>
+                        <div class="space-y-4">
+                            {
+                                [
+                                    {
+                                        id: "alert-critical",
+                                        label: "Critical Findings",
+                                        sub: "Alert on any critical severity detection",
+                                        default: true,
+                                    },
+                                    {
+                                        id: "alert-high",
+                                        label: "High Findings",
+                                        sub: "Alert on high severity findings",
+                                        default: false,
+                                    },
+                                    {
+                                        id: "alert-complete",
+                                        label: "Scan Completed",
+                                        sub: "Notify when a scan finishes",
+                                        default: true,
+                                    },
+                                    {
+                                        id: "alert-failed",
+                                        label: "Scan Failed",
+                                        sub: "Notify when a scan encounters an error",
+                                        default: true,
+                                    },
+                                ].map((a) => (
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <p class="text-sm font-semibold text-on-background">
+                                                {a.label}
+                                            </p>
+                                            <p class="text-xs text-slate-500">
+                                                {a.sub}
+                                            </p>
+                                        </div>
+                                        <button
+                                            data-toggle={a.id}
+                                            class={`toggle-btn relative w-10 h-5 rounded-full transition-all ${a.default ? "bg-sky-500" : "bg-slate-700"}`}
+                                            aria-pressed={String(a.default)}
+                                        >
+                                            <span
+                                                class={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${a.default ? "right-0.5" : "left-0.5"}`}
+                                            />
+                                        </button>
+                                    </div>
+                                ))
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Webhooks -->
+                    <div
+                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                    >
+                        <div class="flex items-center justify-between">
+                            <h4
+                                class="font-bold text-on-background flex items-center gap-2"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-secondary text-xl"
+                                    >webhook</span
+                                >
+                                Webhooks
+                            </h4>
+                            <button
+                                id="add-webhook-btn"
+                                class="text-xs text-sky-400 font-bold hover:underline"
+                                >+ Add New</button
+                            >
+                        </div>
+
+                        <!-- Add webhook form -->
+                        <div
+                            id="webhook-form"
+                            class="hidden space-y-3 pb-4 border-b border-slate-800"
+                        >
+                            <input
+                                id="webhook-label"
+                                type="text"
+                                placeholder="Label (e.g. Slack #security)"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                            <input
+                                id="webhook-url"
+                                type="url"
+                                placeholder="https://hooks.example.com/..."
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                            <div class="flex gap-2">
+                                <button
+                                    id="save-webhook"
+                                    class="px-3 py-1.5 bg-sky-500 text-slate-950 text-xs font-bold rounded transition-all hover:bg-sky-400"
+                                    >Save</button
+                                >
+                                <button
+                                    id="cancel-webhook"
+                                    class="px-3 py-1.5 bg-slate-900 border border-slate-800 text-xs text-slate-400 font-bold rounded transition-all hover:bg-slate-800"
+                                    >Cancel</button
+                                >
+                            </div>
+                        </div>
+
+                        <div id="webhook-list" class="space-y-2">
+                            <p class="text-xs text-slate-500">
+                                No webhooks configured.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Security -->
+            <section
+                id="section-security"
+                class="settings-section hidden space-y-6"
+            >
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-bold text-on-background">
+                        Security
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        API access tokens and authentication settings.
+                    </p>
+                </div>
+
+                <!-- Current session token -->
+                <div
+                    class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                >
+                    <h4
+                        class="font-bold text-on-background flex items-center gap-2"
+                    >
+                        <span
+                            class="material-symbols-outlined text-sky-400 text-xl"
+                            >key</span
+                        >
+                        Current Session Token
+                    </h4>
+                    <div class="space-y-2">
+                        <label
+                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                            >JWT (read-only)</label
+                        >
+                        <div class="flex gap-3">
+                            <input
+                                id="token-display"
+                                type="password"
+                                readonly
+                                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-slate-400 text-xs font-mono outline-none cursor-default"
+                            />
+                            <button
+                                id="copy-token"
+                                class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2"
+                            >
+                                <span class="material-symbols-outlined text-sm"
+                                    >content_copy</span
+                                >
+                                Copy
+                            </button>
+                            <button
+                                id="reveal-token"
+                                class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2"
+                            >
+                                <span class="material-symbols-outlined text-sm"
+                                    >visibility</span
+                                >
+                                Reveal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger zone -->
+                <div
+                    class="bg-error/5 border border-error/20 rounded-xl p-6 space-y-4"
+                >
+                    <h4 class="font-bold text-error flex items-center gap-2">
+                        <span class="material-symbols-outlined text-xl"
+                            >dangerous</span
+                        >
+                        Danger Zone
+                    </h4>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-on-background">
+                                Sign Out
+                            </p>
+                            <p class="text-xs text-slate-500">
+                                Clear session and return to login.
+                            </p>
+                        </div>
+                        <button
+                            id="danger-logout"
+                            class="px-4 py-2 border border-error/40 text-error rounded-lg text-sm font-bold hover:bg-error/10 transition-all"
+                        >
+                            Sign Out
+                        </button>
+                    </div>
+                    <div
+                        class="flex items-center justify-between pt-4 border-t border-error/10"
+                    >
+                        <div>
+                            <p class="text-sm font-semibold text-on-background">
+                                Clear All Local Data
+                            </p>
+                            <p class="text-xs text-slate-500">
+                                Remove all locally stored tokens and settings.
+                            </p>
+                        </div>
+                        <button
+                            id="danger-clear"
+                            class="px-4 py-2 border border-error/40 text-error rounded-lg text-sm font-bold hover:bg-error/10 transition-all"
+                        >
+                            Clear Data
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users -->
+            <section
+                id="section-users"
+                class="settings-section hidden space-y-6"
+            >
+                <div
+                    class="border-b border-slate-800 pb-4 flex items-center justify-between"
+                >
+                    <div>
+                        <h2 class="text-xl font-bold text-on-background">
+                            User Management
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1">
+                            Create and manage platform users and their roles.
+                        </p>
+                    </div>
+                    <button
+                        id="show-create-user"
+                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                    >
+                        <span class="material-symbols-outlined text-base"
+                            >person_add</span
+                        >
+                        New User
+                    </button>
+                </div>
+
+                <!-- Create user form -->
+                <div
+                    id="create-user-form"
+                    class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                >
+                    <h4 class="font-bold text-on-background">Create User</h4>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Username</label
+                            >
+                            <input
+                                id="new-username"
+                                type="text"
+                                placeholder="johndoe"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Email</label
+                            >
+                            <input
+                                id="new-email"
+                                type="email"
+                                placeholder="john@example.com"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Password</label
+                            >
+                            <input
+                                id="new-password"
+                                type="password"
+                                placeholder="••••••••"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Role</label
+                            >
+                            <select
+                                id="new-role"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            >
+                                <option value="analyst">Analyst</option>
+                                <option value="viewer">Viewer</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button
+                            id="save-new-user"
+                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            >Create User</button
+                        >
+                        <button
+                            id="cancel-create-user"
+                            class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"
+                            >Cancel</button
+                        >
+                    </div>
+                    <div
+                        id="create-user-msg"
+                        class="hidden text-xs font-medium"
+                    >
+                    </div>
+                </div>
+
+                <!-- User list -->
+                <div id="user-list" class="space-y-3">
+                    <div class="text-xs text-slate-500 animate-pulse">
+                        Loading users...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Policies -->
+            <section
+                id="section-policies"
+                class="settings-section hidden space-y-6"
+            >
+                <div
+                    class="border-b border-slate-800 pb-4 flex items-center justify-between"
+                >
+                    <div>
+                        <h2 class="text-xl font-bold text-on-background">
+                            Auto-Triage Policies
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1">
+                            Rules that automatically set status or assign
+                            findings on insert.
+                        </p>
+                    </div>
+                    <button
+                        id="show-create-policy"
+                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                    >
+                        <span class="material-symbols-outlined text-base"
+                            >add</span
+                        >
+                        New Policy
+                    </button>
+                </div>
+
+                <!-- Create policy form -->
+                <div
+                    id="create-policy-form"
+                    class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                >
+                    <h4 class="font-bold text-on-background">Create Policy</h4>
+                    <div class="space-y-2">
+                        <label
+                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                            >Policy Name</label
+                        >
+                        <input
+                            id="policy-name"
+                            type="text"
+                            placeholder="e.g. Auto-review critical secrets"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                        />
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                            >
+                                Conditions (ALL must match)
+                            </p>
+                            <button
+                                id="add-condition"
+                                class="text-xs text-sky-400 font-bold hover:underline"
+                                >+ Add Condition</button
+                            >
+                        </div>
+                        <div id="conditions-list" class="space-y-2"></div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                            >
+                                Actions
+                            </p>
+                            <button
+                                id="add-action"
+                                class="text-xs text-sky-400 font-bold hover:underline"
+                                >+ Add Action</button
+                            >
+                        </div>
+                        <div id="actions-list" class="space-y-2"></div>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button
+                            id="save-policy"
+                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            >Create Policy</button
+                        >
+                        <button
+                            id="cancel-policy"
+                            class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"
+                            >Cancel</button
+                        >
+                    </div>
+                    <div id="policy-msg" class="hidden text-xs font-medium">
+                    </div>
+                </div>
+
+                <div id="policy-list" class="space-y-3">
+                    <div class="text-xs text-slate-500 animate-pulse">
+                        Loading policies...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Suppressions -->
+            <section
+                id="section-suppressions"
+                class="settings-section hidden space-y-6"
+            >
+                <div
+                    class="border-b border-slate-800 pb-4 flex items-center justify-between"
+                >
+                    <div>
+                        <h2 class="text-xl font-bold text-on-background">
+                            Suppression Rules
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1">
+                            Findings matching these rules are marked suppressed
+                            and hidden by default.
+                        </p>
+                    </div>
+                    <button
+                        id="show-create-suppression"
+                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                    >
+                        <span class="material-symbols-outlined text-base"
+                            >add</span
+                        >
+                        New Rule
+                    </button>
+                </div>
+
+                <!-- Create suppression form -->
+                <div
+                    id="create-suppression-form"
+                    class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                >
+                    <h4 class="font-bold text-on-background">
+                        Create Suppression Rule
+                    </h4>
+                    <p class="text-xs text-slate-500">
+                        At least one match field (Rule ID, File Pattern, or
+                        Scanner) is required.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2 space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Rule Name</label
+                            >
+                            <input
+                                id="sup-name"
+                                type="text"
+                                placeholder="e.g. Suppress test file secrets"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Rule ID <span
+                                    class="text-slate-600 normal-case font-normal"
+                                    >(optional)</span
+                                ></label
+                            >
+                            <input
+                                id="sup-rule-id"
+                                type="text"
+                                placeholder="e.g. G304"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Scanner <span
+                                    class="text-slate-600 normal-case font-normal"
+                                    >(optional)</span
+                                ></label
+                            >
+                            <select
+                                id="sup-scanner"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            >
+                                <option value="">Any scanner</option>
+                                <option value="semgrep">semgrep</option>
+                                <option value="gosec">gosec</option>
+                                <option value="trivy">trivy</option>
+                                <option value="grype">grype</option>
+                                <option value="trufflehog">trufflehog</option>
+                                <option value="gitleaks">gitleaks</option>
+                                <option value="checkov">checkov</option>
+                                <option value="nuclei">nuclei</option>
+                            </select>
+                        </div>
+                        <div class="col-span-2 space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >File Path Pattern <span
+                                    class="text-slate-600 normal-case font-normal"
+                                    >(optional substring)</span
+                                ></label
+                            >
+                            <input
+                                id="sup-file-pattern"
+                                type="text"
+                                placeholder="e.g. test/ or vendor/"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                        <div class="col-span-2 space-y-1.5">
+                            <label
+                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                >Reason <span
+                                    class="text-slate-600 normal-case font-normal"
+                                    >(optional)</span
+                                ></label
+                            >
+                            <input
+                                id="sup-reason"
+                                type="text"
+                                placeholder="e.g. False positive in test fixtures"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                        </div>
+                    </div>
+                    <div class="flex gap-3 pt-2">
+                        <button
+                            id="save-suppression"
+                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            >Create Rule</button
+                        >
+                        <button
+                            id="cancel-suppression"
+                            class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"
+                            >Cancel</button
+                        >
+                    </div>
+                    <div
+                        id="suppression-msg"
+                        class="hidden text-xs font-medium"
+                    >
+                    </div>
+                </div>
+
+                <div id="suppression-list" class="space-y-3">
+                    <div class="text-xs text-slate-500 animate-pulse">
+                        Loading suppression rules...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Teams -->
+            <section
+                id="section-teams"
+                class="settings-section hidden space-y-6"
+            >
+                <div
+                    class="border-b border-slate-800 pb-4 flex items-center justify-between"
+                >
+                    <div>
+                        <h2 class="text-xl font-bold text-on-background">
+                            Teams
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1">
+                            Group users into teams for assignment and reporting.
+                        </p>
+                    </div>
+                    <button
+                        id="show-create-team"
+                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                    >
+                        <span class="material-symbols-outlined text-base"
+                            >group_add</span
+                        >
+                        New Team
+                    </button>
+                </div>
+
+                <!-- Create team form -->
+                <div
+                    id="create-team-form"
+                    class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                >
+                    <h4 class="font-bold text-on-background">Create Team</h4>
+                    <div class="flex gap-3">
+                        <input
+                            id="new-team-name"
+                            type="text"
+                            placeholder="Team name (e.g. AppSec)"
+                            class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                        />
+                        <button
+                            id="save-new-team"
+                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            >Create</button
+                        >
+                        <button
+                            id="cancel-create-team"
+                            class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"
+                            >Cancel</button
+                        >
+                    </div>
+                    <div
+                        id="create-team-msg"
+                        class="hidden text-xs font-medium"
+                    >
+                    </div>
+                </div>
+
+                <!-- Team list -->
+                <div id="team-list" class="space-y-4">
+                    <div class="text-xs text-slate-500 animate-pulse">
+                        Loading teams...
+                    </div>
+                </div>
+            </section>
         </div>
-      </section>
-
-      <!-- Security -->
-      <section id="section-security" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4">
-          <h2 class="text-xl font-bold text-on-background">Security</h2>
-          <p class="text-sm text-slate-400 mt-1">API access tokens and authentication settings.</p>
-        </div>
-
-        <!-- Current session token -->
-        <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
-          <h4 class="font-bold text-on-background flex items-center gap-2">
-            <span class="material-symbols-outlined text-sky-400 text-xl">key</span>
-            Current Session Token
-          </h4>
-          <div class="space-y-2">
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">JWT (read-only)</label>
-            <div class="flex gap-3">
-              <input id="token-display" type="password" readonly
-                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-slate-400 text-xs font-mono outline-none cursor-default" />
-              <button id="copy-token" class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">content_copy</span>
-                Copy
-              </button>
-              <button id="reveal-token" class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2">
-                <span class="material-symbols-outlined text-sm">visibility</span>
-                Reveal
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Danger zone -->
-        <div class="bg-error/5 border border-error/20 rounded-xl p-6 space-y-4">
-          <h4 class="font-bold text-error flex items-center gap-2">
-            <span class="material-symbols-outlined text-xl">dangerous</span>
-            Danger Zone
-          </h4>
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-semibold text-on-background">Sign Out</p>
-              <p class="text-xs text-slate-500">Clear session and return to login.</p>
-            </div>
-            <button id="danger-logout" class="px-4 py-2 border border-error/40 text-error rounded-lg text-sm font-bold hover:bg-error/10 transition-all">
-              Sign Out
-            </button>
-          </div>
-          <div class="flex items-center justify-between pt-4 border-t border-error/10">
-            <div>
-              <p class="text-sm font-semibold text-on-background">Clear All Local Data</p>
-              <p class="text-xs text-slate-500">Remove all locally stored tokens and settings.</p>
-            </div>
-            <button id="danger-clear" class="px-4 py-2 border border-error/40 text-error rounded-lg text-sm font-bold hover:bg-error/10 transition-all">
-              Clear Data
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Users -->
-      <section id="section-users" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
-          <div>
-            <h2 class="text-xl font-bold text-on-background">User Management</h2>
-            <p class="text-sm text-slate-400 mt-1">Create and manage platform users and their roles.</p>
-          </div>
-          <button id="show-create-user" class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95">
-            <span class="material-symbols-outlined text-base">person_add</span>
-            New User
-          </button>
-        </div>
-
-        <!-- Create user form -->
-        <div id="create-user-form" class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
-          <h4 class="font-bold text-on-background">Create User</h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Username</label>
-              <input id="new-username" type="text" placeholder="johndoe"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Email</label>
-              <input id="new-email" type="email" placeholder="john@example.com"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Password</label>
-              <input id="new-password" type="password" placeholder="••••••••"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Role</label>
-              <select id="new-role" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none">
-                <option value="analyst">Analyst</option>
-                <option value="viewer">Viewer</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-          </div>
-          <div class="flex gap-3 pt-2">
-            <button id="save-new-user" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all">Create User</button>
-            <button id="cancel-create-user" class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">Cancel</button>
-          </div>
-          <div id="create-user-msg" class="hidden text-xs font-medium"></div>
-        </div>
-
-        <!-- User list -->
-        <div id="user-list" class="space-y-3">
-          <div class="text-xs text-slate-500 animate-pulse">Loading users...</div>
-        </div>
-      </section>
-
-      <!-- Policies -->
-      <section id="section-policies" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
-          <div>
-            <h2 class="text-xl font-bold text-on-background">Auto-Triage Policies</h2>
-            <p class="text-sm text-slate-400 mt-1">Rules that automatically set status or assign findings on insert.</p>
-          </div>
-          <button id="show-create-policy" class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95">
-            <span class="material-symbols-outlined text-base">add</span>
-            New Policy
-          </button>
-        </div>
-
-        <!-- Create policy form -->
-        <div id="create-policy-form" class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
-          <h4 class="font-bold text-on-background">Create Policy</h4>
-          <div class="space-y-2">
-            <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Policy Name</label>
-            <input id="policy-name" type="text" placeholder="e.g. Auto-review critical secrets"
-              class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-          </div>
-
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Conditions (ALL must match)</p>
-              <button id="add-condition" class="text-xs text-sky-400 font-bold hover:underline">+ Add Condition</button>
-            </div>
-            <div id="conditions-list" class="space-y-2"></div>
-          </div>
-
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Actions</p>
-              <button id="add-action" class="text-xs text-sky-400 font-bold hover:underline">+ Add Action</button>
-            </div>
-            <div id="actions-list" class="space-y-2"></div>
-          </div>
-
-          <div class="flex gap-3 pt-2">
-            <button id="save-policy" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all">Create Policy</button>
-            <button id="cancel-policy" class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">Cancel</button>
-          </div>
-          <div id="policy-msg" class="hidden text-xs font-medium"></div>
-        </div>
-
-        <div id="policy-list" class="space-y-3">
-          <div class="text-xs text-slate-500 animate-pulse">Loading policies...</div>
-        </div>
-      </section>
-
-      <!-- Suppressions -->
-      <section id="section-suppressions" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
-          <div>
-            <h2 class="text-xl font-bold text-on-background">Suppression Rules</h2>
-            <p class="text-sm text-slate-400 mt-1">Findings matching these rules are marked suppressed and hidden by default.</p>
-          </div>
-          <button id="show-create-suppression" class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95">
-            <span class="material-symbols-outlined text-base">add</span>
-            New Rule
-          </button>
-        </div>
-
-        <!-- Create suppression form -->
-        <div id="create-suppression-form" class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
-          <h4 class="font-bold text-on-background">Create Suppression Rule</h4>
-          <p class="text-xs text-slate-500">At least one match field (Rule ID, File Pattern, or Scanner) is required.</p>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="col-span-2 space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Rule Name</label>
-              <input id="sup-name" type="text" placeholder="e.g. Suppress test file secrets"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Rule ID <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
-              <input id="sup-rule-id" type="text" placeholder="e.g. G304"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
-              <select id="sup-scanner" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none">
-                <option value="">Any scanner</option>
-                <option value="semgrep">semgrep</option>
-                <option value="gosec">gosec</option>
-                <option value="trivy">trivy</option>
-                <option value="grype">grype</option>
-                <option value="trufflehog">trufflehog</option>
-                <option value="gitleaks">gitleaks</option>
-                <option value="checkov">checkov</option>
-                <option value="nuclei">nuclei</option>
-              </select>
-            </div>
-            <div class="col-span-2 space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">File Path Pattern <span class="text-slate-600 normal-case font-normal">(optional substring)</span></label>
-              <input id="sup-file-pattern" type="text" placeholder="e.g. test/ or vendor/"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-            <div class="col-span-2 space-y-1.5">
-              <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Reason <span class="text-slate-600 normal-case font-normal">(optional)</span></label>
-              <input id="sup-reason" type="text" placeholder="e.g. False positive in test fixtures"
-                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            </div>
-          </div>
-          <div class="flex gap-3 pt-2">
-            <button id="save-suppression" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all">Create Rule</button>
-            <button id="cancel-suppression" class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">Cancel</button>
-          </div>
-          <div id="suppression-msg" class="hidden text-xs font-medium"></div>
-        </div>
-
-        <div id="suppression-list" class="space-y-3">
-          <div class="text-xs text-slate-500 animate-pulse">Loading suppression rules...</div>
-        </div>
-      </section>
-
-      <!-- Teams -->
-      <section id="section-teams" class="settings-section hidden space-y-6">
-        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
-          <div>
-            <h2 class="text-xl font-bold text-on-background">Teams</h2>
-            <p class="text-sm text-slate-400 mt-1">Group users into teams for assignment and reporting.</p>
-          </div>
-          <button id="show-create-team" class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95">
-            <span class="material-symbols-outlined text-base">group_add</span>
-            New Team
-          </button>
-        </div>
-
-        <!-- Create team form -->
-        <div id="create-team-form" class="hidden bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
-          <h4 class="font-bold text-on-background">Create Team</h4>
-          <div class="flex gap-3">
-            <input id="new-team-name" type="text" placeholder="Team name (e.g. AppSec)"
-              class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none" />
-            <button id="save-new-team" class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all">Create</button>
-            <button id="cancel-create-team" class="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all">Cancel</button>
-          </div>
-          <div id="create-team-msg" class="hidden text-xs font-medium"></div>
-        </div>
-
-        <!-- Team list -->
-        <div id="team-list" class="space-y-4">
-          <div class="text-xs text-slate-500 animate-pulse">Loading teams...</div>
-        </div>
-      </section>
-
     </div>
-  </div>
-
 </DashboardLayout>
 
 <script>
-  // --- Section switching ---
-  const navBtns = document.querySelectorAll<HTMLButtonElement>('.settings-nav');
-  const sections = document.querySelectorAll<HTMLElement>('.settings-section');
+    // --- Section switching ---
+    const navBtns =
+        document.querySelectorAll<HTMLButtonElement>(".settings-nav");
+    const sections =
+        document.querySelectorAll<HTMLElement>(".settings-section");
 
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const target = btn.dataset.section!;
+    navBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const target = btn.dataset.section!;
 
-      navBtns.forEach(b => {
-        b.className = `settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
-          b.dataset.section === target
-            ? 'bg-sky-500/10 text-sky-400'
-            : 'text-slate-400 hover:bg-slate-900 hover:text-slate-200'
-        }`;
-      });
+            navBtns.forEach((b) => {
+                b.className = `settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
+                    b.dataset.section === target
+                        ? "bg-sky-500/10 text-sky-400"
+                        : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
+                }`;
+            });
 
-      sections.forEach(s => {
-        s.classList.toggle('hidden', s.id !== `section-${target}`);
-      });
+            sections.forEach((s) => {
+                s.classList.toggle("hidden", s.id !== `section-${target}`);
+            });
+        });
     });
-  });
 
-  // --- General: save settings ---
-  document.getElementById('save-general')!.addEventListener('click', () => {
-    const orgName = (document.getElementById('org-name') as HTMLInputElement).value;
-    const apiUrl  = (document.getElementById('api-url') as HTMLInputElement).value;
-    const adminUser = (document.getElementById('admin-user') as HTMLInputElement).value;
+    // --- General: save settings ---
+    document.getElementById("save-general")!.addEventListener("click", () => {
+        const orgName = (
+            document.getElementById("org-name") as HTMLInputElement
+        ).value;
+        const apiUrl = (document.getElementById("api-url") as HTMLInputElement)
+            .value;
+        const adminUser = (
+            document.getElementById("admin-user") as HTMLInputElement
+        ).value;
 
-    localStorage.setItem('aspm_org_name',   orgName);
-    localStorage.setItem('aspm_api_url',    apiUrl);
-    localStorage.setItem('aspm_admin_user', adminUser);
+        localStorage.setItem("aspm_org_name", orgName);
+        localStorage.setItem("aspm_api_url", apiUrl);
+        localStorage.setItem("aspm_admin_user", adminUser);
 
-    const msg = document.getElementById('save-general-msg')!;
-    msg.textContent = '✓ Settings saved.';
-    msg.className = 'text-xs font-medium text-secondary';
-    msg.classList.remove('hidden');
-    setTimeout(() => msg.classList.add('hidden'), 3000);
-  });
-
-  // Load saved general settings
-  const savedOrg  = localStorage.getItem('aspm_org_name');
-  const savedUrl  = localStorage.getItem('aspm_api_url');
-  const savedUser = localStorage.getItem('aspm_admin_user');
-  if (savedOrg)  (document.getElementById('org-name') as HTMLInputElement).value  = savedOrg;
-  if (savedUrl)  (document.getElementById('api-url') as HTMLInputElement).value   = savedUrl;
-  if (savedUser) (document.getElementById('admin-user') as HTMLInputElement).value = savedUser;
-
-  // --- Integrations: GitHub token ---
-  const savedToken = localStorage.getItem('aspm_github_token');
-  if (savedToken) (document.getElementById('github-token') as HTMLInputElement).value = savedToken;
-
-  document.getElementById('save-token')!.addEventListener('click', () => {
-    const val = (document.getElementById('github-token') as HTMLInputElement).value.trim();
-    if (val) localStorage.setItem('aspm_github_token', val);
-  });
-
-  // --- Notifications: Toggles ---
-  document.querySelectorAll<HTMLButtonElement>('.toggle-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const pressed = btn.getAttribute('aria-pressed') === 'true';
-      btn.setAttribute('aria-pressed', String(!pressed));
-      btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${!pressed ? 'bg-sky-500' : 'bg-slate-700'}`;
-      const dot = btn.querySelector('span') as HTMLElement;
-      dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${!pressed ? 'right-0.5' : 'left-0.5'}`;
+        const msg = document.getElementById("save-general-msg")!;
+        msg.textContent = "✓ Settings saved.";
+        msg.className = "text-xs font-medium text-secondary";
+        msg.classList.remove("hidden");
+        setTimeout(() => msg.classList.add("hidden"), 3000);
     });
-  });
 
-  // --- Notifications: Webhooks ---
-  type Webhook = { label: string; url: string };
-  let webhooks: Webhook[] = JSON.parse(localStorage.getItem('aspm_webhooks') || '[]');
+    // Load saved general settings
+    const savedOrg = localStorage.getItem("aspm_org_name");
+    const savedUrl = localStorage.getItem("aspm_api_url");
+    const savedUser = localStorage.getItem("aspm_admin_user");
+    if (savedOrg)
+        (document.getElementById("org-name") as HTMLInputElement).value =
+            savedOrg;
+    if (savedUrl)
+        (document.getElementById("api-url") as HTMLInputElement).value =
+            savedUrl;
+    if (savedUser)
+        (document.getElementById("admin-user") as HTMLInputElement).value =
+            savedUser;
 
-  function renderWebhooks() {
-    const el = document.getElementById('webhook-list')!;
-    if (!webhooks.length) {
-      el.innerHTML = '<p class="text-xs text-slate-500">No webhooks configured.</p>';
-      return;
-    }
-    el.innerHTML = webhooks.map((w, i) => `
+    // --- Integrations: GitHub token ---
+    const savedToken = localStorage.getItem("aspm_github_token");
+    if (savedToken)
+        (document.getElementById("github-token") as HTMLInputElement).value =
+            savedToken;
+
+    document.getElementById("save-token")!.addEventListener("click", () => {
+        const val = (
+            document.getElementById("github-token") as HTMLInputElement
+        ).value.trim();
+        if (val) localStorage.setItem("aspm_github_token", val);
+    });
+
+    // --- Notifications: Toggles ---
+    document
+        .querySelectorAll<HTMLButtonElement>(".toggle-btn")
+        .forEach((btn) => {
+            btn.addEventListener("click", () => {
+                const pressed = btn.getAttribute("aria-pressed") === "true";
+                btn.setAttribute("aria-pressed", String(!pressed));
+                btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${!pressed ? "bg-sky-500" : "bg-slate-700"}`;
+                const dot = btn.querySelector("span") as HTMLElement;
+                dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${!pressed ? "right-0.5" : "left-0.5"}`;
+            });
+        });
+
+    // --- Notifications: Webhooks ---
+    type Webhook = { label: string; url: string };
+    let webhooks: Webhook[] = JSON.parse(
+        localStorage.getItem("aspm_webhooks") || "[]",
+    );
+
+    function renderWebhooks() {
+        const el = document.getElementById("webhook-list")!;
+        if (!webhooks.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No webhooks configured.</p>';
+            return;
+        }
+        el.innerHTML = webhooks
+            .map(
+                (w, i) => `
       <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-lg">
         <div class="flex items-center gap-3 min-w-0">
           <div class="w-7 h-7 rounded bg-slate-900 flex items-center justify-center shrink-0">
@@ -571,100 +1131,131 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <span class="material-symbols-outlined text-sm">delete</span>
         </button>
       </div>
-    `).join('');
+    `,
+            )
+            .join("");
 
-    el.querySelectorAll<HTMLButtonElement>('.delete-webhook').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx!);
-        webhooks.splice(idx, 1);
-        localStorage.setItem('aspm_webhooks', JSON.stringify(webhooks));
-        renderWebhooks();
-      });
-    });
-  }
+        el.querySelectorAll<HTMLButtonElement>(".delete-webhook").forEach(
+            (btn) => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.dataset.idx!);
+                    webhooks.splice(idx, 1);
+                    localStorage.setItem(
+                        "aspm_webhooks",
+                        JSON.stringify(webhooks),
+                    );
+                    renderWebhooks();
+                });
+            },
+        );
+    }
 
-  renderWebhooks();
-
-  document.getElementById('add-webhook-btn')!.addEventListener('click', () => {
-    document.getElementById('webhook-form')!.classList.remove('hidden');
-  });
-  document.getElementById('cancel-webhook')!.addEventListener('click', () => {
-    document.getElementById('webhook-form')!.classList.add('hidden');
-  });
-  document.getElementById('save-webhook')!.addEventListener('click', () => {
-    const label = (document.getElementById('webhook-label') as HTMLInputElement).value.trim();
-    const url   = (document.getElementById('webhook-url') as HTMLInputElement).value.trim();
-    if (!label || !url) return;
-    webhooks.push({ label, url });
-    localStorage.setItem('aspm_webhooks', JSON.stringify(webhooks));
-    (document.getElementById('webhook-label') as HTMLInputElement).value = '';
-    (document.getElementById('webhook-url') as HTMLInputElement).value   = '';
-    document.getElementById('webhook-form')!.classList.add('hidden');
     renderWebhooks();
-  });
 
-  // --- Security: token display ---
-  const token = localStorage.getItem('aspm_token') ?? '';
-  (document.getElementById('token-display') as HTMLInputElement).value = token;
+    document
+        .getElementById("add-webhook-btn")!
+        .addEventListener("click", () => {
+            document.getElementById("webhook-form")!.classList.remove("hidden");
+        });
+    document.getElementById("cancel-webhook")!.addEventListener("click", () => {
+        document.getElementById("webhook-form")!.classList.add("hidden");
+    });
+    document.getElementById("save-webhook")!.addEventListener("click", () => {
+        const label = (
+            document.getElementById("webhook-label") as HTMLInputElement
+        ).value.trim();
+        const url = (
+            document.getElementById("webhook-url") as HTMLInputElement
+        ).value.trim();
+        if (!label || !url) return;
+        webhooks.push({ label, url });
+        localStorage.setItem("aspm_webhooks", JSON.stringify(webhooks));
+        (document.getElementById("webhook-label") as HTMLInputElement).value =
+            "";
+        (document.getElementById("webhook-url") as HTMLInputElement).value = "";
+        document.getElementById("webhook-form")!.classList.add("hidden");
+        renderWebhooks();
+    });
 
-  document.getElementById('copy-token')!.addEventListener('click', () => {
-    navigator.clipboard.writeText(token);
-    const btn = document.getElementById('copy-token')!;
-    btn.innerHTML = '<span class="material-symbols-outlined text-sm">check</span> Copied';
-    setTimeout(() => {
-      btn.innerHTML = '<span class="material-symbols-outlined text-sm">content_copy</span> Copy';
-    }, 2000);
-  });
+    // --- Security: token display ---
+    const token = localStorage.getItem("aspm_token") ?? "";
+    (document.getElementById("token-display") as HTMLInputElement).value =
+        token;
 
-  let revealed = false;
-  document.getElementById('reveal-token')!.addEventListener('click', () => {
-    const input = document.getElementById('token-display') as HTMLInputElement;
-    revealed = !revealed;
-    input.type = revealed ? 'text' : 'password';
-    const btn = document.getElementById('reveal-token')!;
-    btn.innerHTML = revealed
-      ? '<span class="material-symbols-outlined text-sm">visibility_off</span> Hide'
-      : '<span class="material-symbols-outlined text-sm">visibility</span> Reveal';
-  });
+    document.getElementById("copy-token")!.addEventListener("click", () => {
+        navigator.clipboard.writeText(token);
+        const btn = document.getElementById("copy-token")!;
+        btn.innerHTML =
+            '<span class="material-symbols-outlined text-sm">check</span> Copied';
+        setTimeout(() => {
+            btn.innerHTML =
+                '<span class="material-symbols-outlined text-sm">content_copy</span> Copy';
+        }, 2000);
+    });
 
-  document.getElementById('danger-logout')!.addEventListener('click', () => {
-    localStorage.removeItem('aspm_token');
-    window.location.href = '/login';
-  });
+    let revealed = false;
+    document.getElementById("reveal-token")!.addEventListener("click", () => {
+        const input = document.getElementById(
+            "token-display",
+        ) as HTMLInputElement;
+        revealed = !revealed;
+        input.type = revealed ? "text" : "password";
+        const btn = document.getElementById("reveal-token")!;
+        btn.innerHTML = revealed
+            ? '<span class="material-symbols-outlined text-sm">visibility_off</span> Hide'
+            : '<span class="material-symbols-outlined text-sm">visibility</span> Reveal';
+    });
 
-  document.getElementById('danger-clear')!.addEventListener('click', () => {
-    if (confirm('Clear all locally stored tokens and settings?')) {
-      ['aspm_token','aspm_org_name','aspm_api_url','aspm_admin_user','aspm_github_token','aspm_webhooks']
-        .forEach(k => localStorage.removeItem(k));
-      window.location.href = '/login';
+    document.getElementById("danger-logout")!.addEventListener("click", () => {
+        localStorage.removeItem("aspm_token");
+        window.location.href = "/login";
+    });
+
+    document.getElementById("danger-clear")!.addEventListener("click", () => {
+        if (confirm("Clear all locally stored tokens and settings?")) {
+            [
+                "aspm_token",
+                "aspm_org_name",
+                "aspm_api_url",
+                "aspm_admin_user",
+                "aspm_github_token",
+                "aspm_webhooks",
+            ].forEach((k) => localStorage.removeItem(k));
+            window.location.href = "/login";
+        }
+    });
+
+    // ---------- Users ----------
+    import { api } from "../../lib/api";
+    type User = Awaited<ReturnType<typeof api.getUsers>>[number];
+    type Team = Awaited<ReturnType<typeof api.getTeams>>[number];
+
+    let allUsers: User[] = [];
+
+    function roleChip(role: string) {
+        const cls =
+            role === "admin"
+                ? "text-red-400 bg-red-500/10 border-red-500/20"
+                : role === "analyst"
+                  ? "text-sky-400 bg-sky-500/10 border-sky-500/20"
+                  : "text-slate-400 bg-slate-500/10 border-slate-500/20";
+        return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${cls}">${role}</span>`;
     }
-  });
 
-  // ---------- Users ----------
-  import { api } from '../../lib/api';
-  type User = Awaited<ReturnType<typeof api.getUsers>>[number];
-  type Team = Awaited<ReturnType<typeof api.getTeams>>[number];
+    async function loadUsers() {
+        try {
+            allUsers = await api.getUsers();
+        } catch {
+            allUsers = [];
+        }
 
-  let allUsers: User[] = [];
-
-  function roleChip(role: string) {
-    const cls = role === 'admin'   ? 'text-red-400 bg-red-500/10 border-red-500/20' :
-                role === 'analyst' ? 'text-sky-400 bg-sky-500/10 border-sky-500/20' :
-                                     'text-slate-400 bg-slate-500/10 border-slate-500/20';
-    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${cls}">${role}</span>`;
-  }
-
-  async function loadUsers() {
-    try {
-      allUsers = await api.getUsers();
-    } catch { allUsers = []; }
-
-    const el = document.getElementById('user-list')!;
-    if (!allUsers.length) {
-      el.innerHTML = '<p class="text-xs text-slate-500">No users found.</p>';
-      return;
-    }
-    el.innerHTML = `
+        const el = document.getElementById("user-list")!;
+        if (!allUsers.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No users found.</p>';
+            return;
+        }
+        el.innerHTML = `
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl overflow-hidden">
         <table class="w-full text-sm">
           <thead>
@@ -677,96 +1268,135 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </tr>
           </thead>
           <tbody>
-            ${allUsers.map(u => `
+            ${allUsers
+                .map(
+                    (u) => `
               <tr class="border-b border-outline-variant/10 hover:bg-slate-900/30 transition-colors" data-user-id="${u.id}">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold">
-                      ${u.username.slice(0,2).toUpperCase()}
+                      ${u.username.slice(0, 2).toUpperCase()}
                     </div>
                     <span class="font-semibold text-on-background">${u.username}</span>
                   </div>
                 </td>
                 <td class="px-4 py-3 text-slate-400 text-xs font-mono">${u.email}</td>
                 <td class="px-4 py-3">${roleChip(u.role)}</td>
-                <td class="px-4 py-3 text-xs text-slate-500">${u.last_login ? new Date(u.last_login).toLocaleDateString() : '—'}</td>
+                <td class="px-4 py-3 text-xs text-slate-500">${u.last_login ? new Date(u.last_login).toLocaleDateString() : "—"}</td>
                 <td class="px-4 py-3 text-right">
                   <select class="role-change-select bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-on-background mr-2" data-uid="${u.id}">
-                    <option value="analyst" ${u.role==='analyst'?'selected':''}>Analyst</option>
-                    <option value="viewer"  ${u.role==='viewer' ?'selected':''}>Viewer</option>
-                    <option value="admin"   ${u.role==='admin'  ?'selected':''}>Admin</option>
+                    <option value="analyst" ${u.role === "analyst" ? "selected" : ""}>Analyst</option>
+                    <option value="viewer"  ${u.role === "viewer" ? "selected" : ""}>Viewer</option>
+                    <option value="admin"   ${u.role === "admin" ? "selected" : ""}>Admin</option>
                   </select>
                   <button class="delete-user-btn text-slate-600 hover:text-error transition-colors" data-uid="${u.id}">
                     <span class="material-symbols-outlined text-sm">delete</span>
                   </button>
                 </td>
               </tr>
-            `).join('')}
+            `,
+                )
+                .join("")}
           </tbody>
         </table>
       </div>`;
 
-    el.querySelectorAll<HTMLSelectElement>('.role-change-select').forEach(sel => {
-      sel.addEventListener('change', async () => {
-        try {
-          await api.updateUser(sel.dataset.uid!, { role: sel.value });
-          await loadUsers();
-        } catch (e: any) { alert(e.message); }
-      });
-    });
+        el.querySelectorAll<HTMLSelectElement>(".role-change-select").forEach(
+            (sel) => {
+                sel.addEventListener("change", async () => {
+                    try {
+                        await api.updateUser(sel.dataset.uid!, {
+                            role: sel.value,
+                        });
+                        await loadUsers();
+                    } catch (e: any) {
+                        alert(e.message);
+                    }
+                });
+            },
+        );
 
-    el.querySelectorAll<HTMLButtonElement>('.delete-user-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this user?')) return;
-        try {
-          await api.deleteUser(btn.dataset.uid!);
-          await loadUsers();
-        } catch (e: any) { alert(e.message); }
-      });
-    });
-  }
-
-  document.getElementById('show-create-user')!.addEventListener('click', () => {
-    document.getElementById('create-user-form')!.classList.remove('hidden');
-  });
-  document.getElementById('cancel-create-user')!.addEventListener('click', () => {
-    document.getElementById('create-user-form')!.classList.add('hidden');
-  });
-  document.getElementById('save-new-user')!.addEventListener('click', async () => {
-    const username = (document.getElementById('new-username') as HTMLInputElement).value.trim();
-    const email    = (document.getElementById('new-email')    as HTMLInputElement).value.trim();
-    const password = (document.getElementById('new-password') as HTMLInputElement).value;
-    const role     = (document.getElementById('new-role')     as HTMLSelectElement).value;
-    const msg      = document.getElementById('create-user-msg')!;
-    try {
-      await api.createUser(username, email, password, role);
-      msg.textContent = '✓ User created.';
-      msg.className = 'text-xs font-medium text-secondary';
-      msg.classList.remove('hidden');
-      document.getElementById('create-user-form')!.classList.add('hidden');
-      await loadUsers();
-    } catch (e: any) {
-      msg.textContent = e.message;
-      msg.className = 'text-xs font-medium text-error';
-      msg.classList.remove('hidden');
+        el.querySelectorAll<HTMLButtonElement>(".delete-user-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    if (!confirm("Delete this user?")) return;
+                    try {
+                        await api.deleteUser(btn.dataset.uid!);
+                        await loadUsers();
+                    } catch (e: any) {
+                        alert(e.message);
+                    }
+                });
+            },
+        );
     }
-    setTimeout(() => msg.classList.add('hidden'), 4000);
-  });
 
-  // ---------- Teams ----------
-  let allTeams: Team[] = [];
+    document
+        .getElementById("show-create-user")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-user-form")!
+                .classList.remove("hidden");
+        });
+    document
+        .getElementById("cancel-create-user")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-user-form")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("save-new-user")!
+        .addEventListener("click", async () => {
+            const username = (
+                document.getElementById("new-username") as HTMLInputElement
+            ).value.trim();
+            const email = (
+                document.getElementById("new-email") as HTMLInputElement
+            ).value.trim();
+            const password = (
+                document.getElementById("new-password") as HTMLInputElement
+            ).value;
+            const role = (
+                document.getElementById("new-role") as HTMLSelectElement
+            ).value;
+            const msg = document.getElementById("create-user-msg")!;
+            try {
+                await api.createUser(username, email, password, role);
+                msg.textContent = "✓ User created.";
+                msg.className = "text-xs font-medium text-secondary";
+                msg.classList.remove("hidden");
+                document
+                    .getElementById("create-user-form")!
+                    .classList.add("hidden");
+                await loadUsers();
+            } catch (e: any) {
+                msg.textContent = e.message;
+                msg.className = "text-xs font-medium text-error";
+                msg.classList.remove("hidden");
+            }
+            setTimeout(() => msg.classList.add("hidden"), 4000);
+        });
 
-  async function loadTeams() {
-    try {
-      allTeams = await api.getTeams();
-    } catch { allTeams = []; }
+    // ---------- Teams ----------
+    let allTeams: Team[] = [];
 
-    const el = document.getElementById('team-list')!;
-    if (!allTeams.length) {
-      el.innerHTML = '<p class="text-xs text-slate-500">No teams yet.</p>';
-      return;
-    }
-    el.innerHTML = allTeams.map(t => `
+    async function loadTeams() {
+        try {
+            allTeams = await api.getTeams();
+        } catch {
+            allTeams = [];
+        }
+
+        const el = document.getElementById("team-list")!;
+        if (!allTeams.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No teams yet.</p>';
+            return;
+        }
+        el.innerHTML = allTeams
+            .map(
+                (t) => `
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 space-y-4" data-team-id="${t.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -775,7 +1405,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
             <div>
               <p class="font-bold text-on-background">${t.name}</p>
-              <p class="text-xs text-slate-500">${t.members.length} member${t.members.length !== 1 ? 's' : ''}</p>
+              <p class="text-xs text-slate-500">${t.members.length} member${t.members.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
           <button class="delete-team-btn text-slate-600 hover:text-error transition-colors" data-tid="${t.id}">
@@ -783,225 +1413,306 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </button>
         </div>
 
-        ${t.members.length > 0 ? `
+        ${
+            t.members.length > 0
+                ? `
         <div class="flex flex-wrap gap-2">
-          ${t.members.map(m => `
+          ${t.members
+              .map(
+                  (m) => `
             <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-full px-3 py-1">
               <div class="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-[9px] font-bold">
-                ${m.username.slice(0,2).toUpperCase()}
+                ${m.username.slice(0, 2).toUpperCase()}
               </div>
               <span class="text-xs text-on-background">${m.username}</span>
               <button class="remove-member-btn text-slate-600 hover:text-error transition-colors ml-1" data-tid="${t.id}" data-uid="${m.id}">
                 <span class="material-symbols-outlined text-xs">close</span>
               </button>
             </div>
-          `).join('')}
-        </div>` : ''}
+          `,
+              )
+              .join("")}
+        </div>`
+                : ""
+        }
 
         <div class="flex gap-2 pt-1">
           <select class="add-member-select flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-tid="${t.id}">
             <option value="">— Add member —</option>
-            ${allUsers.filter(u => !t.members.find(m => m.id === u.id)).map(u =>
-              `<option value="${u.id}">${u.username} (${u.role})</option>`
-            ).join('')}
+            ${allUsers
+                .filter((u) => !t.members.find((m) => m.id === u.id))
+                .map(
+                    (u) =>
+                        `<option value="${u.id}">${u.username} (${u.role})</option>`,
+                )
+                .join("")}
           </select>
           <button class="add-member-btn px-3 py-1.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg text-xs font-bold hover:bg-sky-500/20 transition-all" data-tid="${t.id}">
             Add
           </button>
         </div>
       </div>
-    `).join('');
+    `,
+            )
+            .join("");
 
-    el.querySelectorAll<HTMLButtonElement>('.delete-team-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this team?')) return;
-        await api.deleteTeam(btn.dataset.tid!);
-        await loadTeams();
-      });
-    });
+        el.querySelectorAll<HTMLButtonElement>(".delete-team-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    if (!confirm("Delete this team?")) return;
+                    await api.deleteTeam(btn.dataset.tid!);
+                    await loadTeams();
+                });
+            },
+        );
 
-    el.querySelectorAll<HTMLButtonElement>('.remove-member-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        await api.removeTeamMember(btn.dataset.tid!, btn.dataset.uid!);
-        await loadTeams();
-      });
-    });
+        el.querySelectorAll<HTMLButtonElement>(".remove-member-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    await api.removeTeamMember(
+                        btn.dataset.tid!,
+                        btn.dataset.uid!,
+                    );
+                    await loadTeams();
+                });
+            },
+        );
 
-    el.querySelectorAll<HTMLButtonElement>('.add-member-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const sel = el.querySelector<HTMLSelectElement>(`.add-member-select[data-tid="${btn.dataset.tid}"]`)!;
-        if (!sel.value) return;
-        await api.addTeamMember(btn.dataset.tid!, sel.value);
-        await loadTeams();
-      });
-    });
-  }
-
-  document.getElementById('show-create-team')!.addEventListener('click', () => {
-    document.getElementById('create-team-form')!.classList.remove('hidden');
-  });
-  document.getElementById('cancel-create-team')!.addEventListener('click', () => {
-    document.getElementById('create-team-form')!.classList.add('hidden');
-  });
-  document.getElementById('save-new-team')!.addEventListener('click', async () => {
-    const name = (document.getElementById('new-team-name') as HTMLInputElement).value.trim();
-    const msg  = document.getElementById('create-team-msg')!;
-    try {
-      await api.createTeam(name);
-      msg.textContent = '✓ Team created.';
-      msg.className = 'text-xs font-medium text-secondary';
-      msg.classList.remove('hidden');
-      document.getElementById('create-team-form')!.classList.add('hidden');
-      await loadTeams();
-    } catch (e: any) {
-      msg.textContent = e.message;
-      msg.className = 'text-xs font-medium text-error';
-      msg.classList.remove('hidden');
+        el.querySelectorAll<HTMLButtonElement>(".add-member-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    const sel = el.querySelector<HTMLSelectElement>(
+                        `.add-member-select[data-tid="${btn.dataset.tid}"]`,
+                    )!;
+                    if (!sel.value) return;
+                    await api.addTeamMember(btn.dataset.tid!, sel.value);
+                    await loadTeams();
+                });
+            },
+        );
     }
-    setTimeout(() => msg.classList.add('hidden'), 4000);
-  });
 
-  // Load data when section is activated
-  navBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.section === 'users')        { loadUsers(); }
-      if (btn.dataset.section === 'teams')        { loadUsers().then(() => loadTeams()); }
-      if (btn.dataset.section === 'policies')     { loadPolicies(); }
-      if (btn.dataset.section === 'suppressions') { loadSuppressions(); }
+    document
+        .getElementById("show-create-team")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-team-form")!
+                .classList.remove("hidden");
+        });
+    document
+        .getElementById("cancel-create-team")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-team-form")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("save-new-team")!
+        .addEventListener("click", async () => {
+            const name = (
+                document.getElementById("new-team-name") as HTMLInputElement
+            ).value.trim();
+            const msg = document.getElementById("create-team-msg")!;
+            try {
+                await api.createTeam(name);
+                msg.textContent = "✓ Team created.";
+                msg.className = "text-xs font-medium text-secondary";
+                msg.classList.remove("hidden");
+                document
+                    .getElementById("create-team-form")!
+                    .classList.add("hidden");
+                await loadTeams();
+            } catch (e: any) {
+                msg.textContent = e.message;
+                msg.className = "text-xs font-medium text-error";
+                msg.classList.remove("hidden");
+            }
+            setTimeout(() => msg.classList.add("hidden"), 4000);
+        });
+
+    // Load data when section is activated
+    navBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            if (btn.dataset.section === "users") {
+                loadUsers();
+            }
+            if (btn.dataset.section === "teams") {
+                loadUsers().then(() => loadTeams());
+            }
+            if (btn.dataset.section === "policies") {
+                loadPolicies();
+            }
+            if (btn.dataset.section === "suppressions") {
+                loadSuppressions();
+            }
+        });
     });
-  });
 
-  // ---------- Policies ----------
-  import type { Policy, PolicyCondition, PolicyAction } from '../../lib/api';
+    // ---------- Policies ----------
+    import type { Policy, PolicyCondition, PolicyAction } from "../../lib/api";
 
-  let conditionRows: PolicyCondition[] = [];
-  let actionRows: PolicyAction[] = [];
+    let conditionRows: PolicyCondition[] = [];
+    let actionRows: PolicyAction[] = [];
 
-  function renderConditionRow(idx: number, c: PolicyCondition) {
-    return `<div class="flex gap-2 items-center" data-cond-idx="${idx}">
+    function renderConditionRow(idx: number, c: PolicyCondition) {
+        return `<div class="flex gap-2 items-center" data-cond-idx="${idx}">
       <select class="cond-field bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
-        <option value="severity"  ${c.field==='severity' ?'selected':''}>Severity</option>
-        <option value="scanner"   ${c.field==='scanner'  ?'selected':''}>Scanner</option>
-        <option value="rule_id"   ${c.field==='rule_id'  ?'selected':''}>Rule ID</option>
-        <option value="file_path" ${c.field==='file_path'?'selected':''}>File Path</option>
+        <option value="severity"  ${c.field === "severity" ? "selected" : ""}>Severity</option>
+        <option value="scanner"   ${c.field === "scanner" ? "selected" : ""}>Scanner</option>
+        <option value="rule_id"   ${c.field === "rule_id" ? "selected" : ""}>Rule ID</option>
+        <option value="file_path" ${c.field === "file_path" ? "selected" : ""}>File Path</option>
       </select>
       <select class="cond-op bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
-        <option value="eq"       ${c.op==='eq'      ?'selected':''}>equals</option>
-        <option value="contains" ${c.op==='contains'?'selected':''}>contains</option>
+        <option value="eq"       ${c.op === "eq" ? "selected" : ""}>equals</option>
+        <option value="contains" ${c.op === "contains" ? "selected" : ""}>contains</option>
       </select>
       <input class="cond-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" type="text" placeholder="value" value="${c.value}" data-idx="${idx}" />
       <button class="del-cond text-slate-600 hover:text-error transition-colors" data-idx="${idx}">
         <span class="material-symbols-outlined text-sm">close</span>
       </button>
     </div>`;
-  }
+    }
 
-  function renderActionRow(idx: number, a: PolicyAction) {
-    return `<div class="flex gap-2 items-center" data-action-idx="${idx}">
+    function renderActionRow(idx: number, a: PolicyAction) {
+        return `<div class="flex gap-2 items-center" data-action-idx="${idx}">
       <select class="action-type bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
-        <option value="set_status" ${a.type==='set_status'?'selected':''}>Set Status</option>
-        <option value="assign"     ${a.type==='assign'    ?'selected':''}>Assign To</option>
+        <option value="set_status" ${a.type === "set_status" ? "selected" : ""}>Set Status</option>
+        <option value="assign"     ${a.type === "assign" ? "selected" : ""}>Assign To</option>
       </select>
-      <input class="action-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" type="text" placeholder="${a.type==='set_status'?'open|in_review|accepted_risk|fixed|verified':'username'}" value="${a.value}" data-idx="${idx}" />
+      <input class="action-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" type="text" placeholder="${a.type === "set_status" ? "open|in_review|accepted_risk|fixed|verified" : "username"}" value="${a.value}" data-idx="${idx}" />
       <button class="del-action text-slate-600 hover:text-error transition-colors" data-idx="${idx}">
         <span class="material-symbols-outlined text-sm">close</span>
       </button>
     </div>`;
-  }
+    }
 
-  function rebindConditionHandlers() {
-    const cl = document.getElementById('conditions-list')!;
-    cl.querySelectorAll<HTMLSelectElement>('.cond-field').forEach(s => {
-      s.onchange = () => { conditionRows[+s.dataset.idx!].field = s.value as any; };
-    });
-    cl.querySelectorAll<HTMLSelectElement>('.cond-op').forEach(s => {
-      s.onchange = () => { conditionRows[+s.dataset.idx!].op = s.value as any; };
-    });
-    cl.querySelectorAll<HTMLInputElement>('.cond-value').forEach(i => {
-      i.oninput = () => { conditionRows[+i.dataset.idx!].value = i.value; };
-    });
-    cl.querySelectorAll<HTMLButtonElement>('.del-cond').forEach(b => {
-      b.onclick = () => {
-        conditionRows.splice(+b.dataset.idx!, 1);
+    function rebindConditionHandlers() {
+        const cl = document.getElementById("conditions-list")!;
+        cl.querySelectorAll<HTMLSelectElement>(".cond-field").forEach((s) => {
+            s.onchange = () => {
+                conditionRows[+s.dataset.idx!].field = s.value as any;
+            };
+        });
+        cl.querySelectorAll<HTMLSelectElement>(".cond-op").forEach((s) => {
+            s.onchange = () => {
+                conditionRows[+s.dataset.idx!].op = s.value as any;
+            };
+        });
+        cl.querySelectorAll<HTMLInputElement>(".cond-value").forEach((i) => {
+            i.oninput = () => {
+                conditionRows[+i.dataset.idx!].value = i.value;
+            };
+        });
+        cl.querySelectorAll<HTMLButtonElement>(".del-cond").forEach((b) => {
+            b.onclick = () => {
+                conditionRows.splice(+b.dataset.idx!, 1);
+                renderConditionsUI();
+            };
+        });
+    }
+
+    function renderConditionsUI() {
+        const cl = document.getElementById("conditions-list")!;
+        cl.innerHTML =
+            conditionRows.map((c, i) => renderConditionRow(i, c)).join("") ||
+            '<p class="text-xs text-slate-600">No conditions — policy matches all findings.</p>';
+        rebindConditionHandlers();
+    }
+
+    function rebindActionHandlers() {
+        const al = document.getElementById("actions-list")!;
+        al.querySelectorAll<HTMLSelectElement>(".action-type").forEach((s) => {
+            s.onchange = () => {
+                actionRows[+s.dataset.idx!].type = s.value as any;
+            };
+        });
+        al.querySelectorAll<HTMLInputElement>(".action-value").forEach((i) => {
+            i.oninput = () => {
+                actionRows[+i.dataset.idx!].value = i.value;
+            };
+        });
+        al.querySelectorAll<HTMLButtonElement>(".del-action").forEach((b) => {
+            b.onclick = () => {
+                actionRows.splice(+b.dataset.idx!, 1);
+                renderActionsUI();
+            };
+        });
+    }
+
+    function renderActionsUI() {
+        const al = document.getElementById("actions-list")!;
+        al.innerHTML =
+            actionRows.map((a, i) => renderActionRow(i, a)).join("") ||
+            '<p class="text-xs text-slate-600">No actions.</p>';
+        rebindActionHandlers();
+    }
+
+    document.getElementById("add-condition")!.addEventListener("click", () => {
+        conditionRows.push({ field: "severity", op: "eq", value: "" });
         renderConditionsUI();
-      };
     });
-  }
-
-  function renderConditionsUI() {
-    const cl = document.getElementById('conditions-list')!;
-    cl.innerHTML = conditionRows.map((c, i) => renderConditionRow(i, c)).join('') ||
-      '<p class="text-xs text-slate-600">No conditions — policy matches all findings.</p>';
-    rebindConditionHandlers();
-  }
-
-  function rebindActionHandlers() {
-    const al = document.getElementById('actions-list')!;
-    al.querySelectorAll<HTMLSelectElement>('.action-type').forEach(s => {
-      s.onchange = () => { actionRows[+s.dataset.idx!].type = s.value as any; };
-    });
-    al.querySelectorAll<HTMLInputElement>('.action-value').forEach(i => {
-      i.oninput = () => { actionRows[+i.dataset.idx!].value = i.value; };
-    });
-    al.querySelectorAll<HTMLButtonElement>('.del-action').forEach(b => {
-      b.onclick = () => {
-        actionRows.splice(+b.dataset.idx!, 1);
+    document.getElementById("add-action")!.addEventListener("click", () => {
+        actionRows.push({ type: "set_status", value: "" });
         renderActionsUI();
-      };
     });
-  }
+    document
+        .getElementById("show-create-policy")!
+        .addEventListener("click", () => {
+            conditionRows = [];
+            actionRows = [];
+            renderConditionsUI();
+            renderActionsUI();
+            (document.getElementById("policy-name") as HTMLInputElement).value =
+                "";
+            document.getElementById("policy-msg")!.classList.add("hidden");
+            document
+                .getElementById("create-policy-form")!
+                .classList.remove("hidden");
+        });
+    document.getElementById("cancel-policy")!.addEventListener("click", () => {
+        document.getElementById("create-policy-form")!.classList.add("hidden");
+    });
+    document
+        .getElementById("save-policy")!
+        .addEventListener("click", async () => {
+            const name = (
+                document.getElementById("policy-name") as HTMLInputElement
+            ).value.trim();
+            const msg = document.getElementById("policy-msg")!;
+            try {
+                await api.createPolicy({
+                    name,
+                    conditions: conditionRows,
+                    actions: actionRows,
+                });
+                document
+                    .getElementById("create-policy-form")!
+                    .classList.add("hidden");
+                await loadPolicies();
+            } catch (e: any) {
+                msg.textContent = e.message;
+                msg.className = "text-xs font-medium text-error";
+                msg.classList.remove("hidden");
+            }
+        });
 
-  function renderActionsUI() {
-    const al = document.getElementById('actions-list')!;
-    al.innerHTML = actionRows.map((a, i) => renderActionRow(i, a)).join('') ||
-      '<p class="text-xs text-slate-600">No actions.</p>';
-    rebindActionHandlers();
-  }
+    async function loadPolicies() {
+        const el = document.getElementById("policy-list")!;
+        let policies: Policy[] = [];
+        try {
+            policies = await api.getPolicies();
+        } catch {
+            policies = [];
+        }
 
-  document.getElementById('add-condition')!.addEventListener('click', () => {
-    conditionRows.push({ field: 'severity', op: 'eq', value: '' });
-    renderConditionsUI();
-  });
-  document.getElementById('add-action')!.addEventListener('click', () => {
-    actionRows.push({ type: 'set_status', value: '' });
-    renderActionsUI();
-  });
-  document.getElementById('show-create-policy')!.addEventListener('click', () => {
-    conditionRows = [];
-    actionRows = [];
-    renderConditionsUI();
-    renderActionsUI();
-    (document.getElementById('policy-name') as HTMLInputElement).value = '';
-    document.getElementById('policy-msg')!.classList.add('hidden');
-    document.getElementById('create-policy-form')!.classList.remove('hidden');
-  });
-  document.getElementById('cancel-policy')!.addEventListener('click', () => {
-    document.getElementById('create-policy-form')!.classList.add('hidden');
-  });
-  document.getElementById('save-policy')!.addEventListener('click', async () => {
-    const name = (document.getElementById('policy-name') as HTMLInputElement).value.trim();
-    const msg = document.getElementById('policy-msg')!;
-    try {
-      await api.createPolicy({ name, conditions: conditionRows, actions: actionRows });
-      document.getElementById('create-policy-form')!.classList.add('hidden');
-      await loadPolicies();
-    } catch (e: any) {
-      msg.textContent = e.message;
-      msg.className = 'text-xs font-medium text-error';
-      msg.classList.remove('hidden');
-    }
-  });
-
-  async function loadPolicies() {
-    const el = document.getElementById('policy-list')!;
-    let policies: Policy[] = [];
-    try { policies = await api.getPolicies(); } catch { policies = []; }
-
-    if (!policies.length) {
-      el.innerHTML = '<p class="text-xs text-slate-500">No policies configured.</p>';
-      return;
-    }
-    el.innerHTML = policies.map(p => `
+        if (!policies.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No policies configured.</p>';
+            return;
+        }
+        el.innerHTML = policies
+            .map(
+                (p) => `
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 space-y-3" data-policy-id="${p.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -1010,91 +1721,134 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             </div>
             <div>
               <p class="font-bold text-sm text-on-background">${p.name}</p>
-              <p class="text-[10px] text-slate-500">${p.conditions.length} condition${p.conditions.length !== 1?'s':''} · ${p.actions.length} action${p.actions.length !== 1?'s':''}</p>
+              <p class="text-[10px] text-slate-500">${p.conditions.length} condition${p.conditions.length !== 1 ? "s" : ""} · ${p.actions.length} action${p.actions.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
           <div class="flex items-center gap-3">
             <button
-              class="toggle-policy-btn relative w-10 h-5 rounded-full transition-all ${p.enabled ? 'bg-sky-500' : 'bg-slate-700'}"
+              class="toggle-policy-btn relative w-10 h-5 rounded-full transition-all ${p.enabled ? "bg-sky-500" : "bg-slate-700"}"
               aria-pressed="${p.enabled}" data-pid="${p.id}">
-              <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${p.enabled ? 'right-0.5' : 'left-0.5'}"></span>
+              <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${p.enabled ? "right-0.5" : "left-0.5"}"></span>
             </button>
             <button class="delete-policy-btn text-slate-600 hover:text-error transition-colors" data-pid="${p.id}">
               <span class="material-symbols-outlined text-sm">delete</span>
             </button>
           </div>
         </div>
-        ${p.conditions.length ? `
+        ${
+            p.conditions.length
+                ? `
         <div class="flex flex-wrap gap-1.5">
-          ${p.conditions.map(c => `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">${c.field} ${c.op} "${c.value}"</span>`).join('')}
-        </div>` : ''}
-        ${p.actions.length ? `
+          ${p.conditions.map((c) => `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">${c.field} ${c.op} "${c.value}"</span>`).join("")}
+        </div>`
+                : ""
+        }
+        ${
+            p.actions.length
+                ? `
         <div class="flex flex-wrap gap-1.5">
-          ${p.actions.map(a => `<span class="text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 rounded px-2 py-0.5 text-sky-300">${a.type} → "${a.value}"</span>`).join('')}
-        </div>` : ''}
+          ${p.actions.map((a) => `<span class="text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 rounded px-2 py-0.5 text-sky-300">${a.type} → "${a.value}"</span>`).join("")}
+        </div>`
+                : ""
+        }
       </div>
-    `).join('');
+    `,
+            )
+            .join("");
 
-    el.querySelectorAll<HTMLButtonElement>('.toggle-policy-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const enabled = btn.getAttribute('aria-pressed') !== 'true';
-        await api.updatePolicy(btn.dataset.pid!, enabled);
-        await loadPolicies();
-      });
-    });
-    el.querySelectorAll<HTMLButtonElement>('.delete-policy-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this policy?')) return;
-        await api.deletePolicy(btn.dataset.pid!);
-        await loadPolicies();
-      });
-    });
-  }
-
-  // ---------- Suppressions ----------
-  import type { Suppression } from '../../lib/api';
-
-  document.getElementById('show-create-suppression')!.addEventListener('click', () => {
-    document.getElementById('create-suppression-form')!.classList.remove('hidden');
-  });
-  document.getElementById('cancel-suppression')!.addEventListener('click', () => {
-    document.getElementById('create-suppression-form')!.classList.add('hidden');
-  });
-  document.getElementById('save-suppression')!.addEventListener('click', async () => {
-    const name        = (document.getElementById('sup-name')         as HTMLInputElement).value.trim();
-    const ruleId      = (document.getElementById('sup-rule-id')      as HTMLInputElement).value.trim();
-    const scanner     = (document.getElementById('sup-scanner')      as HTMLSelectElement).value;
-    const filePattern = (document.getElementById('sup-file-pattern') as HTMLInputElement).value.trim();
-    const reason      = (document.getElementById('sup-reason')       as HTMLInputElement).value.trim();
-    const msg = document.getElementById('suppression-msg')!;
-
-    try {
-      await api.createSuppression({
-        name,
-        rule_id:      ruleId      || undefined,
-        scanner:      scanner     || undefined,
-        file_pattern: filePattern || undefined,
-        reason:       reason      || undefined,
-      });
-      document.getElementById('create-suppression-form')!.classList.add('hidden');
-      await loadSuppressions();
-    } catch (e: any) {
-      msg.textContent = e.message;
-      msg.className = 'text-xs font-medium text-error';
-      msg.classList.remove('hidden');
+        el.querySelectorAll<HTMLButtonElement>(".toggle-policy-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    const enabled = btn.getAttribute("aria-pressed") !== "true";
+                    await api.updatePolicy(btn.dataset.pid!, enabled);
+                    await loadPolicies();
+                });
+            },
+        );
+        el.querySelectorAll<HTMLButtonElement>(".delete-policy-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    if (!confirm("Delete this policy?")) return;
+                    await api.deletePolicy(btn.dataset.pid!);
+                    await loadPolicies();
+                });
+            },
+        );
     }
-  });
 
-  async function loadSuppressions() {
-    const el = document.getElementById('suppression-list')!;
-    let suppressions: Suppression[] = [];
-    try { suppressions = await api.getSuppressions(); } catch { suppressions = []; }
+    // ---------- Suppressions ----------
+    import type { Suppression } from "../../lib/api";
 
-    if (!suppressions.length) {
-      el.innerHTML = '<p class="text-xs text-slate-500">No suppression rules.</p>';
-      return;
-    }
-    el.innerHTML = suppressions.map(s => `
+    document
+        .getElementById("show-create-suppression")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-suppression-form")!
+                .classList.remove("hidden");
+        });
+    document
+        .getElementById("cancel-suppression")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-suppression-form")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("save-suppression")!
+        .addEventListener("click", async () => {
+            const name = (
+                document.getElementById("sup-name") as HTMLInputElement
+            ).value.trim();
+            const ruleId = (
+                document.getElementById("sup-rule-id") as HTMLInputElement
+            ).value.trim();
+            const scanner = (
+                document.getElementById("sup-scanner") as HTMLSelectElement
+            ).value;
+            const filePattern = (
+                document.getElementById("sup-file-pattern") as HTMLInputElement
+            ).value.trim();
+            const reason = (
+                document.getElementById("sup-reason") as HTMLInputElement
+            ).value.trim();
+            const msg = document.getElementById("suppression-msg")!;
+
+            try {
+                await api.createSuppression({
+                    name,
+                    rule_id: ruleId || undefined,
+                    scanner: scanner || undefined,
+                    file_pattern: filePattern || undefined,
+                    reason: reason || undefined,
+                });
+                document
+                    .getElementById("create-suppression-form")!
+                    .classList.add("hidden");
+                await loadSuppressions();
+            } catch (e: any) {
+                msg.textContent = e.message;
+                msg.className = "text-xs font-medium text-error";
+                msg.classList.remove("hidden");
+            }
+        });
+
+    async function loadSuppressions() {
+        const el = document.getElementById("suppression-list")!;
+        let suppressions: Suppression[] = [];
+        try {
+            suppressions = await api.getSuppressions();
+        } catch {
+            suppressions = [];
+        }
+
+        if (!suppressions.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No suppression rules.</p>';
+            return;
+        }
+        el.innerHTML = suppressions
+            .map(
+                (s) => `
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex items-center justify-between" data-sup-id="${s.id}">
         <div class="flex items-center gap-3 min-w-0">
           <div class="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
@@ -1103,10 +1857,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <div class="min-w-0">
             <p class="font-bold text-sm text-on-background">${s.name}</p>
             <div class="flex flex-wrap gap-1.5 mt-1">
-              ${s.rule_id      ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">rule: ${s.rule_id}</span>` : ''}
-              ${s.scanner      ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">scanner: ${s.scanner}</span>` : ''}
-              ${s.file_pattern ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">path: ${s.file_pattern}</span>` : ''}
-              ${s.reason       ? `<span class="text-[10px] text-slate-500 italic">${s.reason}</span>` : ''}
+              ${s.rule_id ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">rule: ${s.rule_id}</span>` : ""}
+              ${s.scanner ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">scanner: ${s.scanner}</span>` : ""}
+              ${s.file_pattern ? `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">path: ${s.file_pattern}</span>` : ""}
+              ${s.reason ? `<span class="text-[10px] text-slate-500 italic">${s.reason}</span>` : ""}
             </div>
           </div>
         </div>
@@ -1114,14 +1868,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <span class="material-symbols-outlined text-sm">delete</span>
         </button>
       </div>
-    `).join('');
+    `,
+            )
+            .join("");
 
-    el.querySelectorAll<HTMLButtonElement>('.delete-sup-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this suppression rule?')) return;
-        await api.deleteSuppression(btn.dataset.sid!);
-        await loadSuppressions();
-      });
-    });
-  }
+        el.querySelectorAll<HTMLButtonElement>(".delete-sup-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    if (!confirm("Delete this suppression rule?")) return;
+                    await api.deleteSuppression(btn.dataset.sid!);
+                    await loadSuppressions();
+                });
+            },
+        );
+    }
 </script>

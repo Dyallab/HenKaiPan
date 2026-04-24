@@ -1,144 +1,303 @@
 ---
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
 ---
-<Layout title="ASPM — Application Security Posture Management">
 
-  <!-- Navbar -->
-  <header class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
-    <div class="flex items-center gap-2.5">
-      <div class="w-7 h-7 bg-sky-500 rounded flex items-center justify-center">
-        <span class="material-symbols-outlined ms-fill text-slate-950 text-base">security</span>
-      </div>
-      <span class="font-black tracking-tighter text-sky-500 text-xl">ASPM</span>
-    </div>
-    <div class="flex items-center gap-3">
-      <a href="/login" class="px-4 py-2 border border-slate-700 text-slate-300 rounded text-sm font-semibold hover:bg-slate-900 transition-colors">
-        Sign in
-      </a>
-      <a href="/login" class="px-4 py-2 bg-sky-500 text-slate-950 rounded text-sm font-bold hover:bg-sky-400 transition-all">
-        Dashboard →
-      </a>
-    </div>
-  </header>
-
-  <!-- Hero -->
-  <section class="relative pt-24 pb-32 px-6 overflow-hidden">
-    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.12),transparent_50%)]"></div>
-    <div class="max-w-7xl mx-auto text-center relative z-10">
-      <div class="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full border border-sky-500/20 bg-sky-500/5 text-sky-400 text-xs font-bold uppercase tracking-wider">
-        <span class="material-symbols-outlined text-sm">verified_user</span>
-        Open Source · SAST · SCA · Secrets · IaC · DAST
-      </div>
-      <h1 class="text-6xl md:text-8xl mb-8 font-black tracking-tighter leading-none bg-clip-text text-transparent bg-gradient-to-b from-on-background to-slate-600">
-        Master Your<br/>Application Security
-      </h1>
-      <p class="text-slate-400 max-w-2xl mx-auto mb-12 text-lg leading-relaxed">
-        Run semgrep, trivy, and trufflehog from one unified dashboard.
-        Track findings across all your repos. Fix what matters first.
-      </p>
-      <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <a href="/login" class="w-full sm:w-auto px-8 py-4 bg-sky-500 text-slate-950 font-bold rounded-xl hover:shadow-[0_0_24px_rgba(14,165,233,0.35)] transition-all">
-          Open Dashboard
-        </a>
-        <a href="#features" class="w-full sm:w-auto px-8 py-4 border border-outline-variant/40 text-on-surface font-bold rounded-xl hover:bg-surface-container transition-all">
-          Learn More →
-        </a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Scanners bar -->
-  <section class="py-12 border-y border-slate-900 bg-slate-950/50">
-    <div class="max-w-7xl mx-auto px-6">
-      <p class="text-xs text-slate-500 text-center font-bold uppercase tracking-widest mb-8">Powered by Open Source Scanners</p>
-      <div class="flex flex-wrap justify-center items-center gap-4">
-        {[
-          { name: 'semgrep', label: 'SAST', color: 'text-sky-400 border-sky-500/20 bg-sky-500/5' },
-          { name: 'trivy', label: 'SCA', color: 'text-purple-400 border-purple-500/20 bg-purple-500/5' },
-          { name: 'trufflehog', label: 'Secrets', color: 'text-amber-400 border-amber-500/20 bg-amber-500/5' },
-          { name: 'gosec', label: 'SAST', color: 'text-sky-400 border-sky-500/20 bg-sky-500/5' },
-          { name: 'grype', label: 'SCA', color: 'text-purple-400 border-purple-500/20 bg-purple-500/5' },
-          { name: 'gitleaks', label: 'Secrets', color: 'text-amber-400 border-amber-500/20 bg-amber-500/5' },
-          { name: 'checkov', label: 'IaC', color: 'text-green-400 border-green-500/20 bg-green-500/5' },
-          { name: 'nuclei', label: 'DAST', color: 'text-orange-400 border-orange-500/20 bg-orange-500/5' },
-        ].map(s => (
-          <div class={`flex items-center gap-2 px-4 py-2 border rounded-lg ${s.color}`}>
-            <span class={`text-[10px] font-bold uppercase tracking-wider`}>{s.label}</span>
-            <span class="font-mono text-sm">{s.name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <!-- Features bento grid -->
-  <section id="features" class="py-24 px-6 max-w-7xl mx-auto">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold tracking-tight mb-4">Engineered for Security Teams</h2>
-      <p class="text-slate-400 text-lg">Everything you need to manage application security posture.</p>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-
-      <!-- Big: Unified Visibility -->
-      <div class="md:col-span-8 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 flex flex-col justify-between group hover:border-sky-500/30 transition-all">
-        <div>
-          <span class="material-symbols-outlined text-sky-400 text-4xl mb-5 block">visibility</span>
-          <h3 class="text-2xl font-semibold mb-3">Unified Visibility</h3>
-          <p class="text-slate-400 max-w-md leading-relaxed">Aggregate security signals from all your scanners across every repository into a single, prioritized view.</p>
-        </div>
-        <div class="mt-8 grid grid-cols-3 gap-3">
-          {[
-            { label: 'Critical', val: '—', color: 'text-red-400' },
-            { label: 'High', val: '—', color: 'text-orange-400' },
-            { label: 'Total', val: '—', color: 'text-sky-400' },
-          ].map(m => (
-            <div class="bg-surface-container border border-outline-variant/20 rounded-lg p-4">
-              <p class={`text-2xl font-black ${m.color}`}>{m.val}</p>
-              <p class="text-xs text-slate-500 mt-1 font-bold uppercase tracking-wider">{m.label}</p>
+<Layout title="HenKaiPan — Application Security Posture Management">
+    <!-- Navbar -->
+    <header
+        class="sticky top-0 z-50 flex justify-between items-center px-6 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800"
+    >
+        <div class="flex items-center gap-2.5">
+            <div
+                class="w-7 h-7 bg-sky-500 rounded flex items-center justify-center"
+            >
+                <span
+                    class="material-symbols-outlined ms-fill text-slate-950 text-base"
+                    >security</span
+                >
             </div>
-          ))}
+            <span class="font-black tracking-tighter text-sky-500 text-xl"
+                >HenKaiPan</span
+            >
         </div>
-      </div>
-
-      <!-- Small: Automated Scans -->
-      <div class="md:col-span-4 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 group hover:border-secondary/30 transition-all">
-        <span class="material-symbols-outlined text-secondary text-4xl mb-5 block">security_update_good</span>
-        <h3 class="text-2xl font-semibold mb-3">Automated Scans</h3>
-        <p class="text-slate-400 leading-relaxed">Docker-isolated scanner execution. No setup required — just point to a repo and fire.</p>
-      </div>
-
-      <!-- Small: Smart Prioritization -->
-      <div class="md:col-span-4 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 group hover:border-error/30 transition-all">
-        <span class="material-symbols-outlined text-error text-4xl mb-5 block">biotech</span>
-        <h3 class="text-2xl font-semibold mb-3">Smart Prioritization</h3>
-        <p class="text-slate-400 leading-relaxed">Filter by severity, scanner type, and repository. Focus on critical and high findings first.</p>
-      </div>
-
-      <!-- Big: Compliance -->
-      <div class="md:col-span-8 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 flex flex-col sm:flex-row gap-8 items-start group hover:border-primary/20 transition-all">
-        <div class="flex-1">
-          <span class="material-symbols-outlined text-primary text-4xl mb-5 block">verified_user</span>
-          <h3 class="text-2xl font-semibold mb-3">Multi-Scanner Coverage</h3>
-          <p class="text-slate-400 leading-relaxed">SAST, SCA, secret detection, IaC scanning, and DAST — all from one interface with unified finding format.</p>
+        <div class="flex items-center gap-3">
+            <a
+                href="/login"
+                class="px-4 py-2 border border-slate-700 text-slate-300 rounded text-sm font-semibold hover:bg-slate-900 transition-colors"
+            >
+                Sign in
+            </a>
+            <a
+                href="/login"
+                class="px-4 py-2 bg-sky-500 text-slate-950 rounded text-sm font-bold hover:bg-sky-400 transition-all"
+            >
+                Dashboard →
+            </a>
         </div>
-        <div class="flex flex-col gap-2.5 min-w-fit">
-          {[
-            { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
-            { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-            { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-            { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-            { label: 'DAST',      color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-            { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
-          ].map(b => (
-            <span class={`px-3 py-1.5 text-xs font-bold rounded uppercase tracking-wider border ${b.color}`}>{b.label}</span>
-          ))}
-        </div>
-      </div>
-    </div>
-  </section>
+    </header>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800/50 px-8 py-6 text-center text-xs text-slate-600">
-    ASPM · itti.digital
-  </footer>
+    <!-- Hero -->
+    <section class="relative pt-24 pb-32 px-6 overflow-hidden">
+        <div
+            class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.12),transparent_50%)]"
+        >
+        </div>
+        <div class="max-w-7xl mx-auto text-center relative z-10">
+            <div
+                class="inline-flex items-center gap-2 px-3 py-1.5 mb-8 rounded-full border border-sky-500/20 bg-sky-500/5 text-sky-400 text-xs font-bold uppercase tracking-wider"
+            >
+                <span class="material-symbols-outlined text-sm"
+                    >verified_user</span
+                >
+                Open Source · SAST · SCA · Secrets · IaC · DAST
+            </div>
+            <h1
+                class="text-6xl md:text-8xl mb-8 font-black tracking-tighter leading-none bg-clip-text text-transparent bg-gradient-to-b from-on-background to-slate-600"
+            >
+                Master Your<br />Application Security
+            </h1>
+            <p
+                class="text-slate-400 max-w-2xl mx-auto mb-12 text-lg leading-relaxed"
+            >
+                Run semgrep, trivy, and trufflehog from one unified dashboard.
+                Track findings across all your repos. Fix what matters first.
+            </p>
+            <div
+                class="flex flex-col sm:flex-row items-center justify-center gap-4"
+            >
+                <a
+                    href="/login"
+                    class="w-full sm:w-auto px-8 py-4 bg-sky-500 text-slate-950 font-bold rounded-xl hover:shadow-[0_0_24px_rgba(14,165,233,0.35)] transition-all"
+                >
+                    Open Dashboard
+                </a>
+                <a
+                    href="#features"
+                    class="w-full sm:w-auto px-8 py-4 border border-outline-variant/40 text-on-surface font-bold rounded-xl hover:bg-surface-container transition-all"
+                >
+                    Learn More →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Scanners bar -->
+    <section class="py-12 border-y border-slate-900 bg-slate-950/50">
+        <div class="max-w-7xl mx-auto px-6">
+            <p
+                class="text-xs text-slate-500 text-center font-bold uppercase tracking-widest mb-8"
+            >
+                Powered by Open Source Scanners
+            </p>
+            <div class="flex flex-wrap justify-center items-center gap-4">
+                {
+                    [
+                        {
+                            name: "semgrep",
+                            label: "SAST",
+                            color: "text-sky-400 border-sky-500/20 bg-sky-500/5",
+                        },
+                        {
+                            name: "trivy",
+                            label: "SCA",
+                            color: "text-purple-400 border-purple-500/20 bg-purple-500/5",
+                        },
+                        {
+                            name: "trufflehog",
+                            label: "Secrets",
+                            color: "text-amber-400 border-amber-500/20 bg-amber-500/5",
+                        },
+                        {
+                            name: "gosec",
+                            label: "SAST",
+                            color: "text-sky-400 border-sky-500/20 bg-sky-500/5",
+                        },
+                        {
+                            name: "grype",
+                            label: "SCA",
+                            color: "text-purple-400 border-purple-500/20 bg-purple-500/5",
+                        },
+                        {
+                            name: "gitleaks",
+                            label: "Secrets",
+                            color: "text-amber-400 border-amber-500/20 bg-amber-500/5",
+                        },
+                        {
+                            name: "checkov",
+                            label: "IaC",
+                            color: "text-green-400 border-green-500/20 bg-green-500/5",
+                        },
+                        {
+                            name: "nuclei",
+                            label: "DAST",
+                            color: "text-orange-400 border-orange-500/20 bg-orange-500/5",
+                        },
+                    ].map((s) => (
+                        <div
+                            class={`flex items-center gap-2 px-4 py-2 border rounded-lg ${s.color}`}
+                        >
+                            <span
+                                class={`text-[10px] font-bold uppercase tracking-wider`}
+                            >
+                                {s.label}
+                            </span>
+                            <span class="font-mono text-sm">{s.name}</span>
+                        </div>
+                    ))
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- Features bento grid -->
+    <section id="features" class="py-24 px-6 max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl font-bold tracking-tight mb-4">
+                Engineered for Security Teams
+            </h2>
+            <p class="text-slate-400 text-lg">
+                Everything you need to manage application security posture.
+            </p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <!-- Big: Unified Visibility -->
+            <div
+                class="md:col-span-8 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 flex flex-col justify-between group hover:border-sky-500/30 transition-all"
+            >
+                <div>
+                    <span
+                        class="material-symbols-outlined text-sky-400 text-4xl mb-5 block"
+                        >visibility</span
+                    >
+                    <h3 class="text-2xl font-semibold mb-3">
+                        Unified Visibility
+                    </h3>
+                    <p class="text-slate-400 max-w-md leading-relaxed">
+                        Aggregate security signals from all your scanners across
+                        every repository into a single, prioritized view.
+                    </p>
+                </div>
+                <div class="mt-8 grid grid-cols-3 gap-3">
+                    {
+                        [
+                            {
+                                label: "Critical",
+                                val: "—",
+                                color: "text-red-400",
+                            },
+                            {
+                                label: "High",
+                                val: "—",
+                                color: "text-orange-400",
+                            },
+                            { label: "Total", val: "—", color: "text-sky-400" },
+                        ].map((m) => (
+                            <div class="bg-surface-container border border-outline-variant/20 rounded-lg p-4">
+                                <p class={`text-2xl font-black ${m.color}`}>
+                                    {m.val}
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1 font-bold uppercase tracking-wider">
+                                    {m.label}
+                                </p>
+                            </div>
+                        ))
+                    }
+                </div>
+            </div>
+
+            <!-- Small: Automated Scans -->
+            <div
+                class="md:col-span-4 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 group hover:border-secondary/30 transition-all"
+            >
+                <span
+                    class="material-symbols-outlined text-secondary text-4xl mb-5 block"
+                    >security_update_good</span
+                >
+                <h3 class="text-2xl font-semibold mb-3">Automated Scans</h3>
+                <p class="text-slate-400 leading-relaxed">
+                    Docker-isolated scanner execution. No setup required — just
+                    point to a repo and fire.
+                </p>
+            </div>
+
+            <!-- Small: Smart Prioritization -->
+            <div
+                class="md:col-span-4 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 group hover:border-error/30 transition-all"
+            >
+                <span
+                    class="material-symbols-outlined text-error text-4xl mb-5 block"
+                    >biotech</span
+                >
+                <h3 class="text-2xl font-semibold mb-3">
+                    Smart Prioritization
+                </h3>
+                <p class="text-slate-400 leading-relaxed">
+                    Filter by severity, scanner type, and repository. Focus on
+                    critical and high findings first.
+                </p>
+            </div>
+
+            <!-- Big: Compliance -->
+            <div
+                class="md:col-span-8 bg-surface-container-low border border-outline-variant/20 rounded-xl p-8 flex flex-col sm:flex-row gap-8 items-start group hover:border-primary/20 transition-all"
+            >
+                <div class="flex-1">
+                    <span
+                        class="material-symbols-outlined text-primary text-4xl mb-5 block"
+                        >verified_user</span
+                    >
+                    <h3 class="text-2xl font-semibold mb-3">
+                        Multi-Scanner Coverage
+                    </h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        SAST, SCA, secret detection, IaC scanning, and DAST —
+                        all from one interface with unified finding format.
+                    </p>
+                </div>
+                <div class="flex flex-col gap-2.5 min-w-fit">
+                    {
+                        [
+                            {
+                                label: "SAST",
+                                color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+                            },
+                            {
+                                label: "SCA",
+                                color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+                            },
+                            {
+                                label: "Secrets",
+                                color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+                            },
+                            {
+                                label: "IaC",
+                                color: "text-green-400 bg-green-500/10 border-green-500/20",
+                            },
+                            {
+                                label: "DAST",
+                                color: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+                            },
+                            {
+                                label: "Container",
+                                color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
+                            },
+                        ].map((b) => (
+                            <span
+                                class={`px-3 py-1.5 text-xs font-bold rounded uppercase tracking-wider border ${b.color}`}
+                            >
+                                {b.label}
+                            </span>
+                        ))
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer
+        class="border-t border-slate-800/50 px-8 py-6 text-center text-xs text-slate-600"
+    >
+        HenKaiPan
+    </footer>
 </Layout>

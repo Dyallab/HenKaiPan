@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
-	"encoding/csv"
-	"encoding/json"
 
 	"aspm/internal/repository"
 
@@ -102,7 +102,7 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"id", "scan_id", "scanner", "rule_id", "title", "description",
 		"severity", "file_path", "line_start", "created_at",
 		"status", "assigned_to", "false_positive", "notes", "resolved_at", "sla_deadline",
-		"cve_id", "cwe_id"})
+		"cve_id", "cwe_id", "confidence_score", "corroboration_count"})
 
 	for _, f := range rows {
 		fp := "false"
@@ -114,7 +114,7 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 			f.Severity, f.FilePath, strconv.Itoa(f.LineStart), f.CreatedAt.Format(time.RFC3339),
 			f.Status, derefStr(f.AssignedTo), fp, derefStr(f.Notes),
 			fmtTime(f.ResolvedAt), fmtTime(f.SLADeadline),
-			derefStr(f.CVEID), derefStr(f.CWEID),
+			derefStr(f.CVEID), derefStr(f.CWEID), strconv.FormatFloat(f.ConfidenceScore, 'f', 2, 64), strconv.Itoa(f.CorroborationCount),
 		})
 	}
 	cw.Flush()

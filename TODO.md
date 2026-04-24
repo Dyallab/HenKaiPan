@@ -76,12 +76,12 @@
 - [x] `GET /api/knowledge` — lista con filtros (q, scanner, tag, cwe_id, rule_id)
 - [x] `GET /api/knowledge/:slug` — artículo individual
 - [x] `GET /api/knowledge/lookup` — lookup rápido por rule_id o cwe_id (para integraciones)
-- [x] `POST /api/knowledge/ai-remediate` — genera guía con Claude claude-haiku-4-5 dado un finding_id, cachea resultado
+- [x] `POST /api/knowledge/ai-remediate` — genera guía vía OpenRouter dado un finding_id, cachea resultado
 - [x] CRUD admin: `POST/PUT/DELETE /api/knowledge/:slug`
 - [x] `/dashboard/knowledge` — lista + buscador, visor markdown con prose styles, editor inline (admin), preview toggle
-- [x] Cache-first: si existe artículo para ese rule_id, devuelve el curado sin llamar a Claude
+- [x] Cache-first: si existe artículo para ese rule_id, devuelve el curado sin llamar al LLM
 - [x] Botón "Remediation Guide" en triage modal de findings → abre artículo o genera nuevo en tab
-- [x] Requiere `ANTHROPIC_API_KEY` env var para generación IA (falla gracefully si no está seteada)
+- [x] Requiere `OPENROUTER_API_KEY` env var para generación IA (falla gracefully si no está seteada)
 
 ---
 
@@ -118,6 +118,21 @@
 - [ ] GitHub integration: comment on PR with findings summary
 - [ ] Webhook system: `POST /api/webhooks` + event delivery with retries
 - [ ] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
+
+---
+
+## v0.7 — Finding Correlation & Credibility
+
+- [x] Add `scan_batch_id` to group scanners launched together in a single run request
+- [x] Correlate findings only inside the same `scan_batch_id`
+- [x] Correlate only across scanners in the same family/category (SAST with SAST, secrets with secrets, etc.)
+- [x] Store `finding_correlations` entries for same-family batch corroboration
+- [x] Add base `confidence_score` + `corroboration_count` to findings
+- [x] Credibility only increases on positive corroboration; no penalty when peers do not match
+- [ ] Findings page — show credibility score and corroboration count badges
+- [ ] Add filters/sorting for credibility score
+- [ ] Add correlation details endpoint/UI for "which scanners corroborated this"
+- [ ] Stage 2: AI on-demand validation as a modifier on top of base credibility score
 
 ---
 

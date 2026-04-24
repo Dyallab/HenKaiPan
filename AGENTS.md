@@ -22,7 +22,8 @@ Copy `.env.example` → `.env`:
 - `DATABASE_URL=postgres://aspm:aspm@localhost:5432/aspm?sslmode=disable`
 - `REDIS_ADDR=localhost:6379`
 - `JWT_SECRET`, `ADMIN_USER`, `ADMIN_PASS`
-- `ANTHROPIC_API_KEY` (for AI remediation features)
+- `OPENROUTER_API_KEY` (for AI remediation and validator features)
+- `OPENROUTER_MODEL` (optional, defaults to `openai/gpt-4.1-mini`)
 
 ## Tech Stack
 
@@ -54,7 +55,7 @@ Copy `.env.example` → `.env`:
 - **Auth**: JWT claims include `role` + `user_id`. Use `RequireRole()` middleware for admin routes.
 - **SLA**: Auto-computed on finding insert (critical=24h, high=72h, medium=30d, low=90d).
 - **Scanners**: Run in Docker, executed by worker via container. Results parsed into findings.
-- **AI Remediation**: `POST /api/knowledge/ai-remediate` calls Claude Haiku. Requires `ANTHROPIC_API_KEY`.
+- **AI Remediation**: `POST /api/knowledge/ai-remediate` calls OpenRouter. Requires `OPENROUTER_API_KEY`.
 
 ## Testing
 

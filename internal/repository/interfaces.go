@@ -70,6 +70,7 @@ type FindingRepository interface {
 	GetByScanID(ctx context.Context, scanID string) ([]models.Finding, error)
 	Update(ctx context.Context, id string, upd FindingUpdate) (*models.Finding, error)
 	Insert(ctx context.Context, f FindingInsert) (string, error)
+	RefreshBatchCorrelation(ctx context.Context, findingID string) error
 	GetSLASummary(ctx context.Context) (*models.SLASummary, error)
 	ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error)
 	UpdateRemediationSlug(ctx context.Context, findingID, slug string) error
@@ -81,7 +82,7 @@ type FindingRepository interface {
 type ScanRepository interface {
 	List(ctx context.Context, page, limit int) ([]models.Scan, int, error)
 	Get(ctx context.Context, id string) (*models.Scan, error)
-	Insert(ctx context.Context, target, scanner string, repoID *string) (string, error)
+	Insert(ctx context.Context, target, scanner, batchID string, repoID *string) (string, error)
 	FindRepoIDByTarget(ctx context.Context, target string) (*string, error)
 	MarkRunning(ctx context.Context, scanID string) error
 	MarkCompleted(ctx context.Context, scanID, containerLog string, exitErr *string) error

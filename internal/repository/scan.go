@@ -72,11 +72,11 @@ func (r *scanRepo) Get(ctx context.Context, id string) (*models.Scan, error) {
 	return &s, nil
 }
 
-func (r *scanRepo) Insert(ctx context.Context, target, scanner string, repoID *string) (string, error) {
+func (r *scanRepo) Insert(ctx context.Context, target, scanner, batchID string, repoID *string) (string, error) {
 	var id string
 	err := r.db.QueryRow(ctx,
-		`INSERT INTO scans (target, scanner, status, repo_id) VALUES ($1, $2, 'pending', $3) RETURNING id`,
-		target, scanner, repoID,
+		`INSERT INTO scans (target, scanner, status, scan_batch_id, repo_id) VALUES ($1, $2, 'pending', $3, $4) RETURNING id`,
+		target, scanner, batchID, repoID,
 	).Scan(&id)
 	if err != nil {
 		return "", fmt.Errorf("insert scan: %w", err)

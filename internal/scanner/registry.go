@@ -104,12 +104,12 @@ var Registry = map[string]Scanner{
 	// TLS inspection (corporate proxy) the cert verification fails. TRIVY_INSECURE
 	// skips TLS for all trivy HTTP calls. Cache persists on the host at /tmp/trivy-cache.
 	"trivy": {
-		Name:        "trivy",
-		Category:    CategorySCA,
-		Description: "Vulnerability scanner for packages and containers",
-		Image:       "aquasec/trivy:latest",
-		MountDst:    "/src",
-		Env:         map[string]string{"TRIVY_INSECURE": "true"},
+		Name:         "trivy",
+		Category:     CategorySCA,
+		Description:  "Vulnerability scanner for packages and containers",
+		Image:        "aquasec/trivy:latest",
+		MountDst:     "/src",
+		Env:          map[string]string{"TRIVY_INSECURE": "true"},
 		ExtraVolumes: []string{"/tmp/trivy-cache:/root/.cache/trivy"},
 		BuildArgs: func(t string) []string {
 			return []string{"fs", "--format", "sarif", "--exit-code", "0", "--no-progress", t}
@@ -119,12 +119,12 @@ var Registry = map[string]Scanner{
 		Parse:      ParseSARIF,
 	},
 	"grype": {
-		Name:        "grype",
-		Category:    CategorySCA,
-		Description: "Vulnerability scanner for filesystems (Anchore)",
-		Image:       "anchore/grype:latest",
-		MountDst:    "/src",
-		Env:         map[string]string{"GRYPE_DB_AUTO_UPDATE": "true"},
+		Name:         "grype",
+		Category:     CategorySCA,
+		Description:  "Vulnerability scanner for filesystems (Anchore)",
+		Image:        "anchore/grype:latest",
+		MountDst:     "/src",
+		Env:          map[string]string{"GRYPE_DB_AUTO_UPDATE": "true"},
 		ExtraVolumes: []string{"/tmp/grype-cache:/root/.cache/grype"},
 		BuildArgs: func(t string) []string {
 			return []string{fmt.Sprintf("dir:%s", t), "-o", "json"}
@@ -223,11 +223,11 @@ var Registry = map[string]Scanner{
 	// ── Containers ───────────────────────────────────────────────────────────
 	// Target = container image ref (e.g. nginx:latest), NOT a git URL.
 	"trivy-image": {
-		Name:        "trivy-image",
-		Category:    CategoryContainers,
-		Description: "Container image vulnerability scanner — target: image ref (e.g. nginx:latest)",
-		Image:       "aquasec/trivy:latest",
-		Env:         map[string]string{"TRIVY_INSECURE": "true"},
+		Name:         "trivy-image",
+		Category:     CategoryContainers,
+		Description:  "Container image vulnerability scanner — target: image ref (e.g. nginx:latest)",
+		Image:        "aquasec/trivy:latest",
+		Env:          map[string]string{"TRIVY_INSECURE": "true"},
 		ExtraVolumes: []string{"/tmp/trivy-cache:/root/.cache/trivy"},
 		BuildArgs: func(t string) []string {
 			return []string{"image", "--format", "sarif", "--exit-code", "0", "--no-progress", t}
@@ -237,10 +237,10 @@ var Registry = map[string]Scanner{
 		Parse:      ParseSARIF,
 	},
 	"grype-image": {
-		Name:        "grype-image",
-		Category:    CategoryContainers,
-		Description: "Container image vulnerability scanner (Anchore) — target: image ref",
-		Image:       "anchore/grype:latest",
+		Name:         "grype-image",
+		Category:     CategoryContainers,
+		Description:  "Container image vulnerability scanner (Anchore) — target: image ref",
+		Image:        "anchore/grype:latest",
 		ExtraVolumes: []string{"/tmp/grype-cache:/root/.cache/grype"},
 		BuildArgs: func(t string) []string {
 			return []string{t, "-o", "json"}
@@ -269,6 +269,26 @@ var Registry = map[string]Scanner{
 func Get(name string) (Scanner, bool) {
 	s, ok := Registry[name]
 	return s, ok
+}
+
+func CategoryFor(name string) (Category, bool) {
+	s, ok := Registry[name]
+	if !ok {
+		return "", false
+	}
+	return s.Category, true
+}
+
+func SameCategory(a, b string) bool {
+	ac, ok := CategoryFor(a)
+	if !ok {
+		return false
+	}
+	bc, ok := CategoryFor(b)
+	if !ok {
+		return false
+	}
+	return ac == bc
 }
 
 func ListInfo() []Info {

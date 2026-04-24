@@ -119,6 +119,38 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p id="triage-sla" class="text-sm"></p>
       </div>
 
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300/70 mb-2">Credibility</p>
+          <div class="flex items-end gap-2">
+            <p id="triage-confidence-score" class="text-3xl font-black text-cyan-300">0.50</p>
+            <p id="triage-confidence-label" class="text-xs font-semibold text-cyan-100/80 pb-1">Baseline</p>
+          </div>
+          <p class="text-xs text-slate-400 mt-2">Base score from corroboration inside the same scanner family and scan batch.</p>
+        </div>
+        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-300/70 mb-2">Corroboration</p>
+          <div class="flex items-end gap-2">
+            <p id="triage-corroboration-count" class="text-3xl font-black text-emerald-300">0</p>
+            <p class="text-xs font-semibold text-emerald-100/80 pb-1">peer scanners</p>
+          </div>
+          <p id="triage-corroboration-summary" class="text-xs text-slate-400 mt-2">No same-family corroboration recorded yet.</p>
+        </div>
+      </div>
+
+      <div id="triage-correlation-panel" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-4">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Corroborating scanners</p>
+            <p class="text-xs text-slate-500 mt-1">Only findings from the same batch and scanner family appear here.</p>
+          </div>
+          <span id="triage-correlation-badge" class="hidden text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"></span>
+        </div>
+        <div id="triage-correlation-list" class="space-y-2">
+          <p class="text-xs text-slate-500">Loading correlation context…</p>
+        </div>
+      </div>
+
       <!-- Status -->
       <div>
         <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Status</label>
@@ -212,6 +244,37 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     verified:      'Verified',
   };
 
+  function confidenceMeta(score: number) {
+    if (score >= 0.85) {
+      return {
+        label: 'High confidence',
+        pill: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
+        tone: 'text-emerald-300'
+      };
+    }
+    if (score >= 0.65) {
+      return {
+        label: 'Corroborated',
+        pill: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+        tone: 'text-cyan-300'
+      };
+    }
+    return {
+      label: 'Baseline',
+      pill: 'text-slate-300 bg-slate-500/10 border-slate-500/20',
+      tone: 'text-slate-300'
+    };
+  }
+
+  function scannerType(scanner: string) {
+    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+  }
+
+  function scannerLabel(scanner: string) {
+    const type = scannerType(scanner);
+    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border ${type.color}"><span class="font-bold uppercase tracking-wider text-[10px]">${type.label}</span><span class="font-mono text-[10px] text-current/80">${scanner}</span></span>`;
+  }
+
   const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
     semgrep:    { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
     gosec:      { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
@@ -268,6 +331,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <thead>
           <tr class="bg-slate-950/50 border-b border-slate-800">
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Credibility</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Signals</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Type</th>
@@ -279,7 +344,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           ${findings.map((f, i) => {
             const sev    = SEV_STYLES[f.severity] ?? SEV_STYLES.info;
             const stat   = STATUS_STYLES[f.status] ?? STATUS_STYLES.open;
-            const type   = SCANNER_TYPE[f.scanner] ?? { label: f.scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+            const type   = scannerType(f.scanner);
+            const confidence = confidenceMeta(f.confidence_score ?? 0.5);
             const isOpen = f.status === 'open' || f.status === 'in_review';
             return `
               <tr class="hover:bg-slate-900/30 transition-colors cursor-pointer ${f.false_positive ? 'opacity-50' : ''}" data-idx="${i}">
@@ -287,6 +353,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   <p class="font-bold text-on-background">${f.title}</p>
                   <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
                   ${f.assigned_to ? `<p class="text-xs text-sky-500/70 mt-0.5">→ ${f.assigned_to}</p>` : ''}
+                </td>
+                <td class="px-6 py-4 hidden lg:table-cell">
+                  <div class="flex flex-col gap-1">
+                    <span class="inline-flex w-fit px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${confidence.pill}">${confidence.label}</span>
+                    <span class="font-mono text-xs ${confidence.tone}">${(f.confidence_score ?? 0.5).toFixed(2)}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 hidden xl:table-cell">
+                  <div class="flex flex-col gap-1 text-xs text-slate-400">
+                    <span>${f.corroboration_count ?? 0} peer ${f.corroboration_count === 1 ? 'scanner' : 'scanners'}</span>
+                    <span class="text-slate-500">same batch · same family</span>
+                  </div>
                 </td>
                 <td class="px-6 py-4">
                   <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span>
@@ -317,6 +395,51 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   // ── Triage modal ─────────────────────────────────────────────────────────────
+
+  async function renderCorrelationDetails(f: Finding) {
+    const score = f.confidence_score ?? 0.5;
+    const corroborationCount = f.corroboration_count ?? 0;
+    const confidence = confidenceMeta(score);
+
+    document.getElementById('triage-confidence-score')!.textContent = score.toFixed(2);
+    document.getElementById('triage-confidence-score')!.className = `text-3xl font-black ${confidence.tone}`;
+    document.getElementById('triage-confidence-label')!.textContent = confidence.label;
+    document.getElementById('triage-corroboration-count')!.textContent = String(corroborationCount);
+    document.getElementById('triage-corroboration-summary')!.textContent = corroborationCount > 0
+      ? `Matched by ${corroborationCount} peer ${corroborationCount === 1 ? 'scanner' : 'scanners'} in the same run family.`
+      : 'No same-family corroboration recorded yet.';
+
+    const badge = document.getElementById('triage-correlation-badge')!;
+    const list = document.getElementById('triage-correlation-list')!;
+    badge.textContent = confidence.label;
+    badge.className = `text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${confidence.pill}`;
+    badge.classList.remove('hidden');
+
+    list.innerHTML = '<p class="text-xs text-slate-500">Loading corroborating scanners…</p>';
+
+    try {
+      const response = await api.getFindingCorrelations(f.id);
+      const findings = response.findings ?? [];
+      if (!findings.length) {
+        list.innerHTML = '<p class="text-xs text-slate-500">No corroborating findings were stored for this issue yet.</p>';
+        return;
+      }
+
+      list.innerHTML = findings.map((correlated) => `
+        <div class="rounded-lg border border-outline-variant/20 bg-slate-950/40 px-3 py-3">
+          <div class="flex flex-wrap items-center gap-2">
+            ${scannerLabel(correlated.scanner)}
+            <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${SEV_STYLES[correlated.severity] ?? SEV_STYLES.info}">${correlated.severity}</span>
+            <span class="font-mono text-[10px] text-slate-500">${(correlated.confidence_score ?? 0.5).toFixed(2)}</span>
+          </div>
+          <p class="text-sm font-semibold text-on-background mt-2">${correlated.title}</p>
+          <p class="text-xs text-slate-500 mt-1">${correlated.file_path || 'No file path'}${correlated.line_start ? `:${correlated.line_start}` : ''}</p>
+          ${correlated.rule_id ? `<p class="text-[11px] text-slate-500 mt-1 font-mono">Rule: ${correlated.rule_id}</p>` : ''}
+        </div>`).join('');
+    } catch (error: any) {
+      list.innerHTML = `<p class="text-xs text-red-400">${error.message ?? 'Failed to load corroboration details.'}</p>`;
+    }
+  }
 
   function openTriage(f: Finding) {
     currentFindingId = f.id;
@@ -356,6 +479,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     } else {
       slaRow.classList.add('hidden');
     }
+
+    renderCorrelationDetails(f);
 
     (document.getElementById('triage-status')   as HTMLSelectElement).value    = f.status ?? 'open';
     (document.getElementById('triage-assigned')  as HTMLInputElement).value    = f.assigned_to ?? '';
