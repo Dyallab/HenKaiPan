@@ -10,7 +10,7 @@ import (
 // ── Findings ──────────────────────────────────────────────────────────────────
 
 type FindingFilter struct {
-	Severity       string
+	Severities     []string
 	Scanner        string
 	Status         string
 	Category       string
@@ -47,7 +47,7 @@ type FindingInsert struct {
 }
 
 type ExportFilter struct {
-	Severity string
+	Severities []string
 	Scanner  string
 	Status   string
 }
@@ -64,6 +64,27 @@ type RemediationSource struct {
 	CWEID       string
 }
 
+type FindingSummarySource struct {
+	FindingID          string
+	Scanner            string
+	RuleID             string
+	Title              string
+	Description        string
+	AISummary          string
+	SummaryFingerprint string
+	SummaryState       string
+	Severity           string
+	FilePath           string
+	Raw                []byte
+}
+
+type PreparedSummary struct {
+	Fingerprint   string
+	Summary       string
+	State         string
+	ShouldEnqueue bool
+}
+
 type FindingRepository interface {
 	List(ctx context.Context, f FindingFilter) ([]models.Finding, int, error)
 	GetByID(ctx context.Context, id string) (*models.Finding, error)
@@ -75,6 +96,10 @@ type FindingRepository interface {
 	ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error)
 	UpdateRemediationSlug(ctx context.Context, findingID, slug string) error
 	GetForRemediation(ctx context.Context, id string) (*RemediationSource, error)
+	GetSummarySource(ctx context.Context, id string) (*FindingSummarySource, error)
+	PrepareAISummary(ctx context.Context, findingID string) (*PreparedSummary, error)
+	StoreAISummary(ctx context.Context, fingerprint, summary string) error
+	MarkAISummaryFailed(ctx context.Context, fingerprint string) error
 }
 
 // ── Scans ─────────────────────────────────────────────────────────────────────
@@ -95,6 +120,7 @@ type ScanRepository interface {
 type RepoRepository interface {
 	List(ctx context.Context) ([]models.Repo, error)
 	Create(ctx context.Context, name, url string) (*models.Repo, error)
+	Delete(ctx context.Context, id string) error
 }
 
 // ── Apps + Projects ───────────────────────────────────────────────────────────
@@ -253,7 +279,7 @@ type PolicyRepository interface {
 // ── Vulnerabilities ───────────────────────────────────────────────────────────
 
 type VulnFilter struct {
-	Severity string
+	Severities []string
 	Search   string
 	OnlyOpen bool
 	Page     int
@@ -285,6 +311,88 @@ type AgentRepository interface {
 
 // ── Stores ────────────────────────────────────────────────────────────────────
 
+type WebhookCreate struct {
+	Label        string   `json:"label"`
+	URL          string   `json:"url"`
+	DeliveryType string   `json:"delivery_type"`
+	Events       []string `json:"events"`
+}
+
+type WebhookUpdate struct {
+	Label        *string  `json:"label"`
+	URL          *string  `json:"url"`
+	DeliveryType *string  `json:"delivery_type"`
+	Events       []string `json:"events"`
+	Enabled      *bool    `json:"enabled"`
+}
+
+type WebhookDeliveryInsert struct {
+	WebhookID    string  `json:"webhook_id"`
+	EventType    string  `json:"event_type"`
+	Payload      []byte  `json:"payload"`
+	StatusCode   *int    `json:"status_code,omitempty"`
+	ResponseBody *string `json:"response_body,omitempty"`
+	ErrorMessage *string `json:"error_message,omitempty"`
+}
+
+type WebhookRepository interface {
+	List(ctx context.Context) ([]models.Webhook, error)
+	GetByID(ctx context.Context, id string) (*models.Webhook, error)
+	Create(ctx context.Context, wc WebhookCreate) (*models.Webhook, error)
+	Update(ctx context.Context, id string, upd WebhookUpdate) (*models.Webhook, error)
+	Delete(ctx context.Context, id string) error
+	ListEnabled(ctx context.Context) ([]models.Webhook, error)
+	UpdateDeliveryStats(ctx context.Context, id string, success bool, statusCode int, responseBody string, errorMsg string) error
+	LogDelivery(ctx context.Context, l WebhookDeliveryInsert) error
+	GetDeliveryLogs(ctx context.Context, webhookID string, limit int) ([]models.WebhookDeliveryLog, error)
+}
+
+type NotificationSettingsUpdate struct {
+	AlertCritical     *bool
+	AlertHigh         *bool
+	AlertScanComplete *bool
+	AlertScanFailed   *bool
+}
+
+type JiraIntegrationUpdate struct {
+	BaseURL    *string  `json:"base_url"`
+	UserEmail  *string  `json:"user_email"`
+	ProjectKey *string  `json:"project_key"`
+	IssueType  *string  `json:"issue_type"`
+	Labels     []string `json:"labels"`
+	Enabled    *bool    `json:"enabled"`
+	Token      *string  `json:"token"`
+}
+
+type JiraCredentials struct {
+	BaseURL    string
+	UserEmail  string
+	ProjectKey string
+	IssueType  string
+	Labels     []string
+	Token      string
+	Enabled    bool
+}
+
+type JiraIssueLinkUpsert struct {
+	FindingID string
+	IssueKey  *string
+	IssueURL  *string
+	Status    *string
+}
+
+type SettingsRepository interface {
+	GetNotificationSettings(ctx context.Context) (*models.NotificationSettings, error)
+	UpdateNotificationSettings(ctx context.Context, upd NotificationSettingsUpdate) (*models.NotificationSettings, error)
+	GetJiraIntegration(ctx context.Context) (*models.JiraIntegration, error)
+	GetJiraCredentials(ctx context.Context) (*JiraCredentials, error)
+	UpsertJiraIntegration(ctx context.Context, upd JiraIntegrationUpdate) (*models.JiraIntegration, error)
+	GetJiraIssueLinkByFindingID(ctx context.Context, findingID string) (*models.JiraIssueLink, error)
+	ReserveJiraIssueLink(ctx context.Context, findingID string) (*models.JiraIssueLink, bool, error)
+	UpsertJiraIssueLink(ctx context.Context, link JiraIssueLinkUpsert) (*models.JiraIssueLink, error)
+	DeleteJiraIssueLink(ctx context.Context, findingID string) error
+}
+
 type Stores struct {
 	Findings  FindingRepository
 	Scans     ScanRepository
@@ -297,4 +405,6 @@ type Stores struct {
 	Policies  PolicyRepository
 	Vulns     VulnerabilityRepository
 	Agents    AgentRepository
+	Webhooks  WebhookRepository
+	Settings  SettingsRepository
 }

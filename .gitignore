@@ -62,3 +62,6 @@ frontend/.astro/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+api
+worker

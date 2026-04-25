@@ -16,5 +16,7 @@ func NewPostgresStores(db *pgxpool.Pool) Stores {
 		Policies:  &policyRepo{db},
 		Vulns:     &vulnRepo{db},
 		Agents:    &agentRepo{db},
+		Webhooks:  &webhookRepo{db},
+		Settings:  &settingsRepo{db},
 	}
 }

@@ -3,8 +3,9 @@ package tasks
 import "encoding/json"
 
 const (
-	TypeScanRun       = "scan:run"
-	TypeAgentValidate = "agent:validate"
+	TypeScanRun        = "scan:run"
+	TypeAgentValidate  = "agent:validate"
+	TypeAgentSummarize = "agent:summarize"
 )
 
 type ScanPayload struct {
@@ -32,5 +33,18 @@ func MarshalAgentValidatePayload(p AgentValidatePayload) ([]byte, error) {
 
 func UnmarshalAgentValidatePayload(data []byte) (AgentValidatePayload, error) {
 	var p AgentValidatePayload
+	return p, json.Unmarshal(data, &p)
+}
+
+type AgentSummarizePayload struct {
+	FindingID string `json:"finding_id"`
+}
+
+func MarshalAgentSummarizePayload(p AgentSummarizePayload) ([]byte, error) {
+	return json.Marshal(p)
+}
+
+func UnmarshalAgentSummarizePayload(data []byte) (AgentSummarizePayload, error) {
+	var p AgentSummarizePayload
 	return p, json.Unmarshal(data, &p)
 }

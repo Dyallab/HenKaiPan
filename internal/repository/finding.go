@@ -2,12 +2,16 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"aspm/internal/models"
 	"aspm/internal/scanner"
+	"aspm/internal/summarizer"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -23,12 +27,18 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	offset := (f.Page - 1) * f.Limit
 
 	rows, err := r.db.Query(ctx, `
-		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, f.description,
+		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.line_end, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
-		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count, f.suppressed, f.remediation_slug
+		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count,
+		       EXISTS (
+		         SELECT 1
+		         FROM agent_analyses aa
+		         WHERE aa.finding_id = f.id AND aa.agent_type = 'validator'
+		       ) AS ai_analyzed,
+		       COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug
 		FROM findings f
-		WHERE ($1 = '' OR f.severity = $1)
+		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.scanner = $2)
 		  AND ($3 = '' OR f.status = $3)
 		  AND ($4 = FALSE OR (f.sla_deadline < NOW() AND f.status NOT IN ('fixed','verified','accepted_risk')))
@@ -48,7 +58,7 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 			END,
 			f.created_at DESC
 		LIMIT $8 OFFSET $9`,
-		f.Severity, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset)
+		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("findings list: %w", err)
 	}
@@ -57,11 +67,16 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	var findings []models.Finding
 	for rows.Next() {
 		var fi models.Finding
-		rows.Scan(&fi.ID, &fi.ScanID, &fi.Scanner, &fi.RuleID, &fi.Title, &fi.Description,
+		if err := rows.Scan(&fi.ID, &fi.ScanID, &fi.Scanner, &fi.RuleID, &fi.Title, &fi.Description,
 			&fi.Severity, &fi.FilePath, &fi.LineStart, &fi.LineEnd, &fi.CreatedAt,
 			&fi.Status, &fi.AssignedTo, &fi.FalsePositive, &fi.Notes, &fi.ResolvedAt, &fi.SLADeadline,
-			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount, &fi.Suppressed, &fi.RemediationSlug)
+			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount, &fi.AIAnalyzed, &fi.AISummary, &fi.SummaryState, &fi.Suppressed, &fi.RemediationSlug); err != nil {
+			return nil, 0, fmt.Errorf("scan findings row: %w", err)
+		}
 		findings = append(findings, fi)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("findings list rows: %w", err)
 	}
 	if findings == nil {
 		findings = []models.Finding{}
@@ -70,7 +85,7 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	var total int
 	r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM findings
-		WHERE ($1='' OR severity=$1) AND ($2='' OR scanner=$2)
+		WHERE ($1::text[] IS NULL OR severity = ANY($1)) AND ($2='' OR scanner=$2)
 		  AND ($3='' OR status=$3)
 		  AND ($4 = FALSE OR (sla_deadline < NOW() AND status NOT IN ('fixed','verified','accepted_risk')))
 		  AND ($5 = '' OR (
@@ -83,7 +98,7 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		      ))
 		  AND ($6 = '' OR cve_id ILIKE '%' || $6 || '%')
 		  AND ($7 = TRUE OR suppressed = FALSE)`,
-		f.Severity, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed,
+		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed,
 	).Scan(&total)
 
 	return findings, total, nil
@@ -92,15 +107,15 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, error) {
 	var f models.Finding
 	err := r.db.QueryRow(ctx, `
-		SELECT id, scan_id, scanner, rule_id, title, description, severity,
-		       file_path, line_start, line_end, created_at,
+		SELECT id, scan_id, scanner, rule_id, title, COALESCE(description, ''), severity,
+		       file_path, line_start, line_end, code_snippet, created_at,
 		       status, assigned_to, false_positive, notes, resolved_at, sla_deadline,
-		       cve_id, cwe_id, confidence_score, corroboration_count
+		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state, suppressed, remediation_slug
 		FROM findings WHERE id = $1`, id).
 		Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
-			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CreatedAt,
+			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
-			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount)
+			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState, &f.Suppressed, &f.RemediationSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +124,10 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 
 func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.Finding, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, scan_id, scanner, rule_id, title, description, severity,
+		SELECT id, scan_id, scanner, rule_id, title, COALESCE(description, ''), severity,
 		       file_path, line_start, line_end, code_snippet, created_at,
 		       status, assigned_to, false_positive, notes, resolved_at, sla_deadline,
-		       cve_id, cwe_id, confidence_score, corroboration_count
+		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state
 		FROM findings WHERE scan_id = $1
 		ORDER BY
 			CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
@@ -128,7 +143,7 @@ func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.
 		rows.Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
-			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount)
+			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState)
 		findings = append(findings, f)
 	}
 	if findings == nil {
@@ -173,6 +188,156 @@ func (r *findingRepo) Insert(ctx context.Context, f FindingInsert) (string, erro
 		return "", fmt.Errorf("insert finding: %w", err)
 	}
 	return id, nil
+}
+
+func (r *findingRepo) GetSummarySource(ctx context.Context, id string) (*FindingSummarySource, error) {
+	var src FindingSummarySource
+	err := r.db.QueryRow(ctx, `
+		SELECT id, scanner, COALESCE(rule_id, ''), title, COALESCE(description, ''),
+		       COALESCE(ai_summary, ''), COALESCE(summary_fingerprint, ''), summary_state,
+		       severity, COALESCE(file_path, ''), COALESCE(raw, '{}'::jsonb)
+		FROM findings
+		WHERE id = $1`, id,
+	).Scan(
+		&src.FindingID, &src.Scanner, &src.RuleID, &src.Title, &src.Description,
+		&src.AISummary, &src.SummaryFingerprint, &src.SummaryState, &src.Severity,
+		&src.FilePath, &src.Raw,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &src, nil
+}
+
+func (r *findingRepo) PrepareAISummary(ctx context.Context, findingID string) (*PreparedSummary, error) {
+	src, err := r.GetSummarySource(ctx, findingID)
+	if err != nil {
+		return nil, fmt.Errorf("get summary source: %w", err)
+	}
+	if strings.TrimSpace(src.Description) != "" {
+		if _, err := r.db.Exec(ctx, `UPDATE findings SET summary_state = 'none' WHERE id = $1`, findingID); err != nil {
+			return nil, fmt.Errorf("reset summary state: %w", err)
+		}
+		return &PreparedSummary{State: "none"}, nil
+	}
+
+	meta := summarizer.BuildMetadata(src.Scanner, src.RuleID, src.Title, src.Raw)
+
+	var cachedSummary, cachedStatus string
+	err = r.db.QueryRow(ctx, `
+		SELECT COALESCE(summary, ''), status
+		FROM finding_summary_cache
+		WHERE fingerprint = $1`, meta.Fingerprint,
+	).Scan(&cachedSummary, &cachedStatus)
+	if err == nil {
+		state := cachedStatus
+		if strings.TrimSpace(cachedSummary) != "" {
+			state = "ready"
+			if _, err := r.db.Exec(ctx, `
+				UPDATE findings
+				SET summary_fingerprint = $2,
+				    ai_summary = $3,
+				    summary_state = 'ready'
+				WHERE id = $1`, findingID, meta.Fingerprint, cachedSummary,
+			); err != nil {
+				return nil, fmt.Errorf("apply cached summary: %w", err)
+			}
+		} else {
+			shouldEnqueue := state == "failed"
+			if shouldEnqueue {
+				state = "pending"
+				if _, err := r.db.Exec(ctx, `
+					UPDATE finding_summary_cache
+					SET status = 'pending',
+					    updated_at = NOW()
+					WHERE fingerprint = $1`, meta.Fingerprint,
+				); err != nil {
+					return nil, fmt.Errorf("reset summary cache status: %w", err)
+				}
+			}
+			if _, err := r.db.Exec(ctx, `
+				UPDATE findings
+				SET summary_fingerprint = $2,
+				    summary_state = $3
+				WHERE id = $1`, findingID, meta.Fingerprint, state,
+			); err != nil {
+				return nil, fmt.Errorf("mark summary state: %w", err)
+			}
+			return &PreparedSummary{Fingerprint: meta.Fingerprint, Summary: cachedSummary, State: state, ShouldEnqueue: shouldEnqueue}, nil
+		}
+		return &PreparedSummary{Fingerprint: meta.Fingerprint, Summary: cachedSummary, State: state}, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("lookup summary cache: %w", err)
+	}
+
+	if _, err := r.db.Exec(ctx, `
+		INSERT INTO finding_summary_cache (fingerprint, scanner, rule_id, title, issue_type, status)
+		VALUES ($1, $2, $3, $4, $5, 'pending')
+		ON CONFLICT (fingerprint) DO NOTHING`,
+		meta.Fingerprint, src.Scanner, src.RuleID, src.Title, meta.IssueType,
+	); err != nil {
+		return nil, fmt.Errorf("insert summary cache: %w", err)
+	}
+
+	if _, err := r.db.Exec(ctx, `
+		UPDATE findings
+		SET summary_fingerprint = $2,
+		    summary_state = 'pending'
+		WHERE id = $1`, findingID, meta.Fingerprint,
+	); err != nil {
+		return nil, fmt.Errorf("mark summary pending: %w", err)
+	}
+
+	return &PreparedSummary{Fingerprint: meta.Fingerprint, State: "pending", ShouldEnqueue: true}, nil
+}
+
+func (r *findingRepo) StoreAISummary(ctx context.Context, fingerprint, summary string) error {
+	summary = strings.TrimSpace(summary)
+	if summary == "" {
+		return fmt.Errorf("empty ai summary")
+	}
+	if _, err := r.db.Exec(ctx, `
+		INSERT INTO finding_summary_cache (fingerprint, scanner, rule_id, title, issue_type, status, summary)
+		VALUES ($1, '', '', '', '', 'ready', $2)
+		ON CONFLICT (fingerprint) DO UPDATE SET
+			summary = EXCLUDED.summary,
+			status = 'ready',
+			updated_at = NOW()`, fingerprint, summary,
+	); err != nil {
+		return fmt.Errorf("update summary cache: %w", err)
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE findings
+		SET ai_summary = $2,
+		    summary_state = 'ready'
+		WHERE summary_fingerprint = $1`, fingerprint, summary,
+	); err != nil {
+		return fmt.Errorf("update findings ai summary: %w", err)
+	}
+	return nil
+}
+
+func (r *findingRepo) MarkAISummaryFailed(ctx context.Context, fingerprint string) error {
+	if fingerprint == "" {
+		return nil
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE finding_summary_cache
+		SET status = 'failed',
+		    updated_at = NOW()
+		WHERE fingerprint = $1`, fingerprint,
+	); err != nil {
+		return fmt.Errorf("mark summary cache failed: %w", err)
+	}
+	if _, err := r.db.Exec(ctx, `
+		UPDATE findings
+		SET summary_state = 'failed'
+		WHERE summary_fingerprint = $1`, fingerprint,
+	); err != nil {
+		return fmt.Errorf("mark findings summary failed: %w", err)
+	}
+	return nil
 }
 
 func (r *findingRepo) RefreshBatchCorrelation(ctx context.Context, findingID string) error {
@@ -222,18 +387,18 @@ func (r *findingRepo) GetSLASummary(ctx context.Context) (*models.SLASummary, er
 
 func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, f.description,
+		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
 		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count
 		FROM findings f
-		WHERE ($1 = '' OR f.severity = $1)
+		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.scanner  = $2)
 		  AND ($3 = '' OR f.status   = $3)
 		ORDER BY
 			CASE f.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
 			f.created_at DESC`,
-		f.Severity, f.Scanner, f.Status)
+		f.Severities, f.Scanner, f.Status)
 	if err != nil {
 		return nil, fmt.Errorf("export findings: %w", err)
 	}
@@ -406,12 +571,13 @@ func (r *findingRepo) recalculateConfidence(ctx context.Context, findingID strin
 
 	totalPeers := len(peerSet)
 	corroboratedCount := len(corroboratedSet)
-	score := 0.5
+	var score *float64
 	if totalPeers > 0 && corroboratedCount > 0 {
-		score += 0.5 * (float64(corroboratedCount) / float64(totalPeers))
-	}
-	if score > 1 {
-		score = 1
+		calculated := 0.5 + 0.5*(float64(corroboratedCount)/float64(totalPeers))
+		if calculated > 1 {
+			calculated = 1
+		}
+		score = &calculated
 	}
 
 	if _, err := r.db.Exec(ctx, `

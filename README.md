@@ -4,6 +4,13 @@
 
 HenKaiPan is an ASPM platform that centralizes security scans, findings management, vulnerability intelligence, knowledge articles, policy automation, and AI-assisted remediation.
 
+Current product direction:
+
+- **App** = optional business grouping
+- **Project** = primary technical unit that users create, connect, scan, and review
+- **Standalone projects** are allowed
+- **Repository is not a separate product entity**; repository connection data belongs to the project
+
 ## Platform
 
 The platform currently includes:
@@ -16,7 +23,7 @@ The platform currently includes:
 6. Compliance
 7. Reports
 8. Apps
-9. Repos
+9. Projects
 10. Settings
 
 ## Tech Stack
@@ -72,7 +79,7 @@ sequenceDiagram
     participant API as Go API
     participant DB as PostgreSQL
 
-    User->>Frontend: Open dashboard / login / scans
+    User->>Frontend: Open dashboard / login / projects / scans
     Frontend->>API: Call REST endpoints
     API->>DB: Read/write application data
     DB-->>API: Results
@@ -91,8 +98,8 @@ sequenceDiagram
     participant Scanner as Dockerized Scanner
     participant DB as PostgreSQL
 
-    Frontend->>API: POST /api/scans
-    API->>DB: Create scan record(s)
+    Frontend->>API: POST /api/projects/:id/scans
+    API->>DB: Create scan record(s) for the selected project
     API->>Queue: Enqueue scan job per scanner
     Queue->>Worker: Deliver TypeScanRun job
     Worker->>Scanner: Run scanner in Docker
@@ -125,14 +132,14 @@ flowchart TD
 
 - Built with Astro and Tailwind.
 - Uses `frontend/src/lib/api.ts` as the browser-side API client.
-- Provides the dashboard, scans view, findings, vulns, knowledge center, reports, apps, repos, and settings.
+- Provides the dashboard, scans view, findings, vulns, knowledge center, reports, apps, projects, and settings.
 
 ### API
 
 - Entry point: `cmd/api/main.go`
 - Responsibilities:
   - JWT authentication and role-based authorization
-  - REST endpoints for scans, findings, repos, apps, users, teams, policies, vulnerabilities, and knowledge
+  - REST endpoints for scans, findings, projects, apps, users, teams, policies, vulnerabilities, and knowledge
   - Metrics and export endpoints
   - Enqueueing asynchronous scan and validation jobs
   - AI remediation endpoint (`/api/knowledge/ai-remediate`)
@@ -143,7 +150,7 @@ flowchart TD
 - Responsibilities:
   - Consume Asynq jobs from Redis
   - Recover stuck scans on boot
-  - Process `scan:run` jobs
+  - Process `scan:run` jobs tied to projects
   - Process `agent:validate` jobs when `OPENROUTER_API_KEY` is configured
 
 ### Scanning Engine
@@ -166,6 +173,12 @@ All scanners are executed as Docker containers so the worker stays generic and s
 - DB connection setup lives in `internal/db/postgres.go`.
 - Repository layer lives under `internal/repository`.
 - Migrations live in `/migrations` and are auto-run by Docker on container initialization.
+
+Current domain direction:
+
+- Apps are optional grouping containers.
+- Projects are the main scan targets and the main user-facing asset.
+- Scan history and findings should be attached to projects.
 
 ### Queue Layer
 

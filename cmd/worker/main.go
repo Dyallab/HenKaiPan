@@ -20,7 +20,7 @@ import (
 func main() {
 	logger.Init()
 	cfg := config.Load()
-	ai.SetConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+	ai.Init(cfg)
 
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
@@ -38,14 +38,24 @@ func main() {
 	srv := queue.NewServer(cfg.RedisAddr, 5)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, queueClient))
+	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, queueClient))
+	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
 
-	if cfg.OpenRouterAPIKey != "" {
+	// Register AI agent handlers if configured
+	if cfg.ValidationConfig.IsConfigured {
 		validator := agents.NewValidator(store.Agents, store.Findings)
 		mux.HandleFunc(tasks.TypeAgentValidate, tasks.HandleAgentValidate(validator))
-		slog.Info("agent:validate handler registered")
+		slog.Info("agent:validate handler registered", "provider", cfg.ValidationConfig.Name, "model", cfg.ValidationConfig.Model)
 	} else {
-		slog.Warn("OPENROUTER_API_KEY not set — agent:validate tasks will not be processed")
+		slog.Warn("AI validation not configured — agent:validate handler will not be registered")
+	}
+
+	if cfg.SummaryConfig.IsConfigured {
+		summaryAgent := agents.NewSummarizer(store.Findings, cfg.SummaryConfig.Model)
+		mux.HandleFunc(tasks.TypeAgentSummarize, tasks.HandleAgentSummarize(summaryAgent))
+		slog.Info("agent:summarize handler registered", "provider", cfg.SummaryConfig.Name, "model", cfg.SummaryConfig.Model)
+	} else {
+		slog.Warn("AI summary not configured — agent:summarize handler will not be registered")
 	}
 
 	slog.Info("worker started, waiting for tasks")

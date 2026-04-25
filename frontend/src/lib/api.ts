@@ -4,6 +4,10 @@ function getToken(): string | null {
   return typeof localStorage !== 'undefined' ? localStorage.getItem('aspm_token') : null;
 }
 
+function serializeMultiValue(value: string | string[]): string {
+  return Array.isArray(value) ? value.join(',') : value;
+}
+
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
@@ -23,7 +27,16 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error ?? res.statusText);
   }
-  return res.json();
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
+  const text = await res.text();
+  if (!text) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }
 
 export const api = {
@@ -48,13 +61,24 @@ export const api = {
 
   getScanFindings: (id: string) => req<Finding[]>(`/api/scans/${id}/findings`),
 
-  getFindings: (severity = '', scanner = '', page = 1, limit = 50, status = '', overdue = false, category = '', cve_id = '', suppressed = false) =>
+  getFindings: (severity: string | string[] = '', scanner = '', page = 1, limit = 50, status = '', overdue = false, category = '', cve_id = '', suppressed = false) =>
     req<{ findings: Finding[]; total: number }>(
-      `/api/findings?severity=${severity}&scanner=${scanner}&page=${page}&limit=${limit}&status=${status}&overdue=${overdue}&category=${category}&cve_id=${encodeURIComponent(cve_id)}&suppressed=${suppressed}`
+      `/api/findings?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&page=${page}&limit=${limit}&status=${status}&overdue=${overdue}&category=${category}&cve_id=${encodeURIComponent(cve_id)}&suppressed=${suppressed}`
     ),
+
+  getFinding: (id: string) =>
+    req<Finding>(`/api/findings/${id}`),
 
   getFindingCorrelations: (id: string) =>
     req<{ findings: Finding[]; total: number }>(`/api/findings/${id}/correlations`),
+
+  getFindingAnalysis: (id: string) =>
+    req<AgentAnalysis>(`/api/findings/${id}/analysis`),
+
+  analyzeFinding: (id: string) =>
+    req<{ status: string; finding_id: string }>(`/api/findings/${id}/analyze`, {
+      method: 'POST',
+    }),
 
   updateFinding: (id: string, updates: {
     status?: string;
@@ -73,8 +97,8 @@ export const api = {
   getRiskScores: () => req<RepoRiskScore[]>('/api/metrics/risk'),
   getSLACompliance: () => req<SLACompliance>('/api/metrics/sla-compliance'),
 
-  exportFindingsURL: (severity = '', scanner = '', status = '') =>
-    `http://localhost:8080/api/findings/export?severity=${severity}&scanner=${scanner}&status=${status}`,
+  exportFindingsURL: (severity: string | string[] = '', scanner = '', status = '') =>
+    `http://localhost:8080/api/findings/export?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&status=${status}`,
 
   getRepos: () => req<Repo[]>('/api/repos'),
 
@@ -83,6 +107,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ name, url }),
     }),
+
+  deleteRepo: (id: string) =>
+    req<void>(`/api/repos/${id}`, { method: 'DELETE' }),
 
   getMe: () => req<User>('/api/me'),
 
@@ -111,9 +138,9 @@ export const api = {
   deleteArticle: (slug: string) =>
     req<void>(`/api/knowledge/${slug}`, { method: 'DELETE' }),
 
-  getVulnerabilities: (severity = '', q = '', open = true, page = 1, limit = 100) =>
+  getVulnerabilities: (severity: string | string[] = '', q = '', open = true, page = 1, limit = 100) =>
     req<{ vulnerabilities: VulnSummary[]; total: number }>(
-      `/api/vulnerabilities?severity=${severity}&q=${encodeURIComponent(q)}&open=${open}&page=${page}&limit=${limit}`
+      `/api/vulnerabilities?severity=${encodeURIComponent(serializeMultiValue(severity))}&q=${encodeURIComponent(q)}&open=${open}&page=${page}&limit=${limit}`
     ),
 
   getVulnerabilityAffected: (vulnID: string) =>
@@ -192,10 +219,51 @@ export const api = {
 
   // Suppressions
   getSuppressions: () => req<Suppression[]>('/api/suppressions'),
-  createSuppression: (data: { name: string; rule_id?: string; file_pattern?: string; scanner?: string; reason?: string }) =>
-    req<Suppression>('/api/suppressions', { method: 'POST', body: JSON.stringify(data) }),
+  createSuppression: (data: SuppressionCreate) =>
+    req<Suppression>('/api/suppressions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   deleteSuppression: (id: string) =>
     req<void>(`/api/suppressions/${id}`, { method: 'DELETE' }),
+
+  getWebhooks: () => req<Webhook[]>('/api/webhooks'),
+  createWebhook: (data: WebhookCreate) =>
+    req<Webhook>('/api/webhooks', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  updateWebhook: (id: string, data: WebhookUpdate) =>
+    req<Webhook>(`/api/webhooks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  deleteWebhook: (id: string) =>
+    req<void>(`/api/webhooks/${id}`, { method: 'DELETE' }),
+  testWebhook: (id: string) =>
+    req<{ status: string; message: string }>(`/api/webhooks/${id}/test`, {
+      method: 'POST',
+    }),
+
+  getNotificationSettings: () => req<NotificationSettings>('/api/settings/notifications'),
+  updateNotificationSettings: (data: Partial<NotificationSettings>) =>
+    req<NotificationSettings>('/api/settings/notifications', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getJiraIntegration: () => req<JiraIntegration>('/api/integrations/jira'),
+  updateJiraIntegration: (data: JiraIntegrationUpdate) =>
+    req<JiraIntegration>('/api/integrations/jira', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  getFindingJiraIssue: (id: string) => req<JiraIssueLink>(`/api/findings/${id}/jira`),
+  createFindingJiraIssue: (id: string) =>
+    req<JiraIssueLink>(`/api/findings/${id}/jira`, {
+      method: 'POST',
+    }),
 };
 
 export interface MetricsSummary {
@@ -231,6 +299,7 @@ export interface Finding {
   file_path: string;
   line_start: number;
   line_end: number;
+  snippet_start_line?: number;
   code_snippet?: string;
   created_at: string;
   status: 'open' | 'in_review' | 'accepted_risk' | 'fixed' | 'verified';
@@ -241,10 +310,25 @@ export interface Finding {
   sla_deadline?: string;
   cve_id?: string;
   cwe_id?: string;
-  confidence_score: number;
+  confidence_score: number | null;
   corroboration_count: number;
+  ai_analyzed?: boolean;
+  ai_summary?: string;
+  summary_state?: 'none' | 'pending' | 'ready' | 'failed';
   suppressed: boolean;
   remediation_slug?: string;
+}
+
+export interface AgentAnalysis {
+  id: string;
+  finding_id: string;
+  agent_type: string;
+  confidence: number;
+  fp_likelihood: 'low' | 'medium' | 'high';
+  reasoning: string;
+  raw_output?: unknown;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PolicyCondition {
@@ -408,4 +492,72 @@ export interface AffectedRepo {
   statuses: string[];
   assignees: string[];
   nearest_deadline?: string;
+}
+
+export interface Webhook {
+  id: string;
+  label: string;
+  url: string;
+  delivery_type: 'generic' | 'slack' | 'discord';
+  events: string[];
+  enabled: boolean;
+  last_delivery?: string;
+  delivery_count: number;
+  error_count: number;
+  last_error?: string;
+  created_at: string;
+}
+
+export interface WebhookCreate {
+  label: string;
+  url: string;
+  delivery_type?: 'generic' | 'slack' | 'discord';
+  events: string[];
+}
+
+export interface WebhookUpdate {
+  label?: string;
+  url?: string;
+  delivery_type?: 'generic' | 'slack' | 'discord';
+  events?: string[];
+  enabled?: boolean;
+}
+
+export interface NotificationSettings {
+  alert_critical: boolean;
+  alert_high: boolean;
+  alert_scan_complete: boolean;
+  alert_scan_failed: boolean;
+  updated_at: string;
+}
+
+export interface JiraIntegration {
+  base_url: string;
+  user_email: string;
+  project_key: string;
+  issue_type: string;
+  labels: string[];
+  enabled: boolean;
+  has_token: boolean;
+  token_masked?: string;
+  updated_at: string;
+}
+
+export interface JiraIntegrationUpdate {
+  base_url?: string;
+  user_email?: string;
+  project_key?: string;
+  issue_type?: string;
+  labels?: string[];
+  enabled?: boolean;
+  token?: string;
+}
+
+export interface JiraIssueLink {
+  id: string;
+  finding_id: string;
+  issue_key?: string;
+  issue_url?: string;
+  status?: string;
+  created_at: string;
 }

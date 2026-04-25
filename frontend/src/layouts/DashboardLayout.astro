@@ -6,56 +6,91 @@ export interface Props {
 }
 const { title = "Dashboard", active = "dashboard" } = Astro.props;
 
-const nav = [
+const navGroups = [
     {
-        id: "dashboard",
-        label: "Dashboard",
-        href: "/dashboard",
-        icon: "dashboard",
+        label: "Overview",
+        items: [
+            {
+                id: "dashboard",
+                label: "Dashboard",
+                href: "/dashboard",
+                icon: "dashboard",
+            },
+            {
+                id: "reports",
+                label: "Reports",
+                href: "/dashboard/reports",
+                icon: "bar_chart",
+            },
+        ],
     },
     {
-        id: "scans",
-        label: "Scans",
-        href: "/dashboard/scans",
-        icon: "security_update_good",
+        label: "Operations",
+        items: [
+            {
+                id: "findings",
+                label: "Findings",
+                href: "/dashboard/findings",
+                icon: "biotech",
+            },
+            {
+                id: "scans",
+                label: "Scans",
+                href: "/dashboard/scans",
+                icon: "security_update_good",
+            },
+            {
+                id: "vulns",
+                label: "Vulnerabilities",
+                href: "/dashboard/vulns",
+                icon: "crisis_alert",
+            },
+            {
+                id: "apps",
+                label: "Apps",
+                href: "/dashboard/apps",
+                icon: "apps",
+            },
+            {
+                id: "repos",
+                label: "Repositories",
+                href: "/dashboard/repos",
+                icon: "hub",
+            },
+        ],
     },
     {
-        id: "findings",
-        label: "Findings",
-        href: "/dashboard/findings",
-        icon: "biotech",
+        label: "Governance",
+        items: [
+            {
+                id: "compliance",
+                label: "Compliance",
+                href: "/dashboard/compliance",
+                icon: "verified_user",
+            },
+        ],
     },
     {
-        id: "vulns",
-        label: "Vulns",
-        href: "/dashboard/vulns",
-        icon: "crisis_alert",
-    },
-    {
-        id: "knowledge",
         label: "Knowledge",
-        href: "/dashboard/knowledge",
-        icon: "menu_book",
+        items: [
+            {
+                id: "knowledge",
+                label: "Knowledge Base",
+                href: "/dashboard/knowledge",
+                icon: "menu_book",
+            },
+        ],
     },
     {
-        id: "compliance",
-        label: "Compliance",
-        href: "/dashboard/compliance",
-        icon: "verified_user",
-    },
-    {
-        id: "reports",
-        label: "Reports",
-        href: "/dashboard/reports",
-        icon: "bar_chart",
-    },
-    { id: "apps", label: "Apps", href: "/dashboard/apps", icon: "apps" },
-    { id: "repos", label: "Repos", href: "/dashboard/repos", icon: "hub" },
-    {
-        id: "settings",
-        label: "Settings",
-        href: "/dashboard/settings",
-        icon: "settings",
+        label: "Administration",
+        items: [
+            {
+                id: "settings",
+                label: "Settings",
+                href: "/dashboard/settings",
+                icon: "settings",
+            },
+        ],
     },
 ];
 ---
@@ -130,22 +165,37 @@ const nav = [
             </div>
 
             <!-- Nav -->
-            <nav class="flex-1 space-y-0.5">
+            <nav class="flex-1 overflow-y-auto px-3 space-y-5">
                 {
-                    nav.map((item) => (
-                        <a
-                            href={item.href}
-                            class={`flex items-center gap-3 px-5 py-3 text-xs font-bold uppercase tracking-widest transition-all duration-150 ${
-                                active === item.id
-                                    ? "bg-sky-500/10 text-sky-500 border-l-2 border-sky-500"
-                                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900 border-l-2 border-transparent"
-                            }`}
-                        >
-                            <span class="material-symbols-outlined text-xl">
-                                {item.icon}
-                            </span>
-                            {item.label}
-                        </a>
+                    navGroups.map((group) => (
+                        <section>
+                            <p class="px-2 pb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-600">
+                                {group.label}
+                            </p>
+                            <div class="space-y-0.5">
+                                {group.items.map((item) => (
+                                    <a
+                                        href={item.href}
+                                        class={`group flex items-center gap-3 rounded-xl px-3 py-3 text-[11px] font-bold uppercase tracking-[0.18em] transition-all duration-150 ${
+                                            active === item.id
+                                                ? "bg-sky-500/10 text-sky-400 ring-1 ring-sky-500/20"
+                                                : "text-slate-400 hover:bg-slate-900/80 hover:text-slate-100"
+                                        }`}
+                                    >
+                                        <span
+                                            class={`material-symbols-outlined text-xl ${
+                                                active === item.id
+                                                    ? "text-sky-400"
+                                                    : "text-slate-500 group-hover:text-slate-200"
+                                            }`}
+                                        >
+                                            {item.icon}
+                                        </span>
+                                        <span class="truncate">{item.label}</span>
+                                    </a>
+                                ))}
+                            </div>
+                        </section>
                     ))
                 }
             </nav>

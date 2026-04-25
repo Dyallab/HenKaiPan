@@ -1,220 +1,115 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
-<DashboardLayout title="Security Findings" active="findings">
 
-  <!-- SLA summary bar -->
-  <div id="sla-bar" class="grid grid-cols-4 gap-3 mb-6 hidden">
-    <div id="sla-overdue"   class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-red-500/15 transition-all">
+<DashboardLayout title="Security Findings" active="findings">
+  <div id="sla-bar" class="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-6 hidden">
+    <button id="sla-overdue" class="text-left bg-red-500/10 border border-red-500/20 rounded-xl p-4 hover:bg-red-500/15 transition-all">
       <p class="text-2xl font-black text-red-400" id="sla-overdue-count">0</p>
       <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Overdue</p>
-    </div>
-    <div id="sla-today" class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-center cursor-pointer hover:bg-amber-500/15 transition-all">
+    </button>
+    <button id="sla-today" class="text-left bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 hover:bg-amber-500/15 transition-all">
       <p class="text-2xl font-black text-amber-400" id="sla-today-count">0</p>
       <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">Due Today</p>
-    </div>
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-center">
+    </button>
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4">
       <p class="text-2xl font-black text-emerald-400" id="sla-ontrack-count">0</p>
       <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">On Track</p>
     </div>
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-center">
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4">
       <p class="text-2xl font-black text-slate-400" id="sla-nodeadline-count">0</p>
       <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">No Deadline</p>
     </div>
   </div>
 
-  <!-- Filters -->
-  <div class="flex gap-3 mb-4 flex-wrap items-center">
-    <select id="filter-severity" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-      <option value="">All severities</option>
-      <option value="critical">Critical</option>
-      <option value="high">High</option>
-      <option value="medium">Medium</option>
-      <option value="low">Low</option>
-      <option value="info">Info</option>
-    </select>
-    <select id="filter-category" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-      <option value="">All categories</option>
-      <option value="sast">SAST</option>
-      <option value="sca">SCA</option>
-      <option value="secrets">Secrets</option>
-      <option value="iac">IaC</option>
-      <option value="containers">Containers</option>
-      <option value="dast">DAST</option>
-    </select>
-    <select id="filter-scanner" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-      <option value="">All scanners</option>
-      <option value="semgrep">semgrep</option>
-      <option value="gosec">gosec</option>
-      <option value="trivy">trivy</option>
-      <option value="grype">grype</option>
-      <option value="osv-scanner">osv-scanner</option>
-      <option value="trufflehog">trufflehog</option>
-      <option value="gitleaks">gitleaks</option>
-      <option value="checkov">checkov</option>
-      <option value="tfsec">tfsec</option>
-      <option value="kics">kics</option>
-      <option value="trivy-image">trivy-image</option>
-      <option value="grype-image">grype-image</option>
-      <option value="nuclei">nuclei</option>
-    </select>
-    <select id="filter-status" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-      <option value="">All statuses</option>
-      <option value="open">Open</option>
-      <option value="in_review">In Review</option>
-      <option value="accepted_risk">Accepted Risk</option>
-      <option value="fixed">Fixed</option>
-      <option value="verified">Verified</option>
-    </select>
-    <div class="relative">
-      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base pointer-events-none">search</span>
-      <input id="filter-cve" type="text" placeholder="CVE-YYYY-NNNNN"
-        class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-3 py-2 text-sm w-44 focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 font-mono" />
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-4 lg:p-5 mb-4">
+    <div class="flex flex-wrap gap-3 items-center">
+      <fieldset class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2">
+        <legend class="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</legend>
+        <label class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 cursor-pointer">
+          <input type="checkbox" value="critical" data-severity-filter class="h-3.5 w-3.5 rounded border-red-500/40 bg-transparent text-red-400 focus:ring-0" />
+          Critical
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300 cursor-pointer">
+          <input type="checkbox" value="high" data-severity-filter class="h-3.5 w-3.5 rounded border-orange-500/40 bg-transparent text-orange-400 focus:ring-0" />
+          High
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 cursor-pointer">
+          <input type="checkbox" value="medium" data-severity-filter class="h-3.5 w-3.5 rounded border-amber-500/40 bg-transparent text-amber-400 focus:ring-0" />
+          Medium
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-300 cursor-pointer">
+          <input type="checkbox" value="low" data-severity-filter class="h-3.5 w-3.5 rounded border-sky-500/40 bg-transparent text-sky-400 focus:ring-0" />
+          Low
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-slate-500/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-300 cursor-pointer">
+          <input type="checkbox" value="info" data-severity-filter class="h-3.5 w-3.5 rounded border-slate-500/40 bg-transparent text-slate-400 focus:ring-0" />
+          Info
+        </label>
+      </fieldset>
+      <select id="filter-category" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All categories</option>
+        <option value="sast">SAST</option>
+        <option value="sca">SCA</option>
+        <option value="secrets">Secrets</option>
+        <option value="iac">IaC</option>
+        <option value="containers">Containers</option>
+        <option value="dast">DAST</option>
+      </select>
+      <select id="filter-scanner" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All scanners</option>
+        <option value="semgrep">semgrep</option>
+        <option value="gosec">gosec</option>
+        <option value="trivy">trivy</option>
+        <option value="grype">grype</option>
+        <option value="osv-scanner">osv-scanner</option>
+        <option value="trufflehog">trufflehog</option>
+        <option value="gitleaks">gitleaks</option>
+        <option value="checkov">checkov</option>
+        <option value="tfsec">tfsec</option>
+        <option value="kics">kics</option>
+        <option value="trivy-image">trivy-image</option>
+        <option value="grype-image">grype-image</option>
+        <option value="nuclei">nuclei</option>
+      </select>
+      <select id="filter-status" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All statuses</option>
+        <option value="open">Open</option>
+        <option value="in_review">In Review</option>
+        <option value="accepted_risk">Accepted Risk</option>
+        <option value="fixed">Fixed</option>
+        <option value="verified">Verified</option>
+      </select>
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base pointer-events-none">search</span>
+        <input id="filter-cve" type="text" placeholder="CVE-YYYY-NNNNN"
+          class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-3 py-2 text-sm w-44 focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 font-mono" />
+      </div>
+      <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
+        <input id="filter-overdue" type="checkbox" class="rounded border-slate-600 bg-surface-container text-red-400 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
+        <span>Overdue</span>
+      </label>
+      <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold">
+        <span class="material-symbols-outlined text-base">filter_list</span>
+        Filter
+      </button>
+      <button id="clear-btn" class="px-3 py-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">Clear</button>
+      <span id="findings-total" class="text-xs text-slate-500 ml-auto font-mono"></span>
     </div>
-    <label class="flex items-center gap-2 text-sm text-slate-400 cursor-pointer select-none">
-      <input id="filter-overdue" type="checkbox" class="rounded border-slate-600 bg-surface-container text-red-400 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
-      <span>Overdue</span>
-    </label>
-    <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold">
-      <span class="material-symbols-outlined text-base">filter_list</span>
-      Filter
-    </button>
-    <button id="clear-btn" class="px-3 py-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">Clear</button>
-    <span id="findings-total" class="text-xs text-slate-500 ml-auto font-mono"></span>
   </div>
 
-  <!-- Findings table -->
-  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between gap-4">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Findings</p>
+        <p class="text-sm text-slate-400 mt-1">Open a dedicated detail view to triage, inspect evidence, and generate remediation.</p>
+      </div>
+    </div>
     <div id="findings-table" class="overflow-x-auto">
       <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
     </div>
   </div>
-
 </DashboardLayout>
-
-<!-- Triage modal -->
-<div id="triage-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-surface-container border border-outline-variant/30 rounded-xl w-full max-w-lg max-h-[90vh] overflow-auto">
-    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
-      <h3 class="text-sm font-bold text-on-background">Triage Finding</h3>
-      <button id="triage-close" class="text-slate-500 hover:text-on-background transition-colors text-xl leading-none">×</button>
-    </div>
-    <div class="px-6 py-5 space-y-5">
-
-      <!-- Finding info (read-only) -->
-      <div>
-        <p id="triage-title" class="text-sm font-semibold text-on-background"></p>
-        <div class="flex gap-2 mt-2 flex-wrap">
-          <span id="triage-severity" class="text-[10px] font-bold capitalize px-2 py-1 rounded border"></span>
-          <span id="triage-scanner" class="font-mono text-xs text-slate-400 bg-surface-container-low border border-outline-variant/20 px-2.5 py-1 rounded"></span>
-          <span id="triage-cve" class="hidden"></span>
-          <span id="triage-cwe" class="hidden"></span>
-        </div>
-        <p id="triage-desc" class="text-xs text-slate-500 mt-2"></p>
-      </div>
-
-      <!-- SLA info -->
-      <div id="triage-sla-row" class="hidden">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">SLA Deadline</p>
-        <p id="triage-sla" class="text-sm"></p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-300/70 mb-2">Credibility</p>
-          <div class="flex items-end gap-2">
-            <p id="triage-confidence-score" class="text-3xl font-black text-cyan-300">0.50</p>
-            <p id="triage-confidence-label" class="text-xs font-semibold text-cyan-100/80 pb-1">Baseline</p>
-          </div>
-          <p class="text-xs text-slate-400 mt-2">Base score from corroboration inside the same scanner family and scan batch.</p>
-        </div>
-        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-300/70 mb-2">Corroboration</p>
-          <div class="flex items-end gap-2">
-            <p id="triage-corroboration-count" class="text-3xl font-black text-emerald-300">0</p>
-            <p class="text-xs font-semibold text-emerald-100/80 pb-1">peer scanners</p>
-          </div>
-          <p id="triage-corroboration-summary" class="text-xs text-slate-400 mt-2">No same-family corroboration recorded yet.</p>
-        </div>
-      </div>
-
-      <div id="triage-correlation-panel" class="rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-4">
-        <div class="flex items-center justify-between gap-3 mb-3">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Corroborating scanners</p>
-            <p class="text-xs text-slate-500 mt-1">Only findings from the same batch and scanner family appear here.</p>
-          </div>
-          <span id="triage-correlation-badge" class="hidden text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"></span>
-        </div>
-        <div id="triage-correlation-list" class="space-y-2">
-          <p class="text-xs text-slate-500">Loading correlation context…</p>
-        </div>
-      </div>
-
-      <!-- Status -->
-      <div>
-        <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Status</label>
-        <select id="triage-status" class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all">
-          <option value="open">Open</option>
-          <option value="in_review">In Review</option>
-          <option value="accepted_risk">Accepted Risk</option>
-          <option value="fixed">Fixed</option>
-          <option value="verified">Verified</option>
-        </select>
-      </div>
-
-      <!-- Assigned to -->
-      <div>
-        <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Assigned To</label>
-        <input id="triage-assigned" list="users-datalist" type="text" placeholder="username or email"
-          class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600" />
-        <datalist id="users-datalist"></datalist>
-      </div>
-
-      <!-- False positive -->
-      <label class="flex items-center gap-3 cursor-pointer">
-        <input id="triage-fp" type="checkbox" class="rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer" />
-        <div>
-          <p class="text-sm text-on-background font-medium">False Positive</p>
-          <p class="text-xs text-slate-500">Mark this finding as a false positive</p>
-        </div>
-      </label>
-
-      <!-- Notes -->
-      <div>
-        <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Notes</label>
-        <textarea id="triage-notes" rows="3" placeholder="Add context, remediation notes, risk acceptance reason..."
-          class="w-full bg-surface-container-low border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
-      </div>
-
-      <!-- Error -->
-      <p id="triage-error" class="hidden text-sm text-red-400"></p>
-    </div>
-
-    <div class="px-6 py-4 border-t border-outline-variant/20 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-2">
-        <button id="kb-remediate-btn"
-          class="flex items-center gap-1.5 px-4 py-2 text-purple-400 border border-purple-500/20 bg-purple-500/5 rounded-lg text-sm font-bold hover:bg-purple-500/10 transition-all active:scale-95">
-          <span class="material-symbols-outlined text-sm">auto_awesome</span>
-          <span id="kb-btn-label">Remediation Guide</span>
-        </button>
-        <a id="kb-view-link" href="#" target="_blank"
-          class="hidden items-center gap-1.5 px-3 py-2 text-emerald-400 border border-emerald-500/20 bg-emerald-500/5 rounded-lg text-sm font-bold hover:bg-emerald-500/10 transition-all">
-          <span class="material-symbols-outlined text-sm">open_in_new</span>View Guide
-        </a>
-      </div>
-      <div class="flex gap-3">
-        <button id="triage-cancel" class="px-5 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors">
-          Cancel
-        </button>
-        <button id="triage-save" class="flex items-center gap-2 px-5 py-2 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95">
-          <span class="material-symbols-outlined text-sm">save</span>
-          Save
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <script>
   import { api } from '../../lib/api';
@@ -229,7 +124,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   };
 
   const STATUS_STYLES: Record<string, string> = {
-    open:          'text-slate-400 bg-slate-500/10 border-slate-500/20',
+    open:          'text-slate-300 bg-slate-500/10 border-slate-500/20',
     in_review:     'text-sky-400 bg-sky-500/10 border-sky-500/20',
     accepted_risk: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
     fixed:         'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -237,85 +132,73 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   };
 
   const STATUS_LABELS: Record<string, string> = {
-    open:          'Open',
-    in_review:     'In Review',
+    open: 'Open',
+    in_review: 'In Review',
     accepted_risk: 'Accepted Risk',
-    fixed:         'Fixed',
-    verified:      'Verified',
+    fixed: 'Fixed',
+    verified: 'Verified',
   };
-
-  function confidenceMeta(score: number) {
-    if (score >= 0.85) {
-      return {
-        label: 'High confidence',
-        pill: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
-        tone: 'text-emerald-300'
-      };
-    }
-    if (score >= 0.65) {
-      return {
-        label: 'Corroborated',
-        pill: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
-        tone: 'text-cyan-300'
-      };
-    }
-    return {
-      label: 'Baseline',
-      pill: 'text-slate-300 bg-slate-500/10 border-slate-500/20',
-      tone: 'text-slate-300'
-    };
-  }
-
-  function scannerType(scanner: string) {
-    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
-  }
-
-  function scannerLabel(scanner: string) {
-    const type = scannerType(scanner);
-    return `<span class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border ${type.color}"><span class="font-bold uppercase tracking-wider text-[10px]">${type.label}</span><span class="font-mono text-[10px] text-current/80">${scanner}</span></span>`;
-  }
 
   const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
     semgrep:    { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
     gosec:      { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
     trivy:      { label: 'SCA',     color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
     grype:      { label: 'SCA',     color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    'osv-scanner': { label: 'SCA',  color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
     trufflehog: { label: 'Secrets', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
     gitleaks:   { label: 'Secrets', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-    checkov:    { label: 'IaC',     color: 'text-green-400 bg-green-500/10 border-green-500/20' },
-    tfsec:      { label: 'IaC',     color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    checkov:    { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+    tfsec:      { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+    kics:       { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+    'trivy-image': { label: 'Container', color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
+    'grype-image': { label: 'Container', color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
     nuclei:     { label: 'DAST',    color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
   };
 
+  function scannerType(scanner: string) {
+    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+  }
+
+  function confidenceMeta(score: number | null | undefined) {
+    if (score == null) {
+      return { label: 'Not scored', pill: 'text-slate-400 bg-slate-500/5 border-slate-500/20', tone: 'text-slate-500', value: '—' };
+    }
+    if (score >= 0.85) {
+      return { label: 'High confidence', pill: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', tone: 'text-emerald-300', value: score.toFixed(2) };
+    }
+    if (score >= 0.65) {
+      return { label: 'Corroborated', pill: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20', tone: 'text-cyan-300', value: score.toFixed(2) };
+    }
+    return { label: 'Low confidence', pill: 'text-amber-300 bg-amber-500/10 border-amber-500/20', tone: 'text-amber-300', value: score.toFixed(2) };
+  }
+
   function slaDisplay(f: Finding): string {
-    if (!f.sla_deadline) return '';
+    if (!f.sla_deadline) return '<span class="text-xs text-slate-500">No SLA</span>';
     const resolved = f.status === 'fixed' || f.status === 'verified' || f.status === 'accepted_risk';
     if (resolved) {
       return `<span class="text-xs text-slate-500">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
     }
-    const now  = Date.now();
-    const dead = new Date(f.sla_deadline).getTime();
-    const diff = dead - now;
+    const diff = new Date(f.sla_deadline).getTime() - Date.now();
     if (diff < 0) {
-      return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">Overdue</span>
-              <span class="text-xs text-red-400/70 ml-1">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
+      return `<span class="inline-flex items-center px-2 py-1 text-[10px] font-bold rounded border bg-red-500/10 text-red-400 border-red-500/20">Overdue</span>`;
     }
     if (diff < 24 * 60 * 60 * 1000) {
-      return `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">Due Soon</span>
-              <span class="text-xs text-amber-400/70 ml-1">${new Date(f.sla_deadline).toLocaleString()}</span>`;
+      return `<span class="inline-flex items-center px-2 py-1 text-[10px] font-bold rounded border bg-amber-500/10 text-amber-400 border-amber-500/20">Due Soon</span>`;
     }
     return `<span class="text-xs text-slate-500">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
   }
 
-  let currentFindingId = '';
+  function selectedSeverities() {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('[data-severity-filter]:checked')).map((input) => input.value);
+  }
 
   async function loadFindings() {
-    const severity = (document.getElementById('filter-severity') as HTMLSelectElement).value;
+    const severity = selectedSeverities();
     const category = (document.getElementById('filter-category') as HTMLSelectElement).value;
-    const scanner  = (document.getElementById('filter-scanner')  as HTMLSelectElement).value;
-    const status   = (document.getElementById('filter-status')   as HTMLSelectElement).value;
-    const cve_id   = (document.getElementById('filter-cve')      as HTMLInputElement).value.trim();
-    const overdue  = (document.getElementById('filter-overdue')  as HTMLInputElement).checked;
+    const scanner  = (document.getElementById('filter-scanner') as HTMLSelectElement).value;
+    const status   = (document.getElementById('filter-status') as HTMLSelectElement).value;
+    const cve_id   = (document.getElementById('filter-cve') as HTMLInputElement).value.trim();
+    const overdue  = (document.getElementById('filter-overdue') as HTMLInputElement).checked;
 
     const { findings, total } = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id);
     document.getElementById('findings-total')!.textContent = `${total} total`;
@@ -332,284 +215,93 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           <tr class="bg-slate-950/50 border-b border-slate-800">
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Credibility</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Signals</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Type</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden md:table-cell">Scanner</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Scanner</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">SLA</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Detail</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/50">
-          ${findings.map((f, i) => {
-            const sev    = SEV_STYLES[f.severity] ?? SEV_STYLES.info;
-            const stat   = STATUS_STYLES[f.status] ?? STATUS_STYLES.open;
-            const type   = scannerType(f.scanner);
-            const confidence = confidenceMeta(f.confidence_score ?? 0.5);
-            const isOpen = f.status === 'open' || f.status === 'in_review';
+          ${findings.map((f) => {
+            const sev = SEV_STYLES[f.severity] ?? SEV_STYLES.info;
+            const stat = STATUS_STYLES[f.status] ?? STATUS_STYLES.open;
+            const confidence = confidenceMeta(f.confidence_score);
+            const scanner = scannerType(f.scanner);
             return `
-              <tr class="hover:bg-slate-900/30 transition-colors cursor-pointer ${f.false_positive ? 'opacity-50' : ''}" data-idx="${i}">
+              <tr class="group hover:bg-slate-900/30 transition-colors ${f.false_positive ? 'opacity-50' : ''}">
                 <td class="px-6 py-4">
-                  <p class="font-bold text-on-background">${f.title}</p>
-                  <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
-                  ${f.assigned_to ? `<p class="text-xs text-sky-500/70 mt-0.5">→ ${f.assigned_to}</p>` : ''}
-                </td>
+                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block">
+                    <p class="font-bold text-on-background group-hover:text-sky-300 transition-colors">${f.title}</p>
+                    <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
+                     <div class="flex items-center gap-2 mt-2 flex-wrap">
+                       <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
+                       ${f.ai_analyzed ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-purple-500/20 bg-purple-500/10 text-purple-300">AI analyzed</span>' : ''}
+                       ${f.assigned_to ? `<span class="text-[11px] text-sky-400/80">Owner: ${f.assigned_to}</span>` : ''}
+                     </div>
+                   </a>
+                 </td>
                 <td class="px-6 py-4 hidden lg:table-cell">
                   <div class="flex flex-col gap-1">
                     <span class="inline-flex w-fit px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${confidence.pill}">${confidence.label}</span>
-                    <span class="font-mono text-xs ${confidence.tone}">${(f.confidence_score ?? 0.5).toFixed(2)}</span>
+                     <span class="font-mono text-xs ${confidence.tone}">${confidence.value}</span>
                   </div>
                 </td>
-                <td class="px-6 py-4 hidden xl:table-cell">
-                  <div class="flex flex-col gap-1 text-xs text-slate-400">
-                    <span>${f.corroboration_count ?? 0} peer ${f.corroboration_count === 1 ? 'scanner' : 'scanners'}</span>
-                    <span class="text-slate-500">same batch · same family</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="px-2 py-1 text-[10px] font-bold rounded capitalize tracking-wider border ${stat}">${STATUS_LABELS[f.status] ?? f.status}</span>
-                </td>
-                <td class="px-6 py-4 hidden lg:table-cell">
-                  <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${type.color}">${type.label}</span>
-                </td>
-                <td class="px-6 py-4 hidden md:table-cell">
-                  <span class="font-mono text-xs text-slate-400">${f.scanner}</span>
-                </td>
+                <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span></td>
+                <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded tracking-wider border ${stat}">${STATUS_LABELS[f.status] ?? f.status}</span></td>
+                <td class="px-6 py-4 hidden xl:table-cell"><span class="font-mono text-xs text-slate-400">${f.scanner}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell">${slaDisplay(f)}</td>
+                <td class="px-6 py-4 text-right">
+                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sky-500/20 bg-sky-500/5 text-sky-300 text-xs font-bold uppercase tracking-wider hover:bg-sky-500/10 transition-all">
+                    Open
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                  </a>
+                </td>
               </tr>`;
           }).join('')}
         </tbody>
       </table>`;
-
-    // store findings for modal access
-    (window as any).__findings = findings;
-
-    el.querySelectorAll('tr[data-idx]').forEach(row => {
-      row.addEventListener('click', () => {
-        openTriage(findings[parseInt((row as HTMLElement).dataset.idx!)]);
-      });
-    });
   }
-
-  // ── Triage modal ─────────────────────────────────────────────────────────────
-
-  async function renderCorrelationDetails(f: Finding) {
-    const score = f.confidence_score ?? 0.5;
-    const corroborationCount = f.corroboration_count ?? 0;
-    const confidence = confidenceMeta(score);
-
-    document.getElementById('triage-confidence-score')!.textContent = score.toFixed(2);
-    document.getElementById('triage-confidence-score')!.className = `text-3xl font-black ${confidence.tone}`;
-    document.getElementById('triage-confidence-label')!.textContent = confidence.label;
-    document.getElementById('triage-corroboration-count')!.textContent = String(corroborationCount);
-    document.getElementById('triage-corroboration-summary')!.textContent = corroborationCount > 0
-      ? `Matched by ${corroborationCount} peer ${corroborationCount === 1 ? 'scanner' : 'scanners'} in the same run family.`
-      : 'No same-family corroboration recorded yet.';
-
-    const badge = document.getElementById('triage-correlation-badge')!;
-    const list = document.getElementById('triage-correlation-list')!;
-    badge.textContent = confidence.label;
-    badge.className = `text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border ${confidence.pill}`;
-    badge.classList.remove('hidden');
-
-    list.innerHTML = '<p class="text-xs text-slate-500">Loading corroborating scanners…</p>';
-
-    try {
-      const response = await api.getFindingCorrelations(f.id);
-      const findings = response.findings ?? [];
-      if (!findings.length) {
-        list.innerHTML = '<p class="text-xs text-slate-500">No corroborating findings were stored for this issue yet.</p>';
-        return;
-      }
-
-      list.innerHTML = findings.map((correlated) => `
-        <div class="rounded-lg border border-outline-variant/20 bg-slate-950/40 px-3 py-3">
-          <div class="flex flex-wrap items-center gap-2">
-            ${scannerLabel(correlated.scanner)}
-            <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${SEV_STYLES[correlated.severity] ?? SEV_STYLES.info}">${correlated.severity}</span>
-            <span class="font-mono text-[10px] text-slate-500">${(correlated.confidence_score ?? 0.5).toFixed(2)}</span>
-          </div>
-          <p class="text-sm font-semibold text-on-background mt-2">${correlated.title}</p>
-          <p class="text-xs text-slate-500 mt-1">${correlated.file_path || 'No file path'}${correlated.line_start ? `:${correlated.line_start}` : ''}</p>
-          ${correlated.rule_id ? `<p class="text-[11px] text-slate-500 mt-1 font-mono">Rule: ${correlated.rule_id}</p>` : ''}
-        </div>`).join('');
-    } catch (error: any) {
-      list.innerHTML = `<p class="text-xs text-red-400">${error.message ?? 'Failed to load corroboration details.'}</p>`;
-    }
-  }
-
-  function openTriage(f: Finding) {
-    currentFindingId = f.id;
-
-    document.getElementById('triage-title')!.textContent = f.title;
-
-    const sevEl = document.getElementById('triage-severity')!;
-    sevEl.textContent = f.severity;
-    sevEl.className   = `text-[10px] font-bold capitalize px-2 py-1 rounded border ${SEV_STYLES[f.severity] ?? ''}`;
-
-    document.getElementById('triage-scanner')!.textContent = f.scanner;
-    document.getElementById('triage-desc')!.textContent    = f.description || '';
-
-    const cveEl = document.getElementById('triage-cve')!;
-    const cweEl = document.getElementById('triage-cwe')!;
-    if (f.cve_id) {
-      cveEl.innerHTML = `<a href="https://nvd.nist.gov/vuln/detail/${f.cve_id}" target="_blank" rel="noopener"
-        class="font-mono text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded hover:bg-red-500/20 transition-colors">${f.cve_id}</a>`;
-      cveEl.classList.remove('hidden');
-    } else {
-      cveEl.innerHTML = ''; cveEl.classList.add('hidden');
-    }
-    if (f.cwe_id) {
-      const cweNum = f.cwe_id.match(/\d+/)?.[0] ?? '';
-      const href = cweNum ? `https://cwe.mitre.org/data/definitions/${cweNum}.html` : '#';
-      cweEl.innerHTML = `<a href="${href}" target="_blank" rel="noopener"
-        class="font-mono text-xs font-bold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded hover:bg-purple-500/20 transition-colors">${f.cwe_id}</a>`;
-      cweEl.classList.remove('hidden');
-    } else {
-      cweEl.innerHTML = ''; cweEl.classList.add('hidden');
-    }
-
-    const slaRow = document.getElementById('triage-sla-row')!;
-    if (f.sla_deadline) {
-      slaRow.classList.remove('hidden');
-      document.getElementById('triage-sla')!.innerHTML = slaDisplay(f);
-    } else {
-      slaRow.classList.add('hidden');
-    }
-
-    renderCorrelationDetails(f);
-
-    (document.getElementById('triage-status')   as HTMLSelectElement).value    = f.status ?? 'open';
-    (document.getElementById('triage-assigned')  as HTMLInputElement).value    = f.assigned_to ?? '';
-    (document.getElementById('triage-fp')        as HTMLInputElement).checked  = f.false_positive ?? false;
-    (document.getElementById('triage-notes')     as HTMLTextAreaElement).value = f.notes ?? '';
-
-    const viewLink = document.getElementById('kb-view-link') as HTMLAnchorElement;
-    if (f.remediation_slug) {
-      viewLink.href = `/dashboard/knowledge?slug=${encodeURIComponent(f.remediation_slug)}`;
-      viewLink.classList.remove('hidden');
-      viewLink.classList.add('flex');
-    } else {
-      viewLink.classList.add('hidden');
-      viewLink.classList.remove('flex');
-    }
-
-    document.getElementById('triage-error')!.classList.add('hidden');
-    document.getElementById('triage-modal')!.classList.remove('hidden');
-  }
-
-  document.getElementById('triage-close')!.addEventListener('click', () => {
-    document.getElementById('triage-modal')!.classList.add('hidden');
-  });
-  document.getElementById('triage-cancel')!.addEventListener('click', () => {
-    document.getElementById('triage-modal')!.classList.add('hidden');
-  });
-  document.getElementById('triage-modal')!.addEventListener('click', e => {
-    if (e.target === e.currentTarget) document.getElementById('triage-modal')!.classList.add('hidden');
-  });
-
-  document.getElementById('triage-save')!.addEventListener('click', async () => {
-    const btn = document.getElementById('triage-save') as HTMLButtonElement;
-    btn.disabled = true;
-    btn.textContent = 'Saving…';
-
-    const errEl = document.getElementById('triage-error')!;
-    errEl.classList.add('hidden');
-
-    try {
-      const status      = (document.getElementById('triage-status')   as HTMLSelectElement).value;
-      const assigned_to = (document.getElementById('triage-assigned')  as HTMLInputElement).value.trim() || undefined;
-      const false_positive = (document.getElementById('triage-fp')    as HTMLInputElement).checked;
-      const notes       = (document.getElementById('triage-notes')    as HTMLTextAreaElement).value.trim() || undefined;
-
-      await api.updateFinding(currentFindingId, { status, assigned_to, false_positive, notes });
-      document.getElementById('triage-modal')!.classList.add('hidden');
-      loadFindings();
-    } catch (err: any) {
-      errEl.textContent = err.message;
-      errEl.classList.remove('hidden');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<span class="material-symbols-outlined text-sm">save</span> Save';
-    }
-  });
-
-  // ── SLA bar ──────────────────────────────────────────────────────────────────
 
   async function loadSLA() {
     try {
       const s = await api.getSLASummary();
-      document.getElementById('sla-overdue-count')!.textContent  = String(s.overdue);
-      document.getElementById('sla-today-count')!.textContent    = String(s.due_today);
-      document.getElementById('sla-ontrack-count')!.textContent  = String(s.on_track);
+      document.getElementById('sla-overdue-count')!.textContent = String(s.overdue);
+      document.getElementById('sla-today-count')!.textContent = String(s.due_today);
+      document.getElementById('sla-ontrack-count')!.textContent = String(s.on_track);
       document.getElementById('sla-nodeadline-count')!.textContent = String(s.no_deadline);
       document.getElementById('sla-bar')!.classList.remove('hidden');
-    } catch { /* SLA bar is optional */ }
+    } catch {
+      // optional summary
+    }
   }
-
-  // SLA shortcuts: click overdue → filter by overdue
-  document.getElementById('sla-overdue')!.addEventListener('click', () => {
-    (document.getElementById('filter-overdue') as HTMLInputElement).checked = true;
-    loadFindings();
-  });
-  document.getElementById('sla-today')!.addEventListener('click', () => {
-    (document.getElementById('filter-overdue') as HTMLInputElement).checked = false;
-    (document.getElementById('filter-status')  as HTMLSelectElement).value  = 'open';
-    loadFindings();
-  });
 
   document.getElementById('filter-btn')!.addEventListener('click', loadFindings);
   document.getElementById('filter-overdue')!.addEventListener('change', loadFindings);
   document.getElementById('filter-cve')!.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') loadFindings();
   });
-
+  document.getElementById('sla-overdue')!.addEventListener('click', () => {
+    (document.getElementById('filter-overdue') as HTMLInputElement).checked = true;
+    loadFindings();
+  });
+  document.getElementById('sla-today')!.addEventListener('click', () => {
+    (document.getElementById('filter-overdue') as HTMLInputElement).checked = false;
+    (document.getElementById('filter-status') as HTMLSelectElement).value = 'open';
+    loadFindings();
+  });
   document.getElementById('clear-btn')!.addEventListener('click', () => {
-    (document.getElementById('filter-severity') as HTMLSelectElement).value = '';
+    document.querySelectorAll<HTMLInputElement>('[data-severity-filter]').forEach((input) => {
+      input.checked = false;
+    });
     (document.getElementById('filter-category') as HTMLSelectElement).value = '';
-    (document.getElementById('filter-scanner')  as HTMLSelectElement).value = '';
-    (document.getElementById('filter-status')   as HTMLSelectElement).value = '';
-    (document.getElementById('filter-cve')      as HTMLInputElement).value  = '';
-    (document.getElementById('filter-overdue')  as HTMLInputElement).checked = false;
+    (document.getElementById('filter-scanner') as HTMLSelectElement).value = '';
+    (document.getElementById('filter-status') as HTMLSelectElement).value = '';
+    (document.getElementById('filter-cve') as HTMLInputElement).value = '';
+    (document.getElementById('filter-overdue') as HTMLInputElement).checked = false;
     loadFindings();
   });
 
   loadSLA();
   loadFindings();
-
-  // Populate assignment datalist from users API
-  api.getUsers().then(users => {
-    const dl = document.getElementById('users-datalist')!;
-    dl.innerHTML = users.map(u => `<option value="${u.username}">${u.username} — ${u.email}</option>`).join('');
-  }).catch(() => {});
-
-  // Remediation Guide button
-  document.getElementById('kb-remediate-btn')!.addEventListener('click', async () => {
-    if (!currentFindingId) return;
-    const btn   = document.getElementById('kb-remediate-btn') as HTMLButtonElement;
-    const label = document.getElementById('kb-btn-label')!;
-    btn.disabled = true;
-    label.textContent = 'Generating…';
-    // Open tab synchronously to avoid popup blocker (async calls lose user gesture context)
-    const win = window.open('data:text/html,<html><head><title>Generating…</title></head><body style="background:%230f172a;color:%2394a3b8;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;gap:12px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="%236366f1" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg><p style="margin:0;font-size:14px">Generating remediation guide…</p></body></html>', '_blank');
-    try {
-      const { article } = await api.aiRemediate(currentFindingId);
-      const url = `/dashboard/knowledge?slug=${encodeURIComponent(article.slug)}`;
-      if (win) win.location.href = url;
-      const viewLink = document.getElementById('kb-view-link') as HTMLAnchorElement;
-      viewLink.href = url;
-      viewLink.classList.remove('hidden');
-      viewLink.classList.add('flex');
-    } catch (e: any) {
-      if (win) win.close();
-      label.textContent = e.message.includes('API_KEY') ? 'API key not set' : 'Failed — retry';
-      setTimeout(() => { label.textContent = 'Remediation Guide'; btn.disabled = false; }, 3000);
-      return;
-    }
-    label.textContent = 'Remediation Guide';
-    btn.disabled = false;
-  });
 </script>

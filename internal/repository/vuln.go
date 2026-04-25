@@ -34,7 +34,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 			COUNT(f.id) FILTER (WHERE f.status IN ('fixed','verified'))                     AS fixed_count
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id
-		WHERE ($1 = '' OR f.severity = $1)
+		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.cve_id ILIKE '%'||$2||'%' OR f.rule_id ILIKE '%'||$2||'%' OR f.title ILIKE '%'||$2||'%')
 		  AND ($3 = FALSE OR f.status NOT IN ('fixed','verified','accepted_risk'))
 		GROUP BY COALESCE(f.cve_id, f.rule_id), f.severity
@@ -42,7 +42,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 			CASE f.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
 			COUNT(DISTINCT COALESCE(s.repo_id::text, s.target)) DESC
 		LIMIT $4 OFFSET $5`,
-		f.Severity, f.Search, f.OnlyOpen, f.Limit, offset)
+		f.Severities, f.Search, f.OnlyOpen, f.Limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("vulns list: %w", err)
 	}
@@ -68,11 +68,11 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 		SELECT COUNT(*) FROM (
 			SELECT COALESCE(f.cve_id, f.rule_id), f.severity
 			FROM findings f
-			WHERE ($1 = '' OR f.severity = $1)
+			WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 			  AND ($2 = '' OR f.cve_id ILIKE '%'||$2||'%' OR f.rule_id ILIKE '%'||$2||'%' OR f.title ILIKE '%'||$2||'%')
 			  AND ($3 = FALSE OR f.status NOT IN ('fixed','verified','accepted_risk'))
 			GROUP BY COALESCE(f.cve_id, f.rule_id), f.severity
-		) sub`, f.Severity, f.Search, f.OnlyOpen).Scan(&total)
+		) sub`, f.Severities, f.Search, f.OnlyOpen).Scan(&total)
 
 	return vulns, total, nil
 }

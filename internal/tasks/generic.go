@@ -26,7 +26,7 @@ type runResult struct {
 }
 
 // HandleScan is the single asynq handler for all scanners.
-func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, queue *asynq.Client) asynq.HandlerFunc {
+func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, queue *asynq.Client) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		p, err := UnmarshalPayload(t.Payload())
 		if err != nil {
@@ -53,6 +53,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			dir, cloneLog, err := cloneRepo(ctx, p.Target, p.ScanID)
 			if err != nil {
 				scans.MarkFailed(ctx, p.ScanID, err.Error(), cloneLog)
+				enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.failed", err.Error(), time.Now())
 				log.Error("clone failed", "err", err)
 				return err
 			}
@@ -65,6 +66,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		if result.err != nil && len(result.stdout) == 0 {
 			scans.MarkFailed(ctx, p.ScanID, result.err.Error(), result.log)
+			enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.failed", result.err.Error(), time.Now())
 			log.Error("docker run failed", "err", result.err)
 			return fmt.Errorf("%s docker run: %w", sc.Name, result.err)
 		}
@@ -106,10 +108,26 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			if err := findings.RefreshBatchCorrelation(ctx, findingID); err != nil {
 				log.Warn("refresh batch correlation failed", "finding_id", findingID, "err", err)
 			}
+			if strings.TrimSpace(f.Description) == "" {
+				enqueueFindingSummary(ctx, findings, queue, findingID)
+			}
 			if !suppressed {
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)
 				enqueueAgentValidate(ctx, queue, findingID)
 			}
+			
+			enqueueFindingNotification(ctx, settings, webhooks, queue, FindingCreatedPayload{
+				FindingID:   findingID,
+				Repository:  p.Target,
+				Severity:    norm,
+				Title:       f.Title,
+				RuleID:      f.RuleID,
+				FilePath:    f.FilePath,
+				Line:        f.LineStart,
+				Scanner:     sc.Name,
+				Description: f.Description,
+				CreatedAt:   now,
+			})
 		}
 
 		log.Info("scan completed", "findings_parsed", len(parsed), "findings_inserted", inserted)
@@ -119,7 +137,11 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			s := result.err.Error()
 			exitErrStr = &s
 		}
-		return scans.MarkCompleted(ctx, p.ScanID, result.log, exitErrStr)
+		if err := scans.MarkCompleted(ctx, p.ScanID, result.log, exitErrStr); err != nil {
+			return err
+		}
+		enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.completed", derefErr(exitErrStr), time.Now())
+		return nil
 	}
 }
 
@@ -249,6 +271,25 @@ func enqueueAgentValidate(ctx context.Context, queue *asynq.Client, findingID st
 	}
 }
 
+func enqueueFindingSummary(ctx context.Context, findings repository.FindingRepository, queue *asynq.Client, findingID string) {
+	prepared, err := findings.PrepareAISummary(ctx, findingID)
+	if err != nil {
+		slog.Warn("prepare ai summary failed", "finding_id", findingID, "err", err)
+		return
+	}
+	if prepared == nil || !prepared.ShouldEnqueue {
+		return
+	}
+	payload, err := MarshalAgentSummarizePayload(AgentSummarizePayload{FindingID: findingID})
+	if err != nil {
+		slog.Warn("marshal agent:summarize payload failed", "finding_id", findingID, "err", err)
+		return
+	}
+	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeAgentSummarize, payload)); err != nil {
+		slog.Warn("enqueue agent:summarize failed", "finding_id", findingID, "err", err)
+	}
+}
+
 func slaDeadlineFor(severity string, now time.Time) *time.Time {
 	var d time.Duration
 	switch severity {
@@ -265,4 +306,124 @@ func slaDeadlineFor(severity string, now time.Time) *time.Time {
 	}
 	t := now.Add(d)
 	return &t
+}
+
+type FindingCreatedPayload struct {
+	FindingID   string    `json:"finding_id"`
+	Repository  string    `json:"repository"`
+	Severity    string    `json:"severity"`
+	Title       string    `json:"title"`
+	RuleID      string    `json:"rule_id"`
+	FilePath    string    `json:"file_path"`
+	Line        int       `json:"line"`
+	Scanner     string    `json:"scanner"`
+	Description string    `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type ScanNotificationPayload struct {
+	ScanID        string    `json:"scan_id"`
+	Target        string    `json:"target"`
+	Scanner       string    `json:"scanner"`
+	Status        string    `json:"status"`
+	FindingCount  int       `json:"finding_count"`
+	Error         string    `json:"error,omitempty"`
+	CompletedAt   time.Time `json:"completed_at"`
+}
+
+func enqueueFindingNotification(ctx context.Context, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, payload FindingCreatedPayload) {
+	notificationSettings, err := settings.GetNotificationSettings(ctx)
+	if err != nil {
+		slog.Warn("failed to load notification settings", "err", err)
+		return
+	}
+	switch payload.Severity {
+	case "critical":
+		if notificationSettings.AlertCritical {
+			enqueueWebhookEvent(ctx, webhooks, queue, "finding.critical", payload)
+		}
+	case "high":
+		if notificationSettings.AlertHigh {
+			enqueueWebhookEvent(ctx, webhooks, queue, "finding.high", payload)
+		}
+	}
+}
+
+func enqueueScanNotification(ctx context.Context, scans repository.ScanRepository, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, scanID, eventType, errorMessage string, now time.Time) {
+	notificationSettings, err := settings.GetNotificationSettings(ctx)
+	if err != nil {
+		slog.Warn("failed to load notification settings", "err", err)
+		return
+	}
+	if eventType == "scan.completed" && !notificationSettings.AlertScanComplete {
+		return
+	}
+	if eventType == "scan.failed" && !notificationSettings.AlertScanFailed {
+		return
+	}
+	scan, err := scans.Get(ctx, scanID)
+	if err != nil {
+		slog.Warn("failed to load scan for notification", "scan_id", scanID, "err", err)
+		return
+	}
+	enqueueWebhookEvent(ctx, webhooks, queue, eventType, ScanNotificationPayload{
+		ScanID:       scan.ID,
+		Target:       scan.Target,
+		Scanner:      scan.Scanner,
+		Status:       string(scan.Status),
+		FindingCount: scan.FindingCount,
+		Error:        errorMessage,
+		CompletedAt:  now,
+	})
+}
+
+func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookRepository, queue *asynq.Client, eventType string, payload interface{}) {
+	webhookList, err := webhooks.ListEnabled(ctx)
+	if err != nil {
+		slog.Warn("failed to list enabled webhooks", "err", err)
+		return
+	}
+
+	payloadBytes, err := MarshalWebhookEvent(eventType, payload, time.Now())
+	if err != nil {
+		slog.Warn("failed to marshal webhook payload", "err", err)
+		return
+	}
+
+	for _, webhook := range webhookList {
+		containsEvent := false
+		for _, event := range webhook.Events {
+			if event == eventType || (event == "finding.created" && (eventType == "finding.critical" || eventType == "finding.high")) {
+				containsEvent = true
+				break
+			}
+		}
+		if !containsEvent {
+			continue
+		}
+
+		taskPayload, err := MarshalWebhookPayload(WebhookSendPayload{
+			WebhookID: webhook.ID,
+			EventType: eventType,
+			Payload:   payloadBytes,
+		})
+		if err != nil {
+			slog.Warn("failed to marshal webhook task payload", "webhook_id", webhook.ID, "err", err)
+			continue
+		}
+
+		if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeWebhookSend, taskPayload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second)); err != nil {
+			slog.Warn("failed to enqueue webhook task", "webhook_id", webhook.ID, "err", err)
+			continue
+		}
+
+		slog.Info("enqueued webhook delivery", "webhook_id", webhook.ID, "event_type", eventType)
+	}
+}
+
+func derefErr(err *string) string {
+	if err == nil {
+		return ""
+	}
+	return *err
 }

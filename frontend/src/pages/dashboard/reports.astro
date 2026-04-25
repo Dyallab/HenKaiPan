@@ -15,13 +15,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </select>
     </div>
     <div class="flex items-center gap-2">
-      <select id="export-sev" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-        <option value="">All severities</option>
-        <option value="critical">Critical</option>
-        <option value="high">High</option>
-        <option value="medium">Medium</option>
-        <option value="low">Low</option>
-      </select>
+      <fieldset class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2">
+        <legend class="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Export severities</legend>
+        <label class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 cursor-pointer">
+          <input type="checkbox" value="critical" data-export-severity class="h-3.5 w-3.5 rounded border-red-500/40 bg-transparent text-red-400 focus:ring-0" />
+          Critical
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300 cursor-pointer">
+          <input type="checkbox" value="high" data-export-severity class="h-3.5 w-3.5 rounded border-orange-500/40 bg-transparent text-orange-400 focus:ring-0" />
+          High
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 cursor-pointer">
+          <input type="checkbox" value="medium" data-export-severity class="h-3.5 w-3.5 rounded border-amber-500/40 bg-transparent text-amber-400 focus:ring-0" />
+          Medium
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-300 cursor-pointer">
+          <input type="checkbox" value="low" data-export-severity class="h-3.5 w-3.5 rounded border-sky-500/40 bg-transparent text-sky-400 focus:ring-0" />
+          Low
+        </label>
+        <label class="inline-flex items-center gap-2 rounded-full border border-slate-500/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-300 cursor-pointer">
+          <input type="checkbox" value="info" data-export-severity class="h-3.5 w-3.5 rounded border-slate-500/40 bg-transparent text-slate-400 focus:ring-0" />
+          Info
+        </label>
+      </fieldset>
       <select id="export-status" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
         <option value="">All statuses</option>
         <option value="open">Open</option>
@@ -190,6 +206,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   // ── Load data ────────────────────────────────────────────────────────────────
 
+  function selectedExportSeverities() {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('[data-export-severity]:checked')).map((input) => input.value);
+  }
+
   async function load() {
     const days = parseInt((document.getElementById('days-select') as HTMLSelectElement).value);
 
@@ -257,7 +277,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('export-btn')!.addEventListener('click', async (e) => {
     e.preventDefault();
-    const sev    = (document.getElementById('export-sev')    as HTMLSelectElement).value;
+    const sev    = selectedExportSeverities();
     const status = (document.getElementById('export-status') as HTMLSelectElement).value;
     const btn    = document.getElementById('export-btn') as HTMLAnchorElement;
     btn.textContent = 'Exporting…';

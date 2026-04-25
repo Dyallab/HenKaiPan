@@ -15,11 +15,11 @@ func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(q.Get("limit"))
 
 	vulns, total, err := h.store.Vulns.List(r.Context(), repository.VulnFilter{
-		Severity: q.Get("severity"),
-		Search:   q.Get("q"),
-		OnlyOpen: q.Get("open") != "false",
-		Page:     page,
-		Limit:    limit,
+		Severities: parseCSVParam(q.Get("severity")),
+		Search:     q.Get("q"),
+		OnlyOpen:   q.Get("open") != "false",
+		Page:       page,
+		Limit:      limit,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list vulnerabilities")

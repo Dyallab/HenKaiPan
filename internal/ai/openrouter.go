@@ -15,10 +15,15 @@ const apiURL = "https://openrouter.ai/api/v1/chat/completions"
 const defaultModel = "openai/gpt-4.1-mini"
 
 var apiKey string
+
+func OpenRouterKey() string {
+	return apiKey
+}
+
 var model = defaultModel
 
 // SetConfig must be called at startup. If apiKey is empty, AI generation returns an error.
-func SetConfig(key, modelName string) {
+func SetOpenRouterConfig(key, modelName string) {
 	apiKey = strings.TrimSpace(key)
 	if strings.TrimSpace(modelName) == "" {
 		model = defaultModel
@@ -59,9 +64,9 @@ type chatCompletionResponse struct {
 	} `json:"choices"`
 }
 
-func GenerateRemediation(ctx context.Context, req RemediationRequest) (string, error) {
+func OpenRouterGenerateRemediation(ctx context.Context, req RemediationRequest) (string, error) {
 	prompt := buildPrompt(req)
-	content, err := generateText(ctx, remediationSystemPrompt, prompt, 2048)
+	content, err := OpenRouterGenerateText(ctx, remediationSystemPrompt, prompt, "")
 	if err != nil {
 		return "", err
 	}
@@ -72,7 +77,11 @@ func GenerateRemediation(ctx context.Context, req RemediationRequest) (string, e
 }
 
 func GenerateJSON[T any](ctx context.Context, systemPrompt, userPrompt string, maxTokens int) (*T, error) {
-	content, err := generateText(ctx, systemPrompt+"\n\nReturn a single JSON object only. Do not use markdown fences.", userPrompt, maxTokens)
+	return GenerateJSONWithModel[T](ctx, systemPrompt, userPrompt, maxTokens, "")
+}
+
+func GenerateJSONWithModel[T any](ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (*T, error) {
+	content, err := OpenRouterGenerateText(ctx, systemPrompt+"\n\nReturn a single JSON object only. Do not use markdown fences.", userPrompt, modelName)
 	if err != nil {
 		return nil, err
 	}
@@ -93,13 +102,21 @@ func GenerateJSON[T any](ctx context.Context, systemPrompt, userPrompt string, m
 	return &target, nil
 }
 
-func generateText(ctx context.Context, systemPrompt, userPrompt string, maxTokens int) (string, error) {
+func OpenRouterGenerateText(ctx context.Context, systemPrompt, userPrompt, modelName string) (string, error) {
+	return OpenRouterGenerateTextWithModel(ctx, systemPrompt, userPrompt, 2048, modelName)
+}
+
+func OpenRouterGenerateTextWithModel(ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, error) {
 	if apiKey == "" {
 		return "", errors.New("OPENROUTER_API_KEY not set")
 	}
 
+	if maxTokens == 0 {
+		maxTokens = 2048
+	}
+
 	body, err := json.Marshal(chatCompletionRequest{
-		Model: configuredModel(),
+		Model: configuredModelFor(modelName),
 		Messages: []chatMessage{
 			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: userPrompt},
@@ -195,6 +212,13 @@ func configuredModel() string {
 		return defaultModel
 	}
 	return model
+}
+
+func configuredModelFor(name string) string {
+	if strings.TrimSpace(name) != "" {
+		return strings.TrimSpace(name)
+	}
+	return configuredModel()
 }
 
 const remediationSystemPrompt = `You are an application security expert. Write concise, practical remediation guides in Markdown for developers. Prefer specific fixes over theory.`

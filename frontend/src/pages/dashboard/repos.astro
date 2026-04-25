@@ -51,6 +51,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   async function loadRepos() {
     const repos = await api.getRepos();
     const el = document.getElementById('repos-list')!;
+    const msg = document.getElementById('repo-msg')!;
     if (!repos.length) {
       el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No repos added yet.</p>';
       return;
@@ -71,11 +72,41 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               <span class="material-symbols-outlined text-sm">security_update_good</span>
               Scan
             </a>
+            <button
+              type="button"
+              data-delete-repo="${r.id}"
+              data-repo-name="${r.name}"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors"
+            >
+              <span class="material-symbols-outlined text-sm">delete</span>
+              Delete
+            </button>
             <p class="text-xs text-slate-600 font-mono">${new Date(r.created_at).toLocaleDateString()}</p>
           </div>
         </div>
       `).join('')}
     </div>`;
+
+    el.querySelectorAll('[data-delete-repo]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const target = btn as HTMLElement;
+        const repoId = target.dataset.deleteRepo;
+        const repoName = target.dataset.repoName || 'this repository';
+        if (!repoId) return;
+        if (!confirm(`Delete ${repoName}?`)) return;
+
+        try {
+          await api.deleteRepo(repoId);
+          msg.textContent = 'Repository deleted.';
+          msg.className = 'mt-3 text-sm text-emerald-400';
+          await loadRepos();
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Failed to delete repository';
+          msg.textContent = message;
+          msg.className = 'mt-3 text-sm text-red-400';
+        }
+      });
+    });
   }
 
   document.getElementById('repo-form')!.addEventListener('submit', async (e) => {

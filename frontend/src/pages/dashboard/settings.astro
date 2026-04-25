@@ -141,7 +141,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             </div>
                             <div>
                                 <h4 class="font-bold text-on-background">
-                                    ASPM
+                                    Hen Kai Pan
                                 </h4>
                                 <p class="text-xs text-slate-500 mt-1">
                                     Application Security Posture Manager
@@ -332,6 +332,126 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         </div>
                     </div>
                 </div>
+
+                <div>
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
+                    >
+                        Jira Cloud
+                    </p>
+                    <div
+                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                    >
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-2 md:col-span-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Base URL</label
+                                >
+                                <input
+                                    id="jira-base-url"
+                                    type="url"
+                                    placeholder="https://your-team.atlassian.net"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >User Email</label
+                                >
+                                <input
+                                    id="jira-user-email"
+                                    type="email"
+                                    placeholder="security@company.com"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >API Token</label
+                                >
+                                <input
+                                    id="jira-api-token"
+                                    type="password"
+                                    placeholder="Atlassian API token"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Project Key</label
+                                >
+                                <input
+                                    id="jira-project-key"
+                                    type="text"
+                                    placeholder="SEC"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Issue Type</label
+                                >
+                                <input
+                                    id="jira-issue-type"
+                                    type="text"
+                                    placeholder="Task"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2 md:col-span-2">
+                                <label
+                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                    >Default Labels</label
+                                >
+                                <input
+                                    id="jira-labels"
+                                    type="text"
+                                    placeholder="security, aspm, backlog"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                />
+                                <p class="text-xs text-slate-500">
+                                    Comma-separated labels added when creating
+                                    tickets from findings.
+                                </p>
+                            </div>
+                        </div>
+
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input
+                                id="jira-enabled"
+                                type="checkbox"
+                                class="mt-1 rounded border-slate-600 bg-surface-container text-sky-400 focus:ring-0 cursor-pointer"
+                            />
+                            <div>
+                                <p
+                                    class="text-sm text-on-background font-medium"
+                                >
+                                    Enable Jira ticket creation
+                                </p>
+                                <p
+                                    id="jira-token-state"
+                                    class="text-xs text-slate-500 mt-1"
+                                >
+                                    No token saved yet.
+                                </p>
+                            </div>
+                        </label>
+
+                        <div class="flex items-center gap-3">
+                            <button
+                                id="save-jira"
+                                class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95"
+                                >Save Jira Integration</button
+                            >
+                            <p id="jira-msg" class="text-xs hidden"></p>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <!-- Notifications -->
@@ -367,24 +487,28 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 [
                                     {
                                         id: "alert-critical",
+                                        key: "alert_critical",
                                         label: "Critical Findings",
                                         sub: "Alert on any critical severity detection",
                                         default: true,
                                     },
-                                    {
-                                        id: "alert-high",
-                                        label: "High Findings",
-                                        sub: "Alert on high severity findings",
-                                        default: false,
-                                    },
+                                     {
+                                         id: "alert-high",
+                                         key: "alert_high",
+                                         label: "High Findings",
+                                         sub: "Alert on high severity findings",
+                                         default: true,
+                                     },
                                     {
                                         id: "alert-complete",
+                                        key: "alert_scan_complete",
                                         label: "Scan Completed",
                                         sub: "Notify when a scan finishes",
                                         default: true,
                                     },
                                     {
                                         id: "alert-failed",
+                                        key: "alert_scan_failed",
                                         label: "Scan Failed",
                                         sub: "Notify when a scan encounters an error",
                                         default: true,
@@ -401,6 +525,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                         </div>
                                         <button
                                             data-toggle={a.id}
+                                            data-notification-key={a.key}
                                             class={`toggle-btn relative w-10 h-5 rounded-full transition-all ${a.default ? "bg-sky-500" : "bg-slate-700"}`}
                                             aria-pressed={String(a.default)}
                                         >
@@ -412,6 +537,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 ))
                             }
                         </div>
+                        <p id="notification-msg" class="text-xs hidden"></p>
                     </div>
 
                     <!-- Webhooks -->
@@ -435,6 +561,32 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             >
                         </div>
 
+                        <div class="rounded-xl border border-sky-500/15 bg-sky-500/5 p-4 space-y-3">
+                            <div class="flex items-center gap-2 text-sky-300">
+                                <span class="material-symbols-outlined text-base">info</span>
+                                <p class="text-xs font-bold uppercase tracking-[0.22em]">Delivery types</p>
+                            </div>
+                            <div class="grid gap-3 md:grid-cols-3 text-xs">
+                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
+                                    <p class="font-semibold text-on-background">Generic</p>
+                                    <p class="text-slate-500">Receives the raw JSON envelope with <span class="font-mono text-slate-300">event</span>, <span class="font-mono text-slate-300">data</span>, and <span class="font-mono text-slate-300">timestamp</span>.</p>
+                                </div>
+                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
+                                    <p class="font-semibold text-on-background">Slack</p>
+                                    <p class="text-slate-500">Receives a Slack-compatible message body with <span class="font-mono text-slate-300">text</span> and <span class="font-mono text-slate-300">blocks</span>.</p>
+                                </div>
+                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
+                                    <p class="font-semibold text-on-background">Discord</p>
+                                    <p class="text-slate-500">Receives a Discord-compatible message with <span class="font-mono text-slate-300">content</span> and <span class="font-mono text-slate-300">embeds</span>.</p>
+                                </div>
+                            </div>
+                            <pre id="generic-webhook-example" class="overflow-auto rounded-lg border border-outline-variant/20 bg-slate-950 px-3 py-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap">{`{
+  "event": "finding.critical",
+  "data": { "title": "Hardcoded secret", "severity": "critical" },
+  "timestamp": "2026-04-25T04:47:25Z"
+}`}</pre>
+                        </div>
+
                         <!-- Add webhook form -->
                         <div
                             id="webhook-form"
@@ -452,6 +604,24 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 placeholder="https://hooks.example.com/..."
                                 class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none"
                             />
+                            <div class="grid gap-3 md:grid-cols-2">
+                                <div class="space-y-1.5">
+                                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Delivery Type</label>
+                                    <select
+                                        id="webhook-delivery-type"
+                                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                    >
+                                        <option value="generic">Generic JSON</option>
+                                        <option value="slack">Slack Incoming Webhook</option>
+                                        <option value="discord">Discord Webhook</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Events</label>
+                                    <p class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400">Critical findings, high findings, scan completed, scan failed</p>
+                                </div>
+                            </div>
+                            <p id="webhook-delivery-help" class="text-xs text-slate-500">Generic mode posts the raw ASPM event envelope to your endpoint.</p>
                             <div class="flex gap-2">
                                 <button
                                     id="save-webhook"
@@ -1088,94 +1258,12 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         if (val) localStorage.setItem("aspm_github_token", val);
     });
 
-    // --- Notifications: Toggles ---
-    document
-        .querySelectorAll<HTMLButtonElement>(".toggle-btn")
-        .forEach((btn) => {
-            btn.addEventListener("click", () => {
-                const pressed = btn.getAttribute("aria-pressed") === "true";
-                btn.setAttribute("aria-pressed", String(!pressed));
-                btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${!pressed ? "bg-sky-500" : "bg-slate-700"}`;
-                const dot = btn.querySelector("span") as HTMLElement;
-                dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${!pressed ? "right-0.5" : "left-0.5"}`;
-            });
-        });
-
-    // --- Notifications: Webhooks ---
-    type Webhook = { label: string; url: string };
-    let webhooks: Webhook[] = JSON.parse(
-        localStorage.getItem("aspm_webhooks") || "[]",
-    );
-
-    function renderWebhooks() {
-        const el = document.getElementById("webhook-list")!;
-        if (!webhooks.length) {
-            el.innerHTML =
-                '<p class="text-xs text-slate-500">No webhooks configured.</p>';
-            return;
-        }
-        el.innerHTML = webhooks
-            .map(
-                (w, i) => `
-      <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-lg">
-        <div class="flex items-center gap-3 min-w-0">
-          <div class="w-7 h-7 rounded bg-slate-900 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-slate-400 text-sm">webhook</span>
-          </div>
-          <div class="min-w-0">
-            <p class="text-xs font-bold text-on-background">${w.label}</p>
-            <p class="text-[10px] text-slate-500 font-mono truncate max-w-[180px]">${w.url}</p>
-          </div>
-        </div>
-        <button data-idx="${i}" class="delete-webhook text-slate-600 hover:text-error transition-colors ml-2">
-          <span class="material-symbols-outlined text-sm">delete</span>
-        </button>
-      </div>
-    `,
-            )
-            .join("");
-
-        el.querySelectorAll<HTMLButtonElement>(".delete-webhook").forEach(
-            (btn) => {
-                btn.addEventListener("click", () => {
-                    const idx = parseInt(btn.dataset.idx!);
-                    webhooks.splice(idx, 1);
-                    localStorage.setItem(
-                        "aspm_webhooks",
-                        JSON.stringify(webhooks),
-                    );
-                    renderWebhooks();
-                });
-            },
-        );
+    function setToggleState(btn: HTMLButtonElement, enabled: boolean) {
+        btn.setAttribute("aria-pressed", String(enabled));
+        btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${enabled ? "bg-sky-500" : "bg-slate-700"}`;
+        const dot = btn.querySelector("span") as HTMLElement;
+        dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${enabled ? "right-0.5" : "left-0.5"}`;
     }
-
-    renderWebhooks();
-
-    document
-        .getElementById("add-webhook-btn")!
-        .addEventListener("click", () => {
-            document.getElementById("webhook-form")!.classList.remove("hidden");
-        });
-    document.getElementById("cancel-webhook")!.addEventListener("click", () => {
-        document.getElementById("webhook-form")!.classList.add("hidden");
-    });
-    document.getElementById("save-webhook")!.addEventListener("click", () => {
-        const label = (
-            document.getElementById("webhook-label") as HTMLInputElement
-        ).value.trim();
-        const url = (
-            document.getElementById("webhook-url") as HTMLInputElement
-        ).value.trim();
-        if (!label || !url) return;
-        webhooks.push({ label, url });
-        localStorage.setItem("aspm_webhooks", JSON.stringify(webhooks));
-        (document.getElementById("webhook-label") as HTMLInputElement).value =
-            "";
-        (document.getElementById("webhook-url") as HTMLInputElement).value = "";
-        document.getElementById("webhook-form")!.classList.add("hidden");
-        renderWebhooks();
-    });
 
     // --- Security: token display ---
     const token = localStorage.getItem("aspm_token") ?? "";
@@ -1229,6 +1317,138 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     import { api } from "../../lib/api";
     type User = Awaited<ReturnType<typeof api.getUsers>>[number];
     type Team = Awaited<ReturnType<typeof api.getTeams>>[number];
+    type NotificationSettings = Awaited<
+        ReturnType<typeof api.getNotificationSettings>
+    >;
+
+    async function loadNotificationSettings() {
+        try {
+            const settings = await api.getNotificationSettings();
+            document
+                .querySelectorAll<HTMLButtonElement>(".toggle-btn")
+                .forEach((btn) => {
+                    const key = btn.dataset
+                        .notificationKey as keyof NotificationSettings;
+                    if (!key) return;
+                    setToggleState(btn, Boolean(settings[key]));
+                });
+        } catch (e: any) {
+            const msg = document.getElementById("notification-msg")!;
+            msg.textContent =
+                e.message ?? "Failed to load notification settings.";
+            msg.className = "text-xs text-error";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    document
+        .querySelectorAll<HTMLButtonElement>(".toggle-btn")
+        .forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                const key = btn.dataset.notificationKey;
+                if (!key) return;
+                const next = btn.getAttribute("aria-pressed") !== "true";
+                btn.disabled = true;
+                try {
+                    const settings = await api.updateNotificationSettings({
+                        [key]: next,
+                    } as Partial<NotificationSettings>);
+                    setToggleState(btn, Boolean((settings as any)[key]));
+                    const msg = document.getElementById("notification-msg")!;
+                    msg.textContent = "Notification preferences saved.";
+                    msg.className = "text-xs text-secondary";
+                    msg.classList.remove("hidden");
+                } catch (e: any) {
+                    const msg = document.getElementById("notification-msg")!;
+                    msg.textContent =
+                        e.message ?? "Failed to save notification settings.";
+                    msg.className = "text-xs text-error";
+                    msg.classList.remove("hidden");
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
+    async function loadJiraIntegration() {
+        try {
+            const integration = await api.getJiraIntegration();
+            (document.getElementById("jira-base-url") as HTMLInputElement).value =
+                integration.base_url ?? "";
+            (document.getElementById("jira-user-email") as HTMLInputElement).value =
+                integration.user_email ?? "";
+            (document.getElementById("jira-project-key") as HTMLInputElement).value =
+                integration.project_key ?? "";
+            (document.getElementById("jira-issue-type") as HTMLInputElement).value =
+                integration.issue_type ?? "Task";
+            (document.getElementById("jira-labels") as HTMLInputElement).value =
+                (integration.labels ?? []).join(", ");
+            (document.getElementById("jira-enabled") as HTMLInputElement).checked =
+                integration.enabled;
+            document.getElementById("jira-token-state")!.textContent =
+                integration.has_token
+                    ? `Saved token: ${integration.token_masked ?? "configured"}`
+                    : "No token saved yet.";
+        } catch (e: any) {
+            const msg = document.getElementById("jira-msg")!;
+            msg.textContent = e.message ?? "Failed to load Jira integration.";
+            msg.className = "text-xs text-error";
+            msg.classList.remove("hidden");
+        }
+    }
+
+    document.getElementById("save-jira")!.addEventListener("click", async () => {
+        const btn = document.getElementById("save-jira") as HTMLButtonElement;
+        const msg = document.getElementById("jira-msg")!;
+        btn.disabled = true;
+        msg.classList.add("hidden");
+
+        try {
+            const tokenInput = (
+                document.getElementById("jira-api-token") as HTMLInputElement
+            ).value.trim();
+            const integration = await api.updateJiraIntegration({
+                base_url: (
+                    document.getElementById("jira-base-url") as HTMLInputElement
+                ).value.trim(),
+                user_email: (
+                    document.getElementById("jira-user-email") as HTMLInputElement
+                ).value.trim(),
+                project_key: (
+                    document.getElementById("jira-project-key") as HTMLInputElement
+                ).value.trim(),
+                issue_type:
+                    (
+                        document.getElementById("jira-issue-type") as HTMLInputElement
+                    ).value.trim() || "Task",
+                labels: (
+                    document.getElementById("jira-labels") as HTMLInputElement
+                )
+                    .value.split(",")
+                    .map((value) => value.trim())
+                    .filter(Boolean),
+                enabled: (
+                    document.getElementById("jira-enabled") as HTMLInputElement
+                ).checked,
+                ...(tokenInput ? { token: tokenInput } : {}),
+            });
+            (document.getElementById("jira-api-token") as HTMLInputElement).value =
+                "";
+            document.getElementById("jira-token-state")!.textContent =
+                integration.has_token
+                    ? `Saved token: ${integration.token_masked ?? "configured"}`
+                    : "No token saved yet.";
+            msg.textContent = "Jira integration saved.";
+            msg.className = "text-xs text-secondary";
+            msg.classList.remove("hidden");
+        } catch (e: any) {
+            msg.textContent = e.message ?? "Failed to save Jira integration.";
+            msg.className = "text-xs text-error";
+            msg.classList.remove("hidden");
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
     let allUsers: User[] = [];
 
@@ -1881,5 +2101,204 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 });
             },
         );
+    }
+
+    // ---------- Webhooks ----------
+    import type { Webhook } from "../../lib/api";
+
+    function webhookTypeMeta(type: Webhook["delivery_type"] | string) {
+        switch (type) {
+            case "slack":
+                return {
+                    label: "Slack",
+                    badge: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+                    help: "Slack mode sends a Slack-compatible payload with text and blocks.",
+                };
+            case "discord":
+                return {
+                    label: "Discord",
+                    badge: "text-indigo-300 bg-indigo-500/10 border-indigo-500/20",
+                    help: "Discord mode sends content plus embeds so the webhook can render a native Discord message.",
+                };
+            default:
+                return {
+                    label: "Generic JSON",
+                    badge: "text-sky-300 bg-sky-500/10 border-sky-500/20",
+                    help: "Generic mode posts the raw ASPM event envelope to your endpoint.",
+                };
+        }
+    }
+
+    function refreshWebhookDeliveryHelp() {
+        const deliveryType = (
+            document.getElementById("webhook-delivery-type") as HTMLSelectElement
+        ).value as Webhook["delivery_type"];
+        document.getElementById("webhook-delivery-help")!.textContent =
+            webhookTypeMeta(deliveryType).help;
+    }
+
+    document
+        .getElementById("webhook-delivery-type")!
+        .addEventListener("change", refreshWebhookDeliveryHelp);
+    refreshWebhookDeliveryHelp();
+
+    document
+        .getElementById("add-webhook-btn")!
+        .addEventListener("click", () => {
+            document.getElementById("webhook-form")!.classList.remove("hidden");
+        });
+    document.getElementById("cancel-webhook")!.addEventListener("click", () => {
+        document.getElementById("webhook-form")!.classList.add("hidden");
+    });
+    document
+        .getElementById("save-webhook")!
+        .addEventListener("click", async () => {
+            const label = (
+                document.getElementById("webhook-label") as HTMLInputElement
+            ).value.trim();
+            const url = (
+                document.getElementById("webhook-url") as HTMLInputElement
+            ).value.trim();
+            const deliveryType = (
+                document.getElementById("webhook-delivery-type") as HTMLSelectElement
+            ).value as Webhook["delivery_type"];
+
+            if (!label || !url) {
+                alert("Label and URL are required");
+                return;
+            }
+
+            try {
+                await api.createWebhook({
+                    label,
+                    url,
+                    delivery_type: deliveryType,
+                    events: ["finding.critical", "finding.high", "scan.completed", "scan.failed"],
+                });
+                document
+                    .getElementById("webhook-form")!
+                    .classList.add("hidden");
+                (
+                    document.getElementById("webhook-label") as HTMLInputElement
+                ).value = "";
+                (
+                    document.getElementById("webhook-url") as HTMLInputElement
+                ).value = "";
+                (
+                    document.getElementById("webhook-delivery-type") as HTMLSelectElement
+                ).value = "generic";
+                refreshWebhookDeliveryHelp();
+                await loadWebhooks();
+            } catch (e: any) {
+                alert("Failed to create webhook: " + e.message);
+            }
+        });
+
+    async function loadWebhooks() {
+        const el = document.getElementById("webhook-list");
+        if (!el) {
+            console.error("webhook-list element not found");
+            return;
+        }
+        let webhooks: Webhook[] = [];
+        try {
+            console.log("Loading webhooks...");
+            webhooks = await api.getWebhooks();
+            console.log("Loaded webhooks:", webhooks);
+        } catch (e: any) {
+            console.error("Failed to load webhooks:", e);
+            webhooks = [];
+        }
+
+        if (!webhooks.length) {
+            el.innerHTML =
+                '<p class="text-xs text-slate-500">No webhooks configured.</p>';
+            return;
+        }
+        el.innerHTML = webhooks
+            .map(
+                (w) => `
+      ${(() => {
+          const type = webhookTypeMeta(w.delivery_type);
+          return `
+      <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex items-center justify-between" data-webhook-id="${w.id}">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-sky-400 text-base">webhook</span>
+          </div>
+          <div class="min-w-0">
+            <p class="font-bold text-sm text-on-background">${w.label}</p>
+            <p class="text-[10px] text-slate-500 font-mono truncate">${w.url}</p>
+            <div class="flex flex-wrap gap-1.5 mt-1">
+              <span class="text-[10px] font-bold uppercase tracking-wider rounded border px-2 py-0.5 ${type.badge}">${type.label}</span>
+              ${w.events.map((e) => `<span class="text-[10px] font-mono bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-slate-300">${e}</span>`).join("")}
+              ${w.enabled ? `<span class="text-[10px] text-secondary font-bold">● enabled</span>` : `<span class="text-[10px] text-slate-500">○ disabled</span>`}
+              <span class="text-[10px] text-slate-500">${w.delivery_count} delivered${w.error_count > 0 ? ` · ${w.error_count} errors` : ""}</span>
+            </div>
+            <p class="mt-2 text-[11px] text-slate-500">${type.help}</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 ml-4 shrink-0">
+          <button class="test-webhook-btn text-slate-600 hover:text-sky-400 transition-colors text-xs font-bold" data-wid="${w.id}">
+            Test
+          </button>
+          <button class="toggle-webhook-btn relative w-10 h-5 rounded-full transition-all ${w.enabled ? "bg-sky-500" : "bg-slate-700"}" data-wid="${w.id}" aria-pressed="${w.enabled}">
+            <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${w.enabled ? "right-0.5" : "left-0.5"}"></span>
+          </button>
+          <button class="delete-webhook-btn text-slate-600 hover:text-error transition-colors" data-wid="${w.id}">
+            <span class="material-symbols-outlined text-sm">delete</span>
+          </button>
+        </div>
+      </div>
+    `;
+      })()}`,
+            )
+            .join("");
+
+        el.querySelectorAll<HTMLButtonElement>(".test-webhook-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    btn.disabled = true;
+                    btn.textContent = "Sending...";
+                    try {
+                        const result = await api.testWebhook(btn.dataset.wid!);
+                        alert("Test webhook queued successfully!");
+                    } catch (e: any) {
+                        alert("Failed to test webhook: " + e.message);
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = "Test";
+                    }
+                });
+            },
+        );
+        el.querySelectorAll<HTMLButtonElement>(".toggle-webhook-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    const enabled = btn.getAttribute("aria-pressed") !== "true";
+                    await api.updateWebhook(btn.dataset.wid!, { enabled });
+                    await loadWebhooks();
+                });
+            },
+        );
+        el.querySelectorAll<HTMLButtonElement>(".delete-webhook-btn").forEach(
+            (btn) => {
+                btn.addEventListener("click", async () => {
+                    if (!confirm("Delete this webhook?")) return;
+                    await api.deleteWebhook(btn.dataset.wid!);
+                    await loadWebhooks();
+                });
+            },
+        );
+    }
+
+    loadNotificationSettings();
+    loadJiraIntegration();
+
+    // Load webhooks after DOM is ready
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", loadWebhooks);
+    } else {
+        loadWebhooks();
     }
 </script>

@@ -1,4 +1,35 @@
-# ASPM Roadmap
+# Hen Kai Pan Roadmap
+
+## Current Commercialization Focus
+
+Target customer for the next stage:
+
+- Small engineering teams / SMBs that do not have a hard compliance mandate yet
+- Want fast security visibility without enterprise-heavy setup
+- Need a credible path toward future SOC 2 / ISO 27001 readiness
+- Care more about workflow simplicity, remediation speed, and executive visibility than deep enterprise governance on day 1
+
+Commercial model:
+
+- Primary offer: managed cloud SaaS with a monetizable plan structure
+- Secondary offer: self-hosted edition for teams that want data/control boundaries, simpler procurement, or internal deployment requirements
+- Product direction should preserve as much feature parity as possible between cloud and self-hosted, with clear packaging differences where needed
+
+Product implication:
+
+- Prioritize onboarding, repeatable scanning, remediation workflow, and lightweight reporting first
+- Delay enterprise-only requirements unless they directly unblock trust or early sales
+- Avoid hard-coupling core product value to cloud-only infrastructure unless there is a clear self-hosted fallback
+
+## Product Reset Decision (current direction)
+
+We can discard the current Apps / Repos / Scans structure and rebuild this area from zero.
+
+New target product model:
+
+- **App** = optional business grouping
+- **Project** = primary technical unit and primary thing the user creates, connects, scans, and reviews
+- **Standalone projects** are allowed (`project.app_id = NULL`)
 
 ## v0.1 — Core Platform ✅
 
@@ -13,7 +44,7 @@
 - [x] Scans page — scanner type badges, status dots, glow effects
 - [x] Scan detail page — execution log, severity summary cards, findings table + modal
 - [x] Findings page — severity/scanner filters, type badges
-- [x] Repos page — add repo, scan shortcut
+- [x] Repos page — add repo, scan shortcut (**legacy; superseded by Apps -> Projects reset direction**)
 - [x] Compliance page — SOC2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
 - [x] Settings page — General, Integrations, Notifications, Security tabs
 
@@ -40,13 +71,13 @@
 
 - [x] `migrations/004_indexes.sql` — perf indexes on created_at + severity/status
 - [x] `GET /api/metrics/trends?days=N` — findings over time grouped by day + severity
-- [x] `GET /api/metrics/risk` — risk score per repo (critical×100 + high×20 + medium×5 + low×1, open only)
+- [x] `GET /api/metrics/risk` — risk score per target (**legacy implementation used repo as the target**)
 - [x] `GET /api/metrics/sla-compliance` — on-time %, overdue count, total tracked
 - [x] `GET /api/findings/export` — CSV download with all lifecycle fields + auth via fetch+blob
 - [x] Reports page — SLA compliance %, overdue KPI, open/resolved counts
 - [x] Reports page — SVG line chart (findings trend, selectable 7/30/90/365d)
 - [x] Reports page — Status distribution bars
-- [x] Reports page — Risk score per repo horizontal bars
+- [x] Reports page — Risk score per target horizontal bars (**legacy implementation used repo**)
 - [x] Reports page — Export CSV with severity + status filters
 - [x] Add "Reports" nav item to `DashboardLayout.astro`
 - [ ] PDF report generation (browser print stylesheet)
@@ -87,10 +118,10 @@
 
 ## Vulnerability Inventory ✅ (fuera de versión — entregado ad-hoc)
 
-- [x] `GET /api/vulnerabilities` — agrupa findings por CVE/rule_id con conteos de repos/open/fixed
-- [x] `GET /api/vulnerabilities/:id/affected` — repos afectados por vuln específica con status + assignees + deadline
-- [x] `/dashboard/vulns` — tabla expandible por vuln, click → muestra todos los repos afectados
-- [x] Header KPIs: unique vulns, critical count, max repos hit
+- [x] `GET /api/vulnerabilities` — agrupa findings por CVE/rule_id con conteos de activos escaneados/open/fixed (**legacy implementation used repos**)
+- [x] `GET /api/vulnerabilities/:id/affected` — activos afectados por vuln específica con status + assignees + deadline (**legacy implementation used repos**)
+- [x] `/dashboard/vulns` — tabla expandible por vuln, click → muestra todos los activos afectados (**legacy implementation used repos**)
+- [x] Header KPIs: unique vulns, critical count, max affected targets (**legacy implementation used repos**)
 - [x] Filtros: severity, texto libre (CVE/rule/title), open only toggle
 - [x] CVE badge linkea a NVD, CWE badge linkea a MITRE
 - [x] Repo card: progress bar open/fixed, assignees, SLA deadline, worst status dot
@@ -113,11 +144,11 @@
 ## v0.6 — Notifications & Integrations
 
 - [ ] Slack webhook: notify on new critical/high finding, SLA breach
-- [ ] Email notifications (SMTP config)
-- [ ] Jira integration: create ticket from finding
 - [ ] GitHub integration: comment on PR with findings summary
-- [ ] Webhook system: `POST /api/webhooks` + event delivery with retries
-- [ ] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
+- [x] Webhook system: `POST /api/webhooks` + event delivery with retries
+- [x] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
+- [x] Jira integration: create ticket from finding
+- [ ] Email notifications (opcional)
 
 ---
 
@@ -132,17 +163,73 @@
 - [ ] Findings page — show credibility score and corroboration count badges
 - [ ] Add filters/sorting for credibility score
 - [ ] Add correlation details endpoint/UI for "which scanners corroborated this"
-- [ ] Stage 2: AI on-demand validation as a modifier on top of base credibility score
+
+## v0.7.a - AI on-demand validation as a modifier on top of base credibility score
 
 ---
 
-## Backlog / Nice-to-have
+## v0.8 — First Paying Customers (SMB-ready)
+
+- [ ] Onboarding wizard: first admin setup, first project creation, repo connection inside the project, first scan in <10 minutes
+- [ ] Demo workspace / seeded sample data so prospects can evaluate value without scanning their own code first
+- [ ] GitHub-first project onboarding flow (token or app-based), optimized for small teams
+- [ ] Scan scheduling (cron-based periodic scans per project)
+- [ ] Finding deduplication across scans (same rule_id + file_path + line = same finding)
+- [ ] Default scanner packs/templates by use case (web app, API, IaC, container)
+- [ ] Opinionated severity-based notification defaults so users get value without manual config
+- [ ] Weekly executive digest email/PDF: new criticals, overdue items, trend summary, top projects at risk
+- [ ] Finish launch-blocking work already identified in v0.3/v0.6/v0.7 (PDF reports, notifications, credibility UI)
+- [ ] Basic in-product onboarding content: empty states, remediation hints, "what to do next" guidance
+- [ ] Capture product analytics + feedback prompts to learn why early users convert or churn
+- [ ] Define packaging/limits for early plans (cloud vs self-hosted; projects, scans/month, users, AI credits, support tier)
+- [ ] Billing readiness for cloud plans (even if manual at first): usage visibility + Stripe-ready plan model
+
+### v0.8.a — Domain Reset: Apps -> Projects
+
+- [ ] Replace repo-as-asset with project-as-asset across schema, handlers, repository layer, worker inputs, and frontend API client
+- [ ] Define final `projects` schema with `app_id NULL`, repo connection fields (`repo_url`, `provider`, `default_branch`, optional external repo id), and lifecycle metadata
+- [ ] Make Apps optional grouping only: App 1:N Projects
+- [ ] Add global Projects view with filters for `all / with app / without app`
+- [ ] Add App detail/list view that creates and lists projects inside each app
+- [ ] Remove standalone Repos page and replace it with Projects as the primary operational surface
+- [ ] Rewire scans so they belong to `project_id` directly
+- [ ] Reword UI copy, empty states, metrics, and reports from "repo(s)" to "project(s)" wherever the user-facing concept is the scanned asset
+
+---
+
+## v0.9 — Compliance Readiness Path
+
+- [ ] Compliance starter mode: show "getting ready for SOC 2 / ISO 27001" instead of enterprise-heavy control management
+- [ ] Guided policy packs mapped to common early-stage controls (access control, secrets, vulnerability management, cloud hygiene)
+- [ ] Evidence-friendly exports: findings status, SLA handling, ownership, remediation history
+- [ ] Audit log (who changed what, when)
+- [ ] Risk acceptance / exception workflow with exportable rationale
+- [ ] Lightweight asset inventory view for projects, apps, scanners, owners, and last scan coverage
+- [ ] Compliance progress dashboard focused on readiness, not certification theater
+
+---
+
+## v1.0 — Self-Hosted Edition
+
+- [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why
+- [ ] Single-command/docker-compose install path for evaluation environments
+- [ ] Production deployment guide for self-hosted (secrets, persistence, backups, upgrades, TLS, reverse proxy)
+- [ ] Versioned release artifacts for self-hosted deployments
+- [ ] Environment/config model that works cleanly in both cloud and self-hosted modes
+- [ ] License key / entitlement model for paid self-hosted customers
+- [ ] In-product license status / instance info page
+- [ ] Upgrade path and release notes flow for self-hosted operators
+- [ ] Data export / import strategy to support migration between cloud and self-hosted when feasible
+- [ ] Minimal telemetry model for self-hosted (opt-in) so support and product learning do not depend on SaaS-only visibility
+- [ ] Operational docs: backups, restore, worker scaling, scanner runtime requirements, troubleshooting
+- [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
+
+---
+
+## Backlog / Later / Enterprise
 
 - [ ] SAML / OIDC SSO
-- [ ] Finding deduplication across scans (same rule_id + file_path + line = same finding)
-- [ ] Scan scheduling (cron-based periodic scans per repo)
 - [ ] SBOM generation and tracking
 - [ ] Container image scanning target type
 - [ ] DAST target type (URL-based nuclei scans)
 - [ ] Multi-tenant support (organizations)
-- [ ] Audit log (who changed what, when)

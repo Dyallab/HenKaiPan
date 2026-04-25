@@ -63,6 +63,7 @@ type Finding struct {
 	FilePath           string        `json:"file_path"`
 	LineStart          int           `json:"line_start"`
 	LineEnd            int           `json:"line_end"`
+	SnippetStartLine   int           `json:"snippet_start_line,omitempty"`
 	CodeSnippet        string        `json:"code_snippet,omitempty"`
 	CreatedAt          time.Time     `json:"created_at"`
 	Status             FindingStatus `json:"status"`
@@ -73,8 +74,11 @@ type Finding struct {
 	SLADeadline        *time.Time    `json:"sla_deadline,omitempty"`
 	CVEID              *string       `json:"cve_id,omitempty"`
 	CWEID              *string       `json:"cwe_id,omitempty"`
-	ConfidenceScore    float64       `json:"confidence_score"`
+	ConfidenceScore    *float64      `json:"confidence_score"`
 	CorroborationCount int           `json:"corroboration_count"`
+	AIAnalyzed         bool          `json:"ai_analyzed"`
+	AISummary          string        `json:"ai_summary,omitempty"`
+	SummaryState       string        `json:"summary_state,omitempty"`
 	Suppressed         bool          `json:"suppressed"`
 	RemediationSlug    *string       `json:"remediation_slug,omitempty"`
 }
@@ -203,7 +207,7 @@ type Team struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"created_at"`
-	Members   []User    `json:"members,omitempty"`
+	Members   []User    `json:"members"`
 }
 
 type Article struct {
