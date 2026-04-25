@@ -29,14 +29,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <!-- Filters -->
   <div class="flex flex-wrap gap-3 mb-5">
-    <select id="filter-severity" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
-      <option value="">All Severities</option>
-      <option value="critical">Critical</option>
-      <option value="high">High</option>
-      <option value="medium">Medium</option>
-      <option value="low">Low</option>
-      <option value="info">Info</option>
-    </select>
+    <fieldset class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2">
+      <legend class="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</legend>
+      <label class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 cursor-pointer">
+        <input type="checkbox" value="critical" data-severity-filter class="h-3.5 w-3.5 rounded border-red-500/40 bg-transparent text-red-400 focus:ring-0" />
+        Critical
+      </label>
+      <label class="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300 cursor-pointer">
+        <input type="checkbox" value="high" data-severity-filter class="h-3.5 w-3.5 rounded border-orange-500/40 bg-transparent text-orange-400 focus:ring-0" />
+        High
+      </label>
+      <label class="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 cursor-pointer">
+        <input type="checkbox" value="medium" data-severity-filter class="h-3.5 w-3.5 rounded border-amber-500/40 bg-transparent text-amber-400 focus:ring-0" />
+        Medium
+      </label>
+      <label class="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-300 cursor-pointer">
+        <input type="checkbox" value="low" data-severity-filter class="h-3.5 w-3.5 rounded border-sky-500/40 bg-transparent text-sky-400 focus:ring-0" />
+        Low
+      </label>
+      <label class="inline-flex items-center gap-2 rounded-full border border-slate-500/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-300 cursor-pointer">
+        <input type="checkbox" value="info" data-severity-filter class="h-3.5 w-3.5 rounded border-slate-500/40 bg-transparent text-slate-400 focus:ring-0" />
+        Info
+      </label>
+    </fieldset>
 
     <div class="relative flex-1 min-w-[220px]">
       <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
@@ -126,8 +141,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   const expandedRows = new Set<string>();
   const loadedAffected = new Map<string, AffectedRepo[]>();
 
+  function selectedSeverities() {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('[data-severity-filter]:checked')).map((input) => input.value);
+  }
+
   async function load() {
-    const severity = (document.getElementById('filter-severity') as HTMLSelectElement).value;
+    const severity = selectedSeverities();
     const q        = (document.getElementById('filter-q')        as HTMLInputElement).value.trim();
     const onlyOpen = (document.getElementById('filter-open')     as HTMLInputElement).checked;
 
@@ -337,7 +356,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     if ((e as KeyboardEvent).key === 'Enter') { currentPage = 1; load(); }
   });
   document.getElementById('clear-btn')!.addEventListener('click', () => {
-    (document.getElementById('filter-severity') as HTMLSelectElement).value = '';
+    document.querySelectorAll<HTMLInputElement>('[data-severity-filter]').forEach((input) => {
+      input.checked = false;
+    });
     (document.getElementById('filter-q')        as HTMLInputElement).value  = '';
     (document.getElementById('filter-open')     as HTMLInputElement).checked = true;
     currentPage = 1;

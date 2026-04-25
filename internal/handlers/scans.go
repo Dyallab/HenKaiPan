@@ -85,5 +85,8 @@ func (h *Handler) GetScanFindings(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to get findings")
 		return
 	}
+	for i := range findings {
+		h.normalizeFindingForDisplay(&findings[i])
+	}
 	writeJSON(w, http.StatusOK, findings)
 }

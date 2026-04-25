@@ -111,7 +111,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
         </div>
         <div id="modal-snippet-row" class="hidden">
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Code</p>
-          <pre id="modal-snippet" class="bg-surface-container-low border border-outline-variant/20 rounded-lg p-4 text-xs text-slate-300 overflow-auto whitespace-pre-wrap"></pre>
+          <div id="modal-snippet" class="bg-surface-container-low border border-outline-variant/20 rounded-lg overflow-auto"></div>
         </div>
 
         <!-- Lifecycle triage -->
@@ -220,8 +220,8 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
           ${findings.map((f, i) => `
             <tr class="hover:bg-slate-900/30 transition-colors cursor-pointer" data-idx="${i}">
               <td class="px-6 py-4">
-                <p class="font-bold text-on-background">${f.title}</p>
-                <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
+                <p class="font-bold text-on-background break-words">${f.title}</p>
+                <p class="text-xs text-slate-500 mt-0.5 whitespace-normal break-words">${f.description ?? ''}</p>
               </td>
               <td class="px-6 py-4">
                 <span class="text-[10px] font-bold capitalize px-2 py-1 rounded border ${SEV_STYLES[f.severity] ?? ''}">
@@ -258,7 +258,39 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
     return `<span class="text-xs text-slate-400">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
   }
 
-  function openModal(f: Finding) {
+  function escapeHTML(value: string) {
+	return value
+	  .replaceAll('&', '&amp;')
+	  .replaceAll('<', '&lt;')
+	  .replaceAll('>', '&gt;')
+	  .replaceAll('"', '&quot;')
+	  .replaceAll("'", '&#39;');
+  }
+
+  function renderSnippet(f: Finding) {
+	const snippetEl = document.getElementById('modal-snippet')!;
+	if (!f.code_snippet) {
+	  snippetEl.innerHTML = '';
+	  return;
+	}
+	const lines = f.code_snippet.replace(/\r\n/g, '\n').split('\n');
+	const startLine = f.snippet_start_line || f.line_start || 1;
+	const endLine = f.line_end > 0 ? f.line_end : f.line_start;
+	snippetEl.innerHTML = `
+	  <div class="text-[11px] font-mono text-slate-300 divide-y divide-outline-variant/10">
+	    ${lines.map((line, index) => {
+	      const lineNumber = startLine + index;
+	      const highlighted = lineNumber >= (f.line_start || startLine) && lineNumber <= (endLine || lineNumber);
+	      return `
+	        <div class="grid grid-cols-[56px_minmax(0,1fr)] ${highlighted ? 'bg-amber-500/10' : ''}">
+	          <span class="select-none px-3 py-1.5 text-right text-slate-500 border-r border-outline-variant/10 ${highlighted ? 'text-amber-300' : ''}">${lineNumber}</span>
+	          <code class="block px-3 py-1.5 whitespace-pre-wrap break-all ${highlighted ? 'text-amber-50' : ''}">${escapeHTML(line)}</code>
+	        </div>`;
+	    }).join('')}
+	  </div>`;
+  }
+
+  function fillModal(f: Finding) {
     currentModalFindingId = f.id;
 
     document.getElementById('modal-title')!.textContent = f.title;
@@ -295,12 +327,12 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
       f.file_path ? `${f.file_path}${f.line_start > 0 ? `:${f.line_start}` : ''}` : '—';
 
     const snippetRow = document.getElementById('modal-snippet-row')!;
-    const snippetEl  = document.getElementById('modal-snippet')!;
     if (f.code_snippet) {
-      snippetEl.textContent = f.code_snippet;
+      renderSnippet(f);
       snippetRow.classList.remove('hidden');
     } else {
       snippetRow.classList.add('hidden');
+      document.getElementById('modal-snippet')!.innerHTML = '';
     }
 
     // lifecycle fields
@@ -318,6 +350,16 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
     document.getElementById('modal-save-msg')!.textContent = '';
 
     document.getElementById('modal')!.classList.remove('hidden');
+  }
+
+  async function openModal(f: Finding) {
+	fillModal(f);
+	try {
+	  const fresh = await api.getFinding(f.id);
+	  fillModal(fresh);
+	} catch {
+	  // Keep the already-rendered row data if the detail refresh fails.
+	}
   }
 
   document.getElementById('modal-close')!.addEventListener('click', () => {

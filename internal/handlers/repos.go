@@ -3,6 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func (h *Handler) ListRepos(w http.ResponseWriter, r *http.Request) {
@@ -30,4 +32,12 @@ func (h *Handler) CreateRepo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, repo)
+}
+
+func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
+	if err := h.store.Repos.Delete(r.Context(), chi.URLParam(r, "id")); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to delete repo")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -1,23 +1,21 @@
 services:
   postgres:
     image: postgres:17-alpine
-    environment:
-      POSTGRES_DB: aspm
-      POSTGRES_USER: aspm
-      POSTGRES_PASSWORD: aspm
+    env_file: .env
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aspm"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aspm}"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:8-alpine
+    env_file: .env
     ports:
       - "6379:6379"
     healthcheck:
@@ -32,13 +30,7 @@ services:
       dockerfile: docker/api.Dockerfile
     ports:
       - "8080:8080"
-    environment:
-      DATABASE_URL: postgres://aspm:aspm@postgres:5432/aspm?sslmode=disable
-      REDIS_ADDR: redis:6379
-      JWT_SECRET: ${JWT_SECRET:-changeme-in-production}
-      ADMIN_USER: ${ADMIN_USER:-admin}
-      ADMIN_PASS: ${ADMIN_PASS:-admin}
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-sk...}
+    env_file: .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -49,11 +41,7 @@ services:
     build:
       context: .
       dockerfile: docker/worker.Dockerfile
-    environment:
-      JWT_SECRET: changeme-in-production
-      DATABASE_URL: postgres://aspm:aspm@postgres:5432/aspm?sslmode=disable
-      REDIS_ADDR: redis:6379
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-sk...}
+    env_file: .env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp:/tmp

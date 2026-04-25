@@ -42,3 +42,11 @@ func (r *repoRepo) Create(ctx context.Context, name, url string) (*models.Repo, 
 	}
 	return &repo, nil
 }
+
+func (r *repoRepo) Delete(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `DELETE FROM repos WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete repo: %w", err)
+	}
+	return nil
+}

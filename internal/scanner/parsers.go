@@ -33,6 +33,27 @@ func firstCVE(candidates ...string) string {
 	return ""
 }
 
+func normalizeFindingPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	if strings.Contains(path, "://") && !strings.HasPrefix(path, "file://") {
+		return path
+	}
+	path = strings.TrimPrefix(path, "file://")
+	if strings.HasPrefix(path, "/src/") {
+		path = strings.TrimPrefix(path, "/src")
+	}
+	if strings.HasPrefix(path, "src/") {
+		path = "/" + strings.TrimPrefix(path, "src/")
+	}
+	if path != "" && !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+	return path
+}
+
 // cvssToSeverity converts a CVSS numeric score string to severity label.
 func cvssToSeverity(score string) string {
 	v, err := strconv.ParseFloat(score, 64)
@@ -187,35 +208,32 @@ func ParseSARIF(data []byte) ([]FindingRow, error) {
 					row.Title = r.RuleID
 				}
 				// Description: fixed version hint + original message
-				if fixed != "" && fixed != "N/A" && fixed != "" {
+				if fixed != "" && fixed != "N/A" {
 					row.Description = fmt.Sprintf("Fixed in: %s\n%s", fixed, r.Message.Text)
 				} else {
 					row.Description = r.Message.Text
 				}
 			} else {
-				// SAST/IaC finding: message text is the finding description.
-				msg := r.Message.Text
-				if msg == "" {
-					msg = info.shortDesc
+				// SAST/IaC finding: prefer the rule short description as title and keep
+				// the scanner message as the full description.
+				msg := strings.TrimSpace(r.Message.Text)
+				title := strings.TrimSpace(info.shortDesc)
+				if title == "" {
+					title = r.RuleID
 				}
 				if msg == "" {
-					msg = r.RuleID
+					msg = strings.TrimSpace(info.fullDesc)
 				}
-				if len(msg) > 120 {
-					row.Title = msg[:120] + "…"
-					row.Description = msg
-				} else {
-					row.Title = msg
-					// Use fullDesc as description if available and different from title
-					if info.fullDesc != "" && info.fullDesc != msg {
-						row.Description = info.fullDesc
-					}
+				if msg == "" || msg == title {
+					msg = strings.TrimSpace(info.fullDesc)
 				}
+				row.Title = title
+				row.Description = msg
 			}
 
 			if len(r.Locations) > 0 {
 				loc := r.Locations[0].PhysicalLocation
-				row.FilePath = strings.TrimPrefix(loc.ArtifactLocation.URI, "file:///src/")
+				row.FilePath = normalizeFindingPath(loc.ArtifactLocation.URI)
 				row.LineStart = loc.Region.StartLine
 				row.LineEnd = loc.Region.EndLine
 				row.CodeSnippet = loc.Region.Snippet.Text
@@ -276,7 +294,7 @@ func ParseGrype(data []byte) ([]FindingRow, error) {
 	for _, m := range doc.Matches {
 		fp := ""
 		if len(m.Artifact.Locations) > 0 {
-			fp = m.Artifact.Locations[0].RealPath
+			fp = normalizeFindingPath(m.Artifact.Locations[0].RealPath)
 		}
 		title := m.Vulnerability.ID
 		if m.Artifact.Name != "" {
@@ -373,7 +391,7 @@ func ParseOSV(data []byte) ([]FindingRow, error) {
 					Title:       fmt.Sprintf("%s in %s@%s", v.ID, pkg.Package.Name, pkg.Package.Version),
 					Description: title,
 					Severity:    sev,
-					FilePath:    res.Source.Path,
+					FilePath:    normalizeFindingPath(res.Source.Path),
 					Raw:         raw,
 					CVEID:       cve,
 					CWEID:       cwe,
@@ -420,7 +438,7 @@ func ParseTrufflehog(data []byte) ([]FindingRow, error) {
 			Title:       fmt.Sprintf("%s secret detected", r.DetectorName),
 			Description: fmt.Sprintf("Verified: %v", r.Verified),
 			Severity:    sev,
-			FilePath:    r.SourceMetadata.Data.Git.File,
+			FilePath:    normalizeFindingPath(r.SourceMetadata.Data.Git.File),
 			LineStart:   r.SourceMetadata.Data.Git.Line,
 			Raw:         raw,
 		})
@@ -454,7 +472,7 @@ func ParseGitleaks(data []byte) ([]FindingRow, error) {
 			RuleID:    l.RuleID,
 			Title:     l.Description,
 			Severity:  "high",
-			FilePath:  l.File,
+			FilePath:  normalizeFindingPath(l.File),
 			LineStart: l.StartLine,
 			LineEnd:   l.EndLine,
 			Raw:       raw,
@@ -529,7 +547,7 @@ func ParseCheckov(data []byte) ([]FindingRow, error) {
 			RuleID:    c.CheckID,
 			Title:     title,
 			Severity:  normalizeCheckov(c.Severity),
-			FilePath:  c.FilePath,
+			FilePath:  normalizeFindingPath(c.FilePath),
 			LineStart: c.FileLineRange[0],
 			LineEnd:   c.FileLineRange[1],
 			Raw:       raw,
@@ -563,13 +581,26 @@ func ParseKICS(data []byte) ([]FindingRow, error) {
 		sev := strings.ToLower(q.Severity)
 		for _, f := range q.Files {
 			raw, _ := json.Marshal(q)
+			path := normalizeFindingPath(f.FileName)
+			description := strings.TrimSpace(q.QueryName)
+			if f.IssueType != "" && path != "" {
+				description = fmt.Sprintf("KICS reported %s in %s.", f.IssueType, path)
+			} else if f.IssueType != "" {
+				description = fmt.Sprintf("KICS reported %s.", f.IssueType)
+			} else if path != "" && description != "" {
+				description = fmt.Sprintf("%s in %s.", description, path)
+			}
+			if description == "" {
+				description = q.QueryID
+			}
 			rows = append(rows, FindingRow{
-				RuleID:    q.QueryID,
-				Title:     q.QueryName,
-				Severity:  sev,
-				FilePath:  f.FileName,
-				LineStart: f.Line,
-				Raw:       raw,
+				RuleID:      q.QueryID,
+				Title:       q.QueryName,
+				Description: description,
+				Severity:    sev,
+				FilePath:    path,
+				LineStart:   f.Line,
+				Raw:         raw,
 			})
 		}
 	}

@@ -25,7 +25,11 @@ func main() {
 	cfg := config.Load()
 
 	auth.SetSecret(cfg.JWTSecret)
-	ai.SetConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+	ai.Init(cfg)
+	ai.SetOpenRouterConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+	if cfg.CfAPIToken != "" {
+		ai.SetCloudflareConfig(cfg.CfAccountID, cfg.CfAPIToken)
+	}
 
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
@@ -52,7 +56,10 @@ func main() {
 		r.Get("/api/scans/{id}/findings", h.GetScanFindings)
 
 		r.Get("/api/findings", h.ListFindings)
+		r.Get("/api/findings/{id}", h.GetFinding)
 		r.Patch("/api/findings/{id}", h.UpdateFinding)
+		r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
+		r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
 		r.Get("/api/findings/sla", h.GetSLASummary)
 		r.Get("/api/findings/{id}/correlations", h.GetFindingCorrelations)
 		r.Get("/api/findings/{id}/analysis", h.GetFindingAnalysis)
@@ -60,6 +67,7 @@ func main() {
 
 		r.Get("/api/repos", h.ListRepos)
 		r.Post("/api/repos", h.CreateRepo)
+		r.With(auth.RequireRole("admin")).Delete("/api/repos/{id}", h.DeleteRepo)
 
 		r.Get("/api/metrics/summary", h.GetMetricsSummary)
 		r.Get("/api/metrics/trends", h.GetTrends)
@@ -113,10 +121,20 @@ func main() {
 		r.With(auth.RequireRole("admin")).Get("/api/suppressions", h.ListSuppressions)
 		r.With(auth.RequireRole("admin")).Post("/api/suppressions", h.CreateSuppression)
 		r.With(auth.RequireRole("admin")).Delete("/api/suppressions/{id}", h.DeleteSuppression)
+
+		r.With(auth.RequireRole("admin")).Get("/api/webhooks", h.ListWebhooks)
+		r.With(auth.RequireRole("admin")).Post("/api/webhooks", h.CreateWebhook)
+		r.With(auth.RequireRole("admin")).Patch("/api/webhooks/{id}", h.UpdateWebhook)
+		r.With(auth.RequireRole("admin")).Delete("/api/webhooks/{id}", h.DeleteWebhook)
+		r.With(auth.RequireRole("admin")).Post("/api/webhooks/{id}/test", h.TestWebhook)
+		r.With(auth.RequireRole("admin")).Get("/api/settings/notifications", h.GetNotificationSettings)
+		r.With(auth.RequireRole("admin")).Patch("/api/settings/notifications", h.UpdateNotificationSettings)
+		r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
+		r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
 	})
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:4321", "http://localhost:3000"},
+		AllowedOrigins:   []string{"http://localhost:4321", "http://localhost:4322", "http://localhost:3000"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
