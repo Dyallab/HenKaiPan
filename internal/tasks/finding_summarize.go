@@ -4,14 +4,14 @@ import (
 	"context"
 	"log/slog"
 
-	"aspm/internal/agents"
+	"aspm/internal/findings"
 
 	"github.com/hibiken/asynq"
 )
 
-func HandleAgentSummarize(summarizer *agents.SummaryAgent) asynq.HandlerFunc {
+func HandleFindingSummarize(summaryAgent *findings.SummaryAgent) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
-		p, err := UnmarshalAgentSummarizePayload(t.Payload())
+		p, err := UnmarshalFindingSummarizePayload(t.Payload())
 		if err != nil {
 			return err
 		}
@@ -19,7 +19,7 @@ func HandleAgentSummarize(summarizer *agents.SummaryAgent) asynq.HandlerFunc {
 		log := slog.With("finding_id", p.FindingID)
 		log.Info("agent:summarize started")
 
-		summary, err := summarizer.Summarize(ctx, p.FindingID)
+		summary, err := summaryAgent.Summarize(ctx, p.FindingID)
 		if err != nil {
 			log.Error("agent:summarize failed", "err", err)
 			return err

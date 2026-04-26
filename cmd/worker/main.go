@@ -6,10 +6,10 @@ import (
 	"os"
 	"time"
 
-	"aspm/internal/agents"
 	"aspm/internal/ai"
 	"aspm/internal/config"
 	"aspm/internal/db"
+	"aspm/internal/findings"
 	"aspm/internal/logger"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
@@ -47,16 +47,16 @@ func main() {
 
 	// Register AI agent handlers if configured
 	if cfg.ValidationConfig.IsConfigured {
-		validator := agents.NewValidator(store.Agents, store.Findings)
-		mux.HandleFunc(tasks.TypeAgentValidate, tasks.HandleAgentValidate(validator))
+		validator := findings.NewValidationAgent(store.Agents, store.Findings)
+		mux.HandleFunc(tasks.TypeFindingValidate, tasks.HandleFindingValidate(validator))
 		slog.Info("agent:validate handler registered", "provider", cfg.ValidationConfig.Name, "model", cfg.ValidationConfig.Model)
 	} else {
 		slog.Warn("AI validation not configured — agent:validate handler will not be registered")
 	}
 
 	if cfg.SummaryConfig.IsConfigured {
-		summaryAgent := agents.NewSummarizer(store.Findings, cfg.SummaryConfig.Model)
-		mux.HandleFunc(tasks.TypeAgentSummarize, tasks.HandleAgentSummarize(summaryAgent))
+		summaryAgent := findings.NewSummaryAgent(store.Findings, cfg.SummaryConfig.Model)
+		mux.HandleFunc(tasks.TypeFindingSummarize, tasks.HandleFindingSummarize(summaryAgent))
 		slog.Info("agent:summarize handler registered", "provider", cfg.SummaryConfig.Name, "model", cfg.SummaryConfig.Model)
 	} else {
 		slog.Warn("AI summary not configured — agent:summarize handler will not be registered")

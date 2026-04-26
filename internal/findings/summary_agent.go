@@ -1,4 +1,4 @@
-package agents
+package findings
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"aspm/internal/ai"
+	"aspm/internal/findings/summarymeta"
 	"aspm/internal/repository"
-	"aspm/internal/summarizer"
 )
 
 type SummaryAgent struct {
@@ -15,7 +15,7 @@ type SummaryAgent struct {
 	model    string
 }
 
-func NewSummarizer(findingRepo repository.FindingRepository, model string) *SummaryAgent {
+func NewSummaryAgent(findingRepo repository.FindingRepository, model string) *SummaryAgent {
 	return &SummaryAgent{findings: findingRepo, model: model}
 }
 
@@ -57,7 +57,7 @@ func (s *SummaryAgent) Summarize(ctx context.Context, findingID string) (string,
 		return "", nil
 	}
 
-	meta := summarizer.BuildMetadata(source.Scanner, source.RuleID, source.Title, source.Raw)
+	meta := summarymeta.Build(source.Scanner, source.RuleID, source.Title, source.Raw)
 	prompt := buildSummaryPrompt(source, meta)
 	text, err := ai.GenerateTextWithModel(ctx, summarySystemPrompt, prompt, 220, s.model)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *SummaryAgent) Summarize(ctx context.Context, findingID string) (string,
 	return summary, nil
 }
 
-func buildSummaryPrompt(source *repository.FindingSummarySource, meta summarizer.Metadata) string {
+func buildSummaryPrompt(source *repository.FindingSummarySource, meta summarymeta.Metadata) string {
 	var b strings.Builder
 	b.WriteString("Generate a reusable summary for this finding signature.\n\n")
 	fmt.Fprintf(&b, "- Scanner: %s\n", source.Scanner)

@@ -30,7 +30,7 @@ func (h *Handler) GetFindingCorrelations(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// GetFindingAnalysis returns stored agent analysis for a finding.
+// GetFindingAnalysis returns stored validation analysis for a finding.
 func (h *Handler) GetFindingAnalysis(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	analysis, err := h.store.Agents.GetAnalysis(r.Context(), id, "validator")
@@ -41,7 +41,7 @@ func (h *Handler) GetFindingAnalysis(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, analysis)
 }
 
-// AnalyzeFinding enqueues an agent:validate task for the finding.
+// AnalyzeFinding enqueues validation analysis for the finding.
 func (h *Handler) AnalyzeFinding(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -51,13 +51,13 @@ func (h *Handler) AnalyzeFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payload, err := tasks.MarshalAgentValidatePayload(tasks.AgentValidatePayload{FindingID: id})
+	payload, err := tasks.MarshalFindingValidatePayload(tasks.FindingValidatePayload{FindingID: id})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "internal error")
 		return
 	}
 
-	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeAgentValidate, payload)); err != nil {
+	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeFindingValidate, payload)); err != nil {
 		slog.Error("enqueue agent:validate", "finding_id", id, "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to enqueue analysis")
 		return

@@ -162,20 +162,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
   }
 
-  function confidenceMeta(score: number | null | undefined) {
-    if (score == null) {
-      return { label: 'Not scored', pill: 'text-slate-400 bg-slate-500/5 border-slate-500/20', tone: 'text-slate-500', value: '—' };
-    }
-    if (score >= 0.85) {
-      return { label: 'High confidence', pill: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20', tone: 'text-emerald-300', value: score.toFixed(2) };
-    }
-    if (score >= 0.65) {
-      return { label: 'Corroborated', pill: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/20', tone: 'text-cyan-300', value: score.toFixed(2) };
-    }
-    return { label: 'Low confidence', pill: 'text-amber-300 bg-amber-500/10 border-amber-500/20', tone: 'text-amber-300', value: score.toFixed(2) };
-  }
-
-  function slaDisplay(f: Finding): string {
+	function slaDisplay(f: Finding): string {
     if (!f.sla_deadline) return '<span class="text-xs text-slate-500">No SLA</span>';
     const resolved = f.status === 'fixed' || f.status === 'verified' || f.status === 'accepted_risk';
     if (resolved) {
@@ -256,8 +243,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <thead>
           <tr class="bg-slate-950/50 border-b border-slate-800">
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Credibility</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
+			<th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Scanner</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">SLA</th>
@@ -269,9 +255,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           ${findings.map((f) => {
             const sev = SEV_STYLES[f.severity] ?? SEV_STYLES.info;
             const stat = STATUS_STYLES[f.status] ?? STATUS_STYLES.open;
-            const confidence = confidenceMeta(f.confidence_score);
-            const scanner = scannerType(f.scanner);
-            return `
+			const scanner = scannerType(f.scanner);
+			return `
               <tr class="group hover:bg-slate-900/30 transition-colors ${f.false_positive ? 'opacity-50' : ''}">
                 <td class="px-6 py-4">
                   <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block">
@@ -284,13 +269,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                      </div>
                    </a>
                  </td>
-                <td class="px-6 py-4 hidden lg:table-cell">
-                  <div class="flex flex-col gap-1">
-                    <span class="inline-flex w-fit px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${confidence.pill}">${confidence.label}</span>
-                     <span class="font-mono text-xs ${confidence.tone}">${confidence.value}</span>
-                  </div>
-                </td>
-                <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span></td>
+				 <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span></td>
                 <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded tracking-wider border ${stat}">${STATUS_LABELS[f.status] ?? f.status}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell"><span class="font-mono text-xs text-slate-400">${f.scanner}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell">${slaDisplay(f)}</td>

@@ -1,4 +1,4 @@
-package summarizer
+package summarymeta
 
 import (
 	"crypto/sha256"
@@ -13,13 +13,13 @@ type Metadata struct {
 	RawExcerpt  string
 }
 
-func BuildMetadata(scanner, ruleID, title string, raw []byte) Metadata {
+func Build(scanner, ruleID, title string, raw []byte) Metadata {
 	issueType := extractIssueType(scanner, raw)
 	parts := []string{
-		normalize(scanner),
-		normalize(ruleID),
-		normalize(title),
-		normalize(issueType),
+		normalizeField(scanner),
+		normalizeField(ruleID),
+		normalizeField(title),
+		normalizeField(issueType),
 	}
 	hash := sha256.Sum256([]byte(strings.Join(parts, "\n")))
 
@@ -35,7 +35,7 @@ func BuildMetadata(scanner, ruleID, title string, raw []byte) Metadata {
 	}
 }
 
-func normalize(value string) string {
+func normalizeField(value string) string {
 	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(value)), " "))
 }
 

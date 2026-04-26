@@ -244,13 +244,6 @@ func buildJiraFindingDescription(finding *models.Finding, henKaiPanURL string) s
 	if finding.SLADeadline != nil {
 		parts = append(parts, "SLA deadline: "+finding.SLADeadline.UTC().Format(time.RFC3339))
 	}
-	if finding.ConfidenceScore != nil {
-		parts = append(parts, fmt.Sprintf("Confidence score: %.2f", *finding.ConfidenceScore))
-	}
-	if finding.CorroborationCount > 0 {
-		parts = append(parts, fmt.Sprintf("Corroboration count: %d", finding.CorroborationCount))
-	}
-
 	if finding.FilePath != "" {
 		location := finding.FilePath
 		if finding.LineStart > 0 {

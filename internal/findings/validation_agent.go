@@ -1,4 +1,4 @@
-package agents
+package findings
 
 import (
 	"context"
@@ -13,23 +13,23 @@ import (
 	"aspm/internal/repository"
 )
 
-type ValidatorAgent struct {
+type ValidationAgent struct {
 	agents   repository.AgentRepository
 	findings repository.FindingRepository
 }
 
-func NewValidator(agentRepo repository.AgentRepository, findingRepo repository.FindingRepository) *ValidatorAgent {
-	return &ValidatorAgent{agents: agentRepo, findings: findingRepo}
+func NewValidationAgent(agentRepo repository.AgentRepository, findingRepo repository.FindingRepository) *ValidationAgent {
+	return &ValidationAgent{agents: agentRepo, findings: findingRepo}
 }
 
-type analysisResult struct {
+type validationResult struct {
 	Confidence    float64  `json:"confidence"`
 	FPLikelihood  string   `json:"fp_likelihood"`
 	Reasoning     string   `json:"reasoning"`
 	CorrelatedIDs []string `json:"correlated_finding_ids"`
 }
 
-const systemPrompt = `You are an application security analyst specializing in reducing false positives from SAST/SCA/secret detection scanners.
+const validationSystemPrompt = `You are an application security analyst specializing in reducing false positives from SAST/SCA/secret detection scanners.
 
 Analyze the provided finding and determine whether it is a real vulnerability or a false positive.
 
@@ -60,7 +60,7 @@ Rules:
 - reasoning must be concise (1-3 sentences)
 - correlated_finding_ids must only include IDs from the provided correlated findings list`
 
-func (v *ValidatorAgent) Analyze(ctx context.Context, findingID string) (*models.AgentAnalysis, error) {
+func (v *ValidationAgent) Analyze(ctx context.Context, findingID string) (*models.AgentAnalysis, error) {
 	finding, err := v.findings.GetByID(ctx, findingID)
 	if err != nil {
 		return nil, fmt.Errorf("get finding: %w", err)
@@ -71,13 +71,13 @@ func (v *ValidatorAgent) Analyze(ctx context.Context, findingID string) (*models
 		return nil, fmt.Errorf("get correlations: %w", err)
 	}
 
-	prompt := buildPrompt(finding, correlated)
+	prompt := buildValidationPrompt(finding, correlated)
 
-	result, err := ai.GenerateValidationJSON[analysisResult](ctx, systemPrompt, prompt)
+	result, err := ai.GenerateValidationJSON[validationResult](ctx, validationSystemPrompt, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("ai validation: %w", err)
 	}
-	if err := validateAnalysisResult(result, correlated); err != nil {
+	if err := validateValidationResult(result, correlated); err != nil {
 		return nil, fmt.Errorf("validate response: %w", err)
 	}
 
@@ -107,7 +107,7 @@ func (v *ValidatorAgent) Analyze(ctx context.Context, findingID string) (*models
 	return analysis, nil
 }
 
-func validateAnalysisResult(result *analysisResult, correlated []models.Finding) error {
+func validateValidationResult(result *validationResult, correlated []models.Finding) error {
 	if result == nil {
 		return errors.New("missing analysis result")
 	}
@@ -136,7 +136,7 @@ func validateAnalysisResult(result *analysisResult, correlated []models.Finding)
 	return nil
 }
 
-func buildPrompt(f *models.Finding, correlated []models.Finding) string {
+func buildValidationPrompt(f *models.Finding, correlated []models.Finding) string {
 	var b strings.Builder
 
 	fmt.Fprintf(&b, "## Finding to analyze\n\n")
