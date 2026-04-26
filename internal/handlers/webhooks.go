@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -37,6 +40,10 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "url required")
 		return
 	}
+	if err := validateWebhookURL(body.URL); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	body.DeliveryType = normalizeWebhookDeliveryType(body.DeliveryType)
 	if body.DeliveryType == "" {
 		writeError(w, http.StatusBadRequest, "invalid delivery_type")
@@ -67,6 +74,12 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		body.DeliveryType = &normalized
 	}
+	if body.URL != nil {
+		if err := validateWebhookURL(*body.URL); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
 
 	webhook, err := h.store.Webhooks.Update(r.Context(), id, body)
 	if err != nil {
@@ -74,6 +87,31 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, webhook)
+}
+
+func validateWebhookURL(raw string) error {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("webhook url must be absolute")
+	}
+	if parsed.Scheme != "https" && parsed.Scheme != "http" {
+		return fmt.Errorf("webhook url must use http or https")
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("webhook url must not contain credentials")
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return fmt.Errorf("webhook url must not target localhost")
+	}
+	if ip := net.ParseIP(host); ip != nil && !isPublicWebhookIP(ip) {
+		return fmt.Errorf("webhook url must target a public address")
+	}
+	return nil
+}
+
+func isPublicWebhookIP(ip net.IP) bool {
+	return !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified())
 }
 
 func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +125,7 @@ func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	
+
 	webhook, err := h.store.Webhooks.GetByID(r.Context(), id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "webhook not found")

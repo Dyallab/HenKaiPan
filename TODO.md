@@ -143,12 +143,13 @@ New target product model:
 
 ## v0.6 — Notifications & Integrations
 
-- [ ] Slack webhook: notify on new critical/high finding, SLA breach
-- [ ] GitHub integration: comment on PR with findings summary
+- [x] Slack webhook: notify on new critical/high finding, SLA breach
+- [x] GitHub App integration: install app per org/repo, receive PR/webhook context, map scans to PRs, comment on PR with findings summary
 - [x] Webhook system: `POST /api/webhooks` + event delivery with retries
 - [x] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
 - [x] Jira integration: create ticket from finding
-- [ ] Email notifications (opcional)
+- [ ] Email notifications: provider-backed delivery (SES/SendGrid/Postmark/Mailgun), SMTP only as dev/fallback
+- [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
 
 ---
 

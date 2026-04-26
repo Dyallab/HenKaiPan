@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"aspm/internal/jira"
 	"aspm/internal/models"
@@ -31,6 +32,7 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		AlertHigh         *bool `json:"alert_high"`
 		AlertScanComplete *bool `json:"alert_scan_complete"`
 		AlertScanFailed   *bool `json:"alert_scan_failed"`
+		AlertSLABreach    *bool `json:"alert_sla_breach"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid body")
@@ -41,6 +43,7 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		AlertHigh:         body.AlertHigh,
 		AlertScanComplete: body.AlertScanComplete,
 		AlertScanFailed:   body.AlertScanFailed,
+		AlertSLABreach:    body.AlertSLABreach,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update notification settings")
@@ -180,7 +183,7 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 
 	client := jira.NewClient(validatedBaseURL, creds.UserEmail, creds.Token)
 	summary := fmt.Sprintf("[%s] %s", strings.ToUpper(finding.Severity), finding.Title)
-	description := buildJiraFindingDescription(finding)
+	description := buildJiraFindingDescription(finding, buildHenKaiPanFindingURL(h.frontendURL, finding.ID))
 	resp, err := client.CreateIssue(r.Context(), jira.CreateIssueRequest{
 		ProjectKey:  creds.ProjectKey,
 		IssueType:   creds.IssueType,
@@ -209,21 +212,54 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 	}
 	writeJSON(w, http.StatusCreated, link)
 }
-func buildJiraFindingDescription(finding *models.Finding) string {
+func buildJiraFindingDescription(finding *models.Finding, henKaiPanURL string) string {
 	var parts []string
 	parts = append(parts,
+		"HenKaiPan finding details",
+	)
+	if henKaiPanURL != "" {
+		parts = append(parts, henKaiPanURL)
+	} else {
+		parts = append(parts, "Finding URL unavailable. Configure FRONTEND_BASE_URL to enable backlinks.")
+	}
+
+	parts = append(parts,
+		"",
+		"Overview",
 		"Finding ID: "+finding.ID,
+		"Scan ID: "+finding.ScanID,
 		"Severity: "+string(finding.Severity),
 		"Scanner: "+finding.Scanner,
 		"Rule ID: "+finding.RuleID,
 		"Status: "+string(finding.Status),
+		"Created at: "+finding.CreatedAt.UTC().Format(time.RFC3339),
 	)
+	if finding.AssignedTo != nil && strings.TrimSpace(*finding.AssignedTo) != "" {
+		parts = append(parts, "Assigned to: "+strings.TrimSpace(*finding.AssignedTo))
+	}
+	parts = append(parts,
+		fmt.Sprintf("False positive: %t", finding.FalsePositive),
+		fmt.Sprintf("Suppressed: %t", finding.Suppressed),
+	)
+	if finding.SLADeadline != nil {
+		parts = append(parts, "SLA deadline: "+finding.SLADeadline.UTC().Format(time.RFC3339))
+	}
+	if finding.ConfidenceScore != nil {
+		parts = append(parts, fmt.Sprintf("Confidence score: %.2f", *finding.ConfidenceScore))
+	}
+	if finding.CorroborationCount > 0 {
+		parts = append(parts, fmt.Sprintf("Corroboration count: %d", finding.CorroborationCount))
+	}
+
 	if finding.FilePath != "" {
 		location := finding.FilePath
 		if finding.LineStart > 0 {
 			location = fmt.Sprintf("%s:%d", finding.FilePath, finding.LineStart)
+			if finding.LineEnd > finding.LineStart {
+				location = fmt.Sprintf("%s-%d", location, finding.LineEnd)
+			}
 		}
-		parts = append(parts, "Location: "+location)
+		parts = append(parts, "", "Location", location)
 	}
 	if finding.CVEID != nil && strings.TrimSpace(*finding.CVEID) != "" {
 		parts = append(parts, "CVE: "+*finding.CVEID)
@@ -232,13 +268,34 @@ func buildJiraFindingDescription(finding *models.Finding) string {
 		parts = append(parts, "CWE: "+*finding.CWEID)
 	}
 	parts = append(parts, "", "Title: "+finding.Title)
-	if strings.TrimSpace(finding.Description) != "" {
-		parts = append(parts, "", "Description:", finding.Description)
-	}
-	if finding.Notes != nil && strings.TrimSpace(*finding.Notes) != "" {
-		parts = append(parts, "", "Triage notes:", *finding.Notes)
-	}
 	return strings.Join(parts, "\n")
+}
+
+func buildHenKaiPanFindingURL(frontendBaseURL, findingID string) string {
+	frontendBaseURL = strings.TrimSpace(frontendBaseURL)
+	if frontendBaseURL == "" || strings.TrimSpace(findingID) == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(frontendBaseURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return ""
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ""
+	}
+	if parsed.User != nil {
+		return ""
+	}
+
+	basePath := strings.TrimRight(parsed.Path, "/")
+	parsed.Path = basePath + "/dashboard/findings/detail"
+	parsed.RawPath = ""
+	query := parsed.Query()
+	query.Set("id", findingID)
+	parsed.RawQuery = query.Encode()
+	parsed.Fragment = ""
+	return parsed.String()
 }
 
 func validateJiraCloudBaseURL(raw string) (string, error) {

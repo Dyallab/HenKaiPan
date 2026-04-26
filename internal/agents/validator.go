@@ -33,6 +33,18 @@ const systemPrompt = `You are an application security analyst specializing in re
 
 Analyze the provided finding and determine whether it is a real vulnerability or a false positive.
 
+Scanner claims are often incorrect. Apply skepticism:
+- MissingAttribute/AttributeNotFound findings are HIGHLY LIKELY FALSE POSITIVES - the scanner may have misparsed the file or missed the attribute
+- "Hardcoded secret" findings on values that look like fake/test data = likely FP
+- Findings on test files, mock data, commented code = likely FP
+- Reachable/exploitable analysis: is the vulnerable code actually reachable in runtime?
+
+For "MissingAttribute" findings specifically:
+- The attribute is often present - scanner misparses YAML/HCL structures
+- Consider if the CodeSnippet shows the attribute exists but scanner missed it
+- Consider if the file was updated after scan
+- Default to "medium" or "high" FP likelihood unless you have CONFIRMED the attribute is missing
+
 Consider:
 - Scanner confidence signals (rule ID, description quality)
 - Code snippet context (is the vulnerability actually reachable/exploitable?)
@@ -61,9 +73,9 @@ func (v *ValidatorAgent) Analyze(ctx context.Context, findingID string) (*models
 
 	prompt := buildPrompt(finding, correlated)
 
-	result, err := ai.GenerateJSON[analysisResult](ctx, systemPrompt, prompt, 1024)
+	result, err := ai.GenerateValidationJSON[analysisResult](ctx, systemPrompt, prompt)
 	if err != nil {
-		return nil, fmt.Errorf("openrouter validation: %w", err)
+		return nil, fmt.Errorf("ai validation: %w", err)
 	}
 	if err := validateAnalysisResult(result, correlated); err != nil {
 		return nil, fmt.Errorf("validate response: %w", err)
@@ -143,7 +155,11 @@ func buildPrompt(f *models.Finding, correlated []models.Finding) string {
 	fmt.Fprintf(&b, "\n**Description:** %s\n", f.Description)
 
 	if f.CodeSnippet != "" {
-		fmt.Fprintf(&b, "\n**Code snippet:**\n```\n%s\n```\n", f.CodeSnippet)
+		label := "Code snippet"
+		if len(f.CodeSnippet) > 1024 {
+			label = "Full file content"
+		}
+		fmt.Fprintf(&b, "\n**%s:**\n```\n%s\n```\n", label, f.CodeSnippet)
 	}
 
 	if len(correlated) > 0 {

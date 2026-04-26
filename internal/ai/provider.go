@@ -2,6 +2,8 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 
 	"aspm/internal/config"
@@ -13,6 +15,8 @@ var cfg *config.Config
 // Must be called at startup.
 func Init(c *config.Config) {
 	cfg = c
+	SetOpenRouterConfig(c.OpenRouterAPIKey, c.OpenRouterModel)
+	SetCloudflareConfig(c.CfAccountID, c.CfAPIToken)
 }
 
 // GenerateRemediation generates remediation guidance for a security finding.
@@ -73,6 +77,55 @@ func GenerateValidation(ctx context.Context, systemPrompt, userPrompt string) (s
 		userPrompt,
 		2048,
 	)
+}
+
+// GenerateValidationJSON generates and parses a structured validation response
+// using the provider and model specified by AI_VALIDATION_PROVIDER env var.
+func GenerateValidationJSON[T any](ctx context.Context, systemPrompt, userPrompt string) (*T, error) {
+	content, err := GenerateValidation(ctx, systemPrompt+"\n\nReturn a single JSON object only. Do not use markdown fences.", userPrompt)
+	if err != nil {
+		return nil, err
+	}
+
+	cleaned := strings.TrimSpace(content)
+	var target T
+	if err := json.Unmarshal([]byte(cleaned), &target); err == nil {
+		return &target, nil
+	}
+
+	jsonObject, err := extractJSONObject(cleaned)
+	if err != nil {
+		return nil, fmt.Errorf("parse structured validation response: %w", err)
+	}
+	if err := json.Unmarshal([]byte(jsonObject), &target); err != nil {
+		repaired := repairInvalidJSONEscapes(jsonObject)
+		if repairErr := json.Unmarshal([]byte(repaired), &target); repairErr != nil {
+			return nil, fmt.Errorf("unmarshal structured validation response: %w", err)
+		}
+	}
+	return &target, nil
+}
+
+func repairInvalidJSONEscapes(content string) string {
+	var b strings.Builder
+	b.Grow(len(content))
+
+	for i := 0; i < len(content); i++ {
+		if content[i] != '\\' || i+1 >= len(content) {
+			b.WriteByte(content[i])
+			continue
+		}
+
+		next := content[i+1]
+		switch next {
+		case '"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u':
+			b.WriteByte(content[i])
+		default:
+			continue
+		}
+	}
+
+	return b.String()
 }
 
 // GenerateTextWithModel generates text using a specific model identifier.

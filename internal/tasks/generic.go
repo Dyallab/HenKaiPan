@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/ai"
+	"aspm/internal/config"
 	"aspm/internal/repository"
 	"aspm/internal/scanner"
 
@@ -19,6 +21,26 @@ import (
 
 const maxLogBytes = 100 * 1024 // 100 KB per stream
 
+type NotificationConfig struct {
+	FrontendURL string
+	Email       EmailConfig
+}
+
+func NewNotificationConfig(cfg *config.Config) NotificationConfig {
+	return NotificationConfig{
+		FrontendURL: cfg.FrontendURL,
+		Email: EmailConfig{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			Username: cfg.SMTPUsername,
+			Password: cfg.SMTPPassword,
+			From:     cfg.SMTPFrom,
+			To:       cfg.EmailTo,
+			Enabled:  cfg.EmailEnabled,
+		},
+	}
+}
+
 type runResult struct {
 	stdout []byte
 	log    string
@@ -26,7 +48,7 @@ type runResult struct {
 }
 
 // HandleScan is the single asynq handler for all scanners.
-func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, queue *asynq.Client) asynq.HandlerFunc {
+func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		p, err := UnmarshalPayload(t.Payload())
 		if err != nil {
@@ -53,7 +75,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			dir, cloneLog, err := cloneRepo(ctx, p.Target, p.ScanID)
 			if err != nil {
 				scans.MarkFailed(ctx, p.ScanID, err.Error(), cloneLog)
-				enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.failed", err.Error(), time.Now())
+				enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.failed", err.Error(), time.Now())
 				log.Error("clone failed", "err", err)
 				return err
 			}
@@ -66,7 +88,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		if result.err != nil && len(result.stdout) == 0 {
 			scans.MarkFailed(ctx, p.ScanID, result.err.Error(), result.log)
-			enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.failed", result.err.Error(), time.Now())
+			enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.failed", result.err.Error(), time.Now())
 			log.Error("docker run failed", "err", result.err)
 			return fmt.Errorf("%s docker run: %w", sc.Name, result.err)
 		}
@@ -78,6 +100,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		now := time.Now()
 		inserted := 0
+		summary := newScanFindingSummary(p.Target)
 		for _, f := range parsed {
 			sla := slaDeadlineFor(normalizeSeverity(f.Severity), now)
 			var cveID, cweID *string
@@ -112,11 +135,12 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				enqueueFindingSummary(ctx, findings, queue, findingID)
 			}
 			if !suppressed {
+				summary.Add(norm, f.Title, f.RuleID, f.FilePath, f.LineStart, sc.Name)
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)
 				enqueueAgentValidate(ctx, queue, findingID)
 			}
-			
-			enqueueFindingNotification(ctx, settings, webhooks, queue, FindingCreatedPayload{
+
+			enqueueFindingNotification(ctx, settings, webhooks, queue, notifications, FindingCreatedPayload{
 				FindingID:   findingID,
 				Repository:  p.Target,
 				Severity:    norm,
@@ -140,7 +164,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 		if err := scans.MarkCompleted(ctx, p.ScanID, result.log, exitErrStr); err != nil {
 			return err
 		}
-		enqueueScanNotification(ctx, scans, settings, webhooks, queue, p.ScanID, "scan.completed", derefErr(exitErrStr), time.Now())
+		enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.completed", derefErr(exitErrStr), time.Now())
 		return nil
 	}
 }
@@ -319,37 +343,52 @@ type FindingCreatedPayload struct {
 	Scanner     string    `json:"scanner"`
 	Description string    `json:"description,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
+	AISummary   string    `json:"ai_summary,omitempty"`
 }
 
 type ScanNotificationPayload struct {
-	ScanID        string    `json:"scan_id"`
-	Target        string    `json:"target"`
-	Scanner       string    `json:"scanner"`
-	Status        string    `json:"status"`
-	FindingCount  int       `json:"finding_count"`
-	Error         string    `json:"error,omitempty"`
-	CompletedAt   time.Time `json:"completed_at"`
+	ScanID       string    `json:"scan_id"`
+	Target       string    `json:"target"`
+	Scanner      string    `json:"scanner"`
+	Status       string    `json:"status"`
+	FindingCount int       `json:"finding_count"`
+	Error        string    `json:"error,omitempty"`
+	CompletedAt  time.Time `json:"completed_at"`
 }
 
-func enqueueFindingNotification(ctx context.Context, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, payload FindingCreatedPayload) {
+func enqueueFindingNotification(ctx context.Context, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, notifications NotificationConfig, payload FindingCreatedPayload) {
 	notificationSettings, err := settings.GetNotificationSettings(ctx)
 	if err != nil {
 		slog.Warn("failed to load notification settings", "err", err)
 		return
 	}
+	nc := ai.NotificationContext{
+		Severity:    payload.Severity,
+		Title:       payload.Title,
+		RuleID:      payload.RuleID,
+		Scanner:     payload.Scanner,
+		Description: payload.Description,
+		FilePath:    payload.FilePath,
+		Line:        payload.Line,
+		Repository:  payload.Repository,
+		EventType:   "finding.created",
+	}
+	payload.AISummary = ai.GenerateNotificationSummary(ctx, nc)
 	switch payload.Severity {
 	case "critical":
 		if notificationSettings.AlertCritical {
 			enqueueWebhookEvent(ctx, webhooks, queue, "finding.critical", payload)
+			enqueueEmailEvent(ctx, queue, notifications.Email, "Critical finding detected", buildFindingEmailBody("finding.critical", payload))
 		}
 	case "high":
 		if notificationSettings.AlertHigh {
 			enqueueWebhookEvent(ctx, webhooks, queue, "finding.high", payload)
+			enqueueEmailEvent(ctx, queue, notifications.Email, "High severity finding detected", buildFindingEmailBody("finding.high", payload))
 		}
 	}
 }
 
-func enqueueScanNotification(ctx context.Context, scans repository.ScanRepository, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, scanID, eventType, errorMessage string, now time.Time) {
+func enqueueScanNotification(ctx context.Context, scans repository.ScanRepository, settings repository.SettingsRepository, webhooks repository.WebhookRepository, queue *asynq.Client, notifications NotificationConfig, scanID, eventType, errorMessage string, now time.Time) {
 	notificationSettings, err := settings.GetNotificationSettings(ctx)
 	if err != nil {
 		slog.Warn("failed to load notification settings", "err", err)
@@ -366,7 +405,7 @@ func enqueueScanNotification(ctx context.Context, scans repository.ScanRepositor
 		slog.Warn("failed to load scan for notification", "scan_id", scanID, "err", err)
 		return
 	}
-	enqueueWebhookEvent(ctx, webhooks, queue, eventType, ScanNotificationPayload{
+	payload := ScanNotificationPayload{
 		ScanID:       scan.ID,
 		Target:       scan.Target,
 		Scanner:      scan.Scanner,
@@ -374,22 +413,25 @@ func enqueueScanNotification(ctx context.Context, scans repository.ScanRepositor
 		FindingCount: scan.FindingCount,
 		Error:        errorMessage,
 		CompletedAt:  now,
-	})
+	}
+	enqueueWebhookEvent(ctx, webhooks, queue, eventType, payload)
+	enqueueEmailEvent(ctx, queue, notifications.Email, scanEmailSubject(eventType), buildScanEmailBody(eventType, payload))
 }
 
-func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookRepository, queue *asynq.Client, eventType string, payload interface{}) {
+func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookRepository, queue *asynq.Client, eventType string, payload any) int {
 	webhookList, err := webhooks.ListEnabled(ctx)
 	if err != nil {
 		slog.Warn("failed to list enabled webhooks", "err", err)
-		return
+		return 0
 	}
 
 	payloadBytes, err := MarshalWebhookEvent(eventType, payload, time.Now())
 	if err != nil {
 		slog.Warn("failed to marshal webhook payload", "err", err)
-		return
+		return 0
 	}
 
+	enqueued := 0
 	for _, webhook := range webhookList {
 		containsEvent := false
 		for _, event := range webhook.Events {
@@ -416,9 +458,27 @@ func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookReposit
 			slog.Warn("failed to enqueue webhook task", "webhook_id", webhook.ID, "err", err)
 			continue
 		}
+		enqueued++
 
 		slog.Info("enqueued webhook delivery", "webhook_id", webhook.ID, "event_type", eventType)
 	}
+	return enqueued
+}
+
+func enqueueEmailEvent(ctx context.Context, queue *asynq.Client, cfg EmailConfig, subject, body string) bool {
+	if !cfg.Enabled {
+		return false
+	}
+	payload, err := MarshalEmailSendPayload(EmailSendPayload{Subject: subject, Body: body})
+	if err != nil {
+		slog.Warn("marshal email payload failed", "err", err)
+		return false
+	}
+	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeEmailSend, payload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second)); err != nil {
+		slog.Warn("enqueue email failed", "err", err)
+		return false
+	}
+	return true
 }
 
 func derefErr(err *string) string {
@@ -426,4 +486,218 @@ func derefErr(err *string) string {
 		return ""
 	}
 	return *err
+}
+
+type scanFindingSummary struct {
+	Repository string
+	Total      int
+	Counts     map[string]int
+	Items      []findingSummaryItem
+}
+
+type findingSummaryItem struct {
+	Severity string
+	Title    string
+	RuleID   string
+	FilePath string
+	Line     int
+	Scanner  string
+}
+
+func newScanFindingSummary(repository string) *scanFindingSummary {
+	return &scanFindingSummary{Repository: repository, Counts: map[string]int{}}
+}
+
+func (s *scanFindingSummary) Add(severity, title, ruleID, filePath string, line int, scanner string) {
+	s.Total++
+	s.Counts[severity]++
+	if len(s.Items) >= 10 {
+		return
+	}
+	s.Items = append(s.Items, findingSummaryItem{Severity: severity, Title: title, RuleID: ruleID, FilePath: filePath, Line: line, Scanner: scanner})
+}
+
+func buildGitHubPRSummaryBody(scanID string, summary *scanFindingSummary) string {
+	var b strings.Builder
+	b.WriteString("## HenKaiPan security scan summary\n\n")
+	fmt.Fprintf(&b, "Scan `%s` found **%d** finding(s) in `%s`.\n\n", scanID, summary.Total, summary.Repository)
+	b.WriteString("| Severity | Count |\n|---|---:|\n")
+	for _, severity := range []string{"critical", "high", "medium", "low", "info"} {
+		if count := summary.Counts[severity]; count > 0 {
+			fmt.Fprintf(&b, "| %s | %d |\n", strings.ToUpper(severity), count)
+		}
+	}
+	if len(summary.Items) > 0 {
+		b.WriteString("\n### Top findings\n")
+		for _, item := range summary.Items {
+			location := item.FilePath
+			if item.Line > 0 {
+				location = fmt.Sprintf("%s:%d", item.FilePath, item.Line)
+			}
+			fmt.Fprintf(&b, "- **%s** `%s` — %s", strings.ToUpper(item.Severity), item.Scanner, item.Title)
+			if item.RuleID != "" {
+				fmt.Fprintf(&b, " (`%s`)", item.RuleID)
+			}
+			if strings.TrimSpace(location) != "" {
+				fmt.Fprintf(&b, " at `%s`", location)
+			}
+			b.WriteString("\n")
+		}
+	}
+	b.WriteString("\n_Comment generated by HenKaiPan ASPM._")
+	return b.String()
+}
+
+func StartSLABreachMonitor(ctx context.Context, settings repository.SettingsRepository, findings repository.FindingRepository, webhooks repository.WebhookRepository, queue *asynq.Client, notifications NotificationConfig, interval time.Duration) {
+	if interval <= 0 {
+		interval = 15 * time.Minute
+	}
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		CheckSLABreaches(ctx, settings, findings, webhooks, queue, notifications)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				CheckSLABreaches(ctx, settings, findings, webhooks, queue, notifications)
+			}
+		}
+	}()
+}
+
+func CheckSLABreaches(ctx context.Context, settings repository.SettingsRepository, findings repository.FindingRepository, webhooks repository.WebhookRepository, queue *asynq.Client, notifications NotificationConfig) {
+	notificationSettings, err := settings.GetNotificationSettings(ctx)
+	if err != nil {
+		slog.Warn("failed to load notification settings for sla breach monitor", "err", err)
+		return
+	}
+	if !notificationSettings.AlertSLABreach {
+		return
+	}
+	breaches, err := findings.ListPendingSLABreaches(ctx, 100)
+	if err != nil {
+		slog.Warn("failed to list pending sla breaches", "err", err)
+		return
+	}
+	if len(breaches) == 0 {
+		return
+	}
+	marked := make([]string, 0, len(breaches))
+	for _, breach := range breaches {
+		fc := ai.NotificationContext{
+			Severity:   breach.Severity,
+			Title:      breach.Title,
+			RuleID:     breach.RuleID,
+			Scanner:    breach.Scanner,
+			Repository: breach.Repository,
+			FilePath:   breach.FilePath,
+			Line:       breach.Line,
+			EventType:  "finding.sla_breach",
+		}
+		payload := SLABreachPayload{
+			FindingID:   breach.FindingID,
+			ScanID:      breach.ScanID,
+			Repository:  breach.Repository,
+			Severity:    breach.Severity,
+			Title:       breach.Title,
+			RuleID:      breach.RuleID,
+			FilePath:    breach.FilePath,
+			Line:        breach.Line,
+			Scanner:     breach.Scanner,
+			SLADeadline: breach.SLADeadline,
+			CreatedAt:   breach.CreatedAt,
+			AISummary:   ai.GenerateNotificationSummary(ctx, fc),
+		}
+		webhookCount := enqueueWebhookEvent(ctx, webhooks, queue, "finding.sla_breach", payload)
+		emailQueued := enqueueEmailEvent(ctx, queue, notifications.Email, "SLA breach detected", buildSLABreachEmailBody(payload))
+		if webhookCount > 0 || emailQueued {
+			marked = append(marked, breach.FindingID)
+		}
+	}
+	if err := findings.MarkSLABreachAttempted(ctx, marked); err != nil {
+		slog.Warn("failed to mark sla breaches as attempted", "err", err)
+	}
+}
+
+type SLABreachPayload struct {
+	FindingID   string    `json:"finding_id"`
+	ScanID      string    `json:"scan_id"`
+	Repository  string    `json:"repository"`
+	Severity    string    `json:"severity"`
+	Title       string    `json:"title"`
+	RuleID      string    `json:"rule_id"`
+	FilePath    string    `json:"file_path"`
+	Line        int       `json:"line"`
+	Scanner     string    `json:"scanner"`
+	SLADeadline time.Time `json:"sla_deadline"`
+	CreatedAt   time.Time `json:"created_at"`
+	AISummary   string    `json:"ai_summary,omitempty"`
+}
+
+func buildFindingEmailBody(eventType string, payload FindingCreatedPayload) string {
+	return strings.Join([]string{
+		"HenKaiPan finding notification",
+		"",
+		"Event: " + eventType,
+		"Finding ID: " + payload.FindingID,
+		"Repository: " + payload.Repository,
+		"Severity: " + strings.ToUpper(payload.Severity),
+		"Scanner: " + payload.Scanner,
+		"Rule ID: " + payload.RuleID,
+		"Location: " + formatLocation(payload.FilePath, payload.Line),
+		"Title: " + payload.Title,
+	}, "\n")
+}
+
+func buildScanEmailBody(eventType string, payload ScanNotificationPayload) string {
+	lines := []string{
+		"HenKaiPan scan notification",
+		"",
+		"Event: " + eventType,
+		"Scan ID: " + payload.ScanID,
+		"Target: " + payload.Target,
+		"Scanner: " + payload.Scanner,
+		"Status: " + strings.ToUpper(payload.Status),
+		fmt.Sprintf("Findings: %d", payload.FindingCount),
+	}
+	if strings.TrimSpace(payload.Error) != "" {
+		lines = append(lines, "Error: "+payload.Error)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func buildSLABreachEmailBody(payload SLABreachPayload) string {
+	return strings.Join([]string{
+		"HenKaiPan SLA breach notification",
+		"",
+		"Finding ID: " + payload.FindingID,
+		"Scan ID: " + payload.ScanID,
+		"Repository: " + payload.Repository,
+		"Severity: " + strings.ToUpper(payload.Severity),
+		"Scanner: " + payload.Scanner,
+		"Rule ID: " + payload.RuleID,
+		"Location: " + formatLocation(payload.FilePath, payload.Line),
+		"SLA deadline: " + payload.SLADeadline.UTC().Format(time.RFC3339),
+		"Title: " + payload.Title,
+	}, "\n")
+}
+
+func scanEmailSubject(eventType string) string {
+	if eventType == "scan.failed" {
+		return "HenKaiPan scan failed"
+	}
+	return "HenKaiPan scan completed"
+}
+
+func formatLocation(path string, line int) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "n/a"
+	}
+	if line > 0 {
+		return fmt.Sprintf("%s:%d", path, line)
+	}
+	return path
 }

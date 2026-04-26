@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 
 	"aspm/internal/agents"
 	"aspm/internal/ai"
@@ -34,12 +35,15 @@ func main() {
 	// queue client for enqueueing sub-tasks (e.g. agent:validate after scan)
 	queueClient := queue.NewClient(cfg.RedisAddr)
 	defer queueClient.Close()
+	notifications := tasks.NewNotificationConfig(cfg)
 
 	srv := queue.NewServer(cfg.RedisAddr, 5)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, queueClient))
+	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, queueClient, notifications))
 	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
+	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(notifications.Email))
+	tasks.StartSLABreachMonitor(context.Background(), store.Settings, store.Findings, store.Webhooks, queueClient, notifications, 15*time.Minute)
 
 	// Register AI agent handlers if configured
 	if cfg.ValidationConfig.IsConfigured {

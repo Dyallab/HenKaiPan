@@ -7,6 +7,7 @@ type NotificationSettings struct {
 	AlertHigh         bool      `json:"alert_high"`
 	AlertScanComplete bool      `json:"alert_scan_complete"`
 	AlertScanFailed   bool      `json:"alert_scan_failed"`
+	AlertSLABreach    bool      `json:"alert_sla_breach"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
