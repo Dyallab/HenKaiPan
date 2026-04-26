@@ -61,10 +61,12 @@ export const api = {
 
   getScanFindings: (id: string) => req<Finding[]>(`/api/scans/${id}/findings`),
 
-  getFindings: (severity: string | string[] = '', scanner = '', page = 1, limit = 50, status = '', overdue = false, category = '', cve_id = '', suppressed = false) =>
+  getFindings: (severity: string | string[] = '', scanner = '', page = 1, limit = 50, status = '', overdue = false, category = '', cve_id = '', suppressed = false, file_path = '') =>
     req<{ findings: Finding[]; total: number }>(
-      `/api/findings?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&page=${page}&limit=${limit}&status=${status}&overdue=${overdue}&category=${category}&cve_id=${encodeURIComponent(cve_id)}&suppressed=${suppressed}`
+      `/api/findings?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&page=${page}&limit=${limit}&status=${status}&overdue=${overdue}&category=${category}&cve_id=${encodeURIComponent(cve_id)}&suppressed=${suppressed}&file_path=${encodeURIComponent(file_path)}`
     ),
+
+  getUniqueFiles: () => req<string[]>(`/api/findings/files`),
 
   getFinding: (id: string) =>
     req<Finding>(`/api/findings/${id}`),
@@ -317,6 +319,7 @@ export interface Finding {
   summary_state?: 'none' | 'pending' | 'ready' | 'failed';
   suppressed: boolean;
   remediation_slug?: string;
+  jira_issue?: JiraIssueLink;
 }
 
 export interface AgentAnalysis {
@@ -528,6 +531,7 @@ export interface NotificationSettings {
   alert_high: boolean;
   alert_scan_complete: boolean;
   alert_scan_failed: boolean;
+  alert_sla_breach: boolean;
   updated_at: string;
 }
 

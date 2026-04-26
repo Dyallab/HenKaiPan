@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -27,9 +29,9 @@ type WebhookSendPayload struct {
 }
 
 type WebhookEventEnvelope struct {
-	Event     string      `json:"event"`
-	Data      any         `json:"data"`
-	Timestamp time.Time   `json:"timestamp"`
+	Event     string    `json:"event"`
+	Data      any       `json:"data"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type slackBlockText struct {
@@ -121,7 +123,13 @@ func HandleWebhookSend(webhooks repository.WebhookRepository) asynq.HandlerFunc 
 			return nil
 		}
 
-		log := slog.With("webhook_id", p.WebhookID, "event_type", p.EventType, "url", webhook.URL)
+		log := slog.With("webhook_id", p.WebhookID, "event_type", p.EventType, "url_host", webhookURLHost(webhook.URL))
+		if err := validateOutboundWebhookURL(webhook.URL); err != nil {
+			log.Error("webhook url rejected", "err", err)
+			updateDeliveryStats(ctx, webhooks, p.WebhookID, false, 0, "", err.Error())
+			logDelivery(ctx, webhooks, WebhookSendPayload{WebhookID: p.WebhookID, EventType: p.EventType, Payload: p.Payload}, 0, "", err.Error())
+			return fmt.Errorf("validate webhook url: %w", err)
+		}
 
 		body, err := formatWebhookBody(webhook.DeliveryType, p.Payload)
 		if err != nil {
@@ -167,6 +175,39 @@ func HandleWebhookSend(webhooks repository.WebhookRepository) asynq.HandlerFunc 
 		log.Info("webhook delivered", "status", resp.StatusCode)
 		return nil
 	}
+}
+
+func validateOutboundWebhookURL(raw string) error {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("webhook url must be absolute")
+	}
+	if parsed.Scheme != "https" && parsed.Scheme != "http" {
+		return fmt.Errorf("webhook url must use http or https")
+	}
+	if parsed.User != nil {
+		return fmt.Errorf("webhook url must not contain credentials")
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return fmt.Errorf("webhook url must not target localhost")
+	}
+	if ip := net.ParseIP(host); ip != nil && !isPublicWebhookIP(ip) {
+		return fmt.Errorf("webhook url must target a public address")
+	}
+	return nil
+}
+
+func isPublicWebhookIP(ip net.IP) bool {
+	return !(ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified())
+}
+
+func webhookURLHost(raw string) string {
+	parsed, err := url.Parse(strings.TrimSpace(raw))
+	if err != nil {
+		return "invalid"
+	}
+	return parsed.Hostname()
 }
 
 func formatWebhookBody(deliveryType string, payload []byte) ([]byte, error) {
@@ -233,6 +274,8 @@ func formatWebhookSummary(envelope WebhookEventEnvelope) string {
 		return "🚨 Critical finding detected"
 	case "finding.high":
 		return "⚠️ High severity finding detected"
+	case "finding.sla_breach":
+		return "⏰ Finding SLA breached"
 	case "scan.completed":
 		return "✅ Scan completed"
 	case "scan.failed":
@@ -265,24 +308,37 @@ func buildWebhookCard(envelope WebhookEventEnvelope) webhookCard {
 
 	card := webhookCard{Prefix: formatWebhookSummary(envelope), Title: formatWebhookSummary(envelope)}
 	switch envelope.Event {
-	case "finding.critical", "finding.high":
+	case "finding.critical", "finding.high", "finding.sla_breach":
 		severity := strings.ToUpper(stringFromAny(dataMap["severity"]))
 		title := stringFromAny(dataMap["title"])
 		repo := stringFromAny(dataMap["repository"])
 		ruleID := stringFromAny(dataMap["rule_id"])
 		location := buildLocationLabel(dataMap)
-		card.Title = fmt.Sprintf("%s · %s", severity, title)
-		card.Description = strings.TrimSpace(stringFromAny(dataMap["description"]))
+		aiSummary := strings.TrimSpace(stringFromAny(dataMap["ai_summary"]))
+		if envelope.Event == "finding.sla_breach" {
+			card.Title = fmt.Sprintf("SLA breached · %s", title)
+			card.Description = "A finding passed its SLA deadline and still requires action."
+		} else {
+			card.Title = fmt.Sprintf("%s · %s", severity, title)
+			if aiSummary != "" {
+				card.Description = aiSummary
+			} else {
+				card.Description = strings.TrimSpace(stringFromAny(dataMap["description"]))
+			}
+		}
 		if card.Description == "" {
 			card.Description = "A security finding matched the configured severity threshold and triggered this notification."
 		}
-		card.Fields = make([]slackBlockField, 0, 6)
+		card.Fields = make([]slackBlockField, 0, 7)
 		appendCardField(&card.Fields, "Severity", severity)
 		appendCardField(&card.Fields, "Scanner", stringFromAny(dataMap["scanner"]))
 		appendCardField(&card.Fields, "Repository", repo)
 		appendCardField(&card.Fields, "Rule ID", ruleID)
 		appendCardField(&card.Fields, "Location", location)
 		appendCardField(&card.Fields, "Finding ID", stringFromAny(dataMap["finding_id"]))
+		if envelope.Event == "finding.sla_breach" {
+			appendCardField(&card.Fields, "SLA Deadline", formatHumanTime(dataMap["sla_deadline"], envelope.Timestamp))
+		}
 		card.Context = strings.TrimSpace(strings.Join([]string{repo, envelope.Event, formatHumanTime(dataMap["created_at"], envelope.Timestamp)}, " • "))
 	case "scan.completed":
 		scanner := stringFromAny(dataMap["scanner"])
@@ -378,7 +434,7 @@ func formatHumanTime(value any, fallback time.Time) string {
 
 func webhookColor(event string) int {
 	switch event {
-	case "finding.critical", "scan.failed":
+	case "finding.critical", "finding.sla_breach", "scan.failed":
 		return 0xE11D48
 	case "finding.high":
 		return 0xF97316

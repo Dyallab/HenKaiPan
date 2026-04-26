@@ -38,7 +38,7 @@ func main() {
 	defer queueClient.Close()
 
 	store := repository.NewPostgresStores(pool)
-	h := handlers.New(store, queueClient)
+	h := handlers.New(store, queueClient, cfg.FrontendURL)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -64,6 +64,7 @@ func main() {
 		r.Get("/api/findings/{id}/correlations", h.GetFindingCorrelations)
 		r.Get("/api/findings/{id}/analysis", h.GetFindingAnalysis)
 		r.Post("/api/findings/{id}/analyze", h.AnalyzeFinding)
+		r.Get("/api/findings/files", h.GetUniqueFiles)
 
 		r.Get("/api/repos", h.ListRepos)
 		r.Post("/api/repos", h.CreateRepo)

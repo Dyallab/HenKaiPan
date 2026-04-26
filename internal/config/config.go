@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // ProviderConfig represents the configuration for a specific AI provider task (remediation, summary, validation)
@@ -21,6 +23,15 @@ type Config struct {
 	JWTSecret   string // required
 	RedisAddr   string // default: localhost:6379
 	Port        string // default: 8080
+	FrontendURL string // optional: public frontend URL for external backlinks
+
+	SMTPHost     string // optional email notifications
+	SMTPPort     string // default: 587
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
+	EmailTo      []string
+	EmailEnabled bool
 
 	// OpenRouter configuration (optional)
 	OpenRouterAPIKey string
@@ -61,6 +72,13 @@ func Load() *Config {
 		JWTSecret:             get("JWT_SECRET"),
 		RedisAddr:             envOr("REDIS_ADDR", "localhost:6379"),
 		Port:                  envOr("PORT", "8080"),
+		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
+		SMTPHost:              os.Getenv("SMTP_HOST"),
+		SMTPPort:              envOr("SMTP_PORT", "587"),
+		SMTPUsername:          os.Getenv("SMTP_USERNAME"),
+		SMTPPassword:          os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:              os.Getenv("EMAIL_FROM"),
+		EmailTo:               envCSV("EMAIL_TO"),
 		OpenRouterAPIKey:      os.Getenv("OPENROUTER_API_KEY"),
 		OpenRouterModel:       envOr("OPENROUTER_MODEL", "openai/gpt-4.1-mini"),
 		CfAccountID:           os.Getenv("CF_ACCOUNT_ID"),
@@ -71,6 +89,7 @@ func Load() *Config {
 		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "openrouter"),
 		AIValidationProvider:  envOr("AI_VALIDATION_PROVIDER", "openrouter"),
 	}
+	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != "" && len(cfg.EmailTo) > 0
 
 	if len(missing) > 0 {
 		for _, k := range missing {
@@ -87,6 +106,8 @@ func Load() *Config {
 	slog.Info("config loaded",
 		"redis_addr", cfg.RedisAddr,
 		"port", cfg.Port,
+		"frontend_url_configured", cfg.FrontendURL != "",
+		"email_notifications_enabled", cfg.EmailEnabled,
 		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "",
 		"ai_providers", fmt.Sprintf("openrouter=%t, cloudflare=%t", cfg.OpenRouterAPIKey != "", cfg.CfAPIToken != ""),
 		"remediation_provider", cfg.RemediationConfig.Name,
@@ -132,4 +153,33 @@ func envOr(key, def string) string {
 		return v
 	}
 	return def
+}
+
+func envInt(key string, def int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return def
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		slog.Warn("invalid integer env var, using default", "key", key)
+		return def
+	}
+	return value
+}
+
+func envCSV(key string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return []string{}
+	}
+	parts := strings.Split(raw, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
 }

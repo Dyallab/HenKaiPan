@@ -19,6 +19,7 @@ type FindingFilter struct {
 	ShowSuppressed bool
 	Page           int
 	Limit          int
+	FilePath       string
 }
 
 type FindingUpdate struct {
@@ -48,8 +49,8 @@ type FindingInsert struct {
 
 type ExportFilter struct {
 	Severities []string
-	Scanner  string
-	Status   string
+	Scanner    string
+	Status     string
 }
 
 type RemediationSource struct {
@@ -78,6 +79,20 @@ type FindingSummarySource struct {
 	Raw                []byte
 }
 
+type SLABreachFinding struct {
+	FindingID   string
+	ScanID      string
+	Repository  string
+	Severity    string
+	Title       string
+	RuleID      string
+	FilePath    string
+	Line        int
+	Scanner     string
+	SLADeadline time.Time
+	CreatedAt   time.Time
+}
+
 type PreparedSummary struct {
 	Fingerprint   string
 	Summary       string
@@ -100,6 +115,9 @@ type FindingRepository interface {
 	PrepareAISummary(ctx context.Context, findingID string) (*PreparedSummary, error)
 	StoreAISummary(ctx context.Context, fingerprint, summary string) error
 	MarkAISummaryFailed(ctx context.Context, fingerprint string) error
+	ListPendingSLABreaches(ctx context.Context, limit int) ([]SLABreachFinding, error)
+	MarkSLABreachAttempted(ctx context.Context, findingIDs []string) error
+	ListUniqueFiles(ctx context.Context) ([]string, error)
 }
 
 // ── Scans ─────────────────────────────────────────────────────────────────────
@@ -280,10 +298,10 @@ type PolicyRepository interface {
 
 type VulnFilter struct {
 	Severities []string
-	Search   string
-	OnlyOpen bool
-	Page     int
-	Limit    int
+	Search     string
+	OnlyOpen   bool
+	Page       int
+	Limit      int
 }
 
 type VulnerabilityRepository interface {
@@ -352,6 +370,7 @@ type NotificationSettingsUpdate struct {
 	AlertHigh         *bool
 	AlertScanComplete *bool
 	AlertScanFailed   *bool
+	AlertSLABreach    *bool
 }
 
 type JiraIntegrationUpdate struct {

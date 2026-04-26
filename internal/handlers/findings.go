@@ -33,6 +33,7 @@ func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 		ShowSuppressed: q.Get("suppressed") == "true",
 		Page:           page,
 		Limit:          limit,
+		FilePath:       q.Get("file_path"),
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list findings")
@@ -220,4 +221,13 @@ func fmtTime(t *time.Time) string {
 		return ""
 	}
 	return t.Format(time.RFC3339)
+}
+
+func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
+	files, err := h.store.Findings.ListUniqueFiles(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to list files")
+		return
+	}
+	writeJSON(w, http.StatusOK, files)
 }

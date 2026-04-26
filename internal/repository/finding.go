@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"aspm/internal/models"
 	"aspm/internal/scanner"
@@ -36,8 +37,11 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		         FROM agent_analyses aa
 		         WHERE aa.finding_id = f.id AND aa.agent_type = 'validator'
 		       ) AS ai_analyzed,
-		       COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug
+		       COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
+		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
+		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz)
 		FROM findings f
+		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
 		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.scanner = $2)
 		  AND ($3 = '' OR f.status = $3)
@@ -52,13 +56,14 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		      ))
 		  AND ($6 = '' OR f.cve_id ILIKE '%' || $6 || '%')
 		  AND ($7 = TRUE OR f.suppressed = FALSE)
+		  AND ($10 = '' OR f.file_path = $10)
 		ORDER BY
 			CASE f.severity
 				WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5
 			END,
 			f.created_at DESC
 		LIMIT $8 OFFSET $9`,
-		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset)
+		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset, f.FilePath)
 	if err != nil {
 		return nil, 0, fmt.Errorf("findings list: %w", err)
 	}
@@ -67,12 +72,17 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	var findings []models.Finding
 	for rows.Next() {
 		var fi models.Finding
+		var jiraID, jiraIssueKey, jiraIssueURL, jiraStatus string
+		var jiraCreatedAt time.Time
+		var hasJiraIssue bool
 		if err := rows.Scan(&fi.ID, &fi.ScanID, &fi.Scanner, &fi.RuleID, &fi.Title, &fi.Description,
 			&fi.Severity, &fi.FilePath, &fi.LineStart, &fi.LineEnd, &fi.CreatedAt,
 			&fi.Status, &fi.AssignedTo, &fi.FalsePositive, &fi.Notes, &fi.ResolvedAt, &fi.SLADeadline,
-			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount, &fi.AIAnalyzed, &fi.AISummary, &fi.SummaryState, &fi.Suppressed, &fi.RemediationSlug); err != nil {
+			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount, &fi.AIAnalyzed, &fi.AISummary, &fi.SummaryState, &fi.Suppressed, &fi.RemediationSlug,
+			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt); err != nil {
 			return nil, 0, fmt.Errorf("scan findings row: %w", err)
 		}
+		fi.JiraIssue = buildFindingJiraIssue(hasJiraIssue, jiraID, fi.ID, jiraIssueKey, jiraIssueURL, jiraStatus, jiraCreatedAt)
 		findings = append(findings, fi)
 	}
 	if err := rows.Err(); err != nil {
@@ -97,29 +107,112 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		        ($5 = 'dast'       AND scanner IN ('nuclei'))
 		      ))
 		  AND ($6 = '' OR cve_id ILIKE '%' || $6 || '%')
-		  AND ($7 = TRUE OR suppressed = FALSE)`,
-		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed,
+		  AND ($7 = TRUE OR suppressed = FALSE)
+		  AND ($8 = '' OR file_path = $8)`,
+		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.FilePath,
 	).Scan(&total)
 
 	return findings, total, nil
 }
 
+func (r *findingRepo) ListPendingSLABreaches(ctx context.Context, limit int) ([]SLABreachFinding, error) {
+	if limit < 1 || limit > 500 {
+		limit = 100
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT f.id, f.scan_id, s.target, f.severity, f.title, COALESCE(f.rule_id, ''),
+		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.scanner, f.sla_deadline, f.created_at
+		FROM findings f
+		JOIN scans s ON s.id = f.scan_id
+		WHERE f.sla_deadline IS NOT NULL
+		  AND f.sla_deadline < NOW()
+		  AND f.sla_breach_attempted_at IS NULL
+		  AND f.suppressed = FALSE
+		  AND f.status NOT IN ('fixed','verified','accepted_risk')
+		ORDER BY f.sla_deadline ASC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list pending sla breaches: %w", err)
+	}
+	defer rows.Close()
+
+	var findings []SLABreachFinding
+	for rows.Next() {
+		var finding SLABreachFinding
+		if err := rows.Scan(&finding.FindingID, &finding.ScanID, &finding.Repository, &finding.Severity, &finding.Title, &finding.RuleID, &finding.FilePath, &finding.Line, &finding.Scanner, &finding.SLADeadline, &finding.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan sla breach row: %w", err)
+		}
+		findings = append(findings, finding)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate sla breach rows: %w", err)
+	}
+	if findings == nil {
+		findings = []SLABreachFinding{}
+	}
+	return findings, nil
+}
+
+func (r *findingRepo) MarkSLABreachAttempted(ctx context.Context, findingIDs []string) error {
+	if len(findingIDs) == 0 {
+		return nil
+	}
+	_, err := r.db.Exec(ctx, `
+		UPDATE findings
+		SET sla_breach_attempted_at = $1
+		WHERE id::text = ANY($2)`, time.Now().UTC(), findingIDs)
+	if err != nil {
+		return fmt.Errorf("mark sla breach attempted: %w", err)
+	}
+	return nil
+}
+
 func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, error) {
 	var f models.Finding
+	var jiraID, jiraIssueKey, jiraIssueURL, jiraStatus string
+	var jiraCreatedAt time.Time
+	var hasJiraIssue bool
 	err := r.db.QueryRow(ctx, `
-		SELECT id, scan_id, scanner, rule_id, title, COALESCE(description, ''), severity,
-		       file_path, line_start, line_end, code_snippet, created_at,
-		       status, assigned_to, false_positive, notes, resolved_at, sla_deadline,
-		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state, suppressed, remediation_slug
-		FROM findings WHERE id = $1`, id).
+		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''), f.severity,
+		       f.file_path, f.line_start, f.line_end, f.code_snippet, f.created_at,
+		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
+		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count, COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
+		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
+		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz)
+		FROM findings f
+		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
+		WHERE f.id = $1`, id).
 		Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
-			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState, &f.Suppressed, &f.RemediationSlug)
+			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState, &f.Suppressed, &f.RemediationSlug,
+			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt)
 	if err != nil {
 		return nil, err
 	}
+	f.JiraIssue = buildFindingJiraIssue(hasJiraIssue, jiraID, f.ID, jiraIssueKey, jiraIssueURL, jiraStatus, jiraCreatedAt)
 	return &f, nil
+}
+
+func buildFindingJiraIssue(hasIssue bool, id, findingID, issueKey, issueURL, status string, createdAt time.Time) *models.JiraIssueLink {
+	if !hasIssue {
+		return nil
+	}
+	link := &models.JiraIssueLink{
+		ID:        id,
+		FindingID: findingID,
+		CreatedAt: createdAt,
+	}
+	if issueKey != "" {
+		link.IssueKey = &issueKey
+	}
+	if issueURL != "" {
+		link.IssueURL = &issueURL
+	}
+	if status != "" {
+		link.Status = &status
+	}
+	return link
 }
 
 func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.Finding, error) {
@@ -454,6 +547,18 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 		return nil, nil
 	}
 
+	// For IaC scanners, expand line proximity to capture security controls that might be
+	// further away in YAML manifests (e.g., allowPrivilegeEscalation:false at line 29 vs missing at line 19)
+	isIaC := current.ScannerClass == "iac"
+	lineThreshold := 15
+	if !isIaC {
+		lineThreshold = 5
+	}
+
+	// IaC scanners can correlate findings from the same scanner when they reference
+	// the same file (e.g., KICS missing attribute correlating with security control)
+	sameScannerOK := isIaC
+
 	rows, err := r.db.Query(ctx, `
 		SELECT f.id, f.scanner
 		FROM findings f
@@ -461,13 +566,13 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 		WHERE s.scan_batch_id = $1
 		  AND f.id <> $2
 		  AND f.suppressed = FALSE
-		  AND f.scanner <> $3
+		  AND ($9 OR f.scanner <> $3)
 		  AND (
 				($4 <> '' AND f.rule_id = $4)
 				OR ($5 IS NOT NULL AND f.cve_id = $5)
-				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= 5)
-		  )`,
-		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart,
+				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= $8)
+			)`,
+		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query batch matches: %w", err)
@@ -642,4 +747,30 @@ func (r *findingRepo) GetForRemediation(ctx context.Context, id string) (*Remedi
 		src.CodeSnippet = *codeSnippet
 	}
 	return &src, nil
+}
+
+func (r *findingRepo) ListUniqueFiles(ctx context.Context) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT f.file_path
+		FROM findings f
+		WHERE f.file_path IS NOT NULL AND f.file_path <> ''
+		ORDER BY f.file_path
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list unique files: %w", err)
+	}
+	defer rows.Close()
+
+	var files []string
+	for rows.Next() {
+		var filePath string
+		if err := rows.Scan(&filePath); err != nil {
+			return nil, fmt.Errorf("scan file path: %w", err)
+		}
+		files = append(files, filePath)
+	}
+	if files == nil {
+		files = []string{}
+	}
+	return files, nil
 }

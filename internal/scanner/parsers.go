@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -52,6 +53,25 @@ func normalizeFindingPath(path string) string {
 		path = "/" + path
 	}
 	return path
+}
+
+// maxFileContentSize limits file reads to prevent memory issues.
+const maxFileContentSize = 10 * 1024 // 10KB
+
+// readFileContent reads a file and returns its content, truncated if too large.
+// Returns empty string if file cannot be read.
+func readFileContent(path string) string {
+	if path == "" {
+		return ""
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	if len(data) > maxFileContentSize {
+		return string(data[:maxFileContentSize]) + "\n... [truncated]"
+	}
+	return string(data)
 }
 
 // cvssToSeverity converts a CVSS numeric score string to severity label.
@@ -580,27 +600,18 @@ func ParseKICS(data []byte) ([]FindingRow, error) {
 	for _, q := range doc.Queries {
 		sev := strings.ToLower(q.Severity)
 		for _, f := range q.Files {
-			raw, _ := json.Marshal(q)
+raw, _ := json.Marshal(q)
 			path := normalizeFindingPath(f.FileName)
-			description := strings.TrimSpace(q.QueryName)
-			if f.IssueType != "" && path != "" {
-				description = fmt.Sprintf("KICS reported %s in %s.", f.IssueType, path)
-			} else if f.IssueType != "" {
-				description = fmt.Sprintf("KICS reported %s.", f.IssueType)
-			} else if path != "" && description != "" {
-				description = fmt.Sprintf("%s in %s.", description, path)
-			}
-			if description == "" {
-				description = q.QueryID
-			}
+			snippet := readFileContent(path)
 			rows = append(rows, FindingRow{
 				RuleID:      q.QueryID,
 				Title:       q.QueryName,
-				Description: description,
+				Description: "",
 				Severity:    sev,
 				FilePath:    path,
 				LineStart:   f.Line,
-				Raw:         raw,
+				CodeSnippet: snippet,
+				Raw:        raw,
 			})
 		}
 	}

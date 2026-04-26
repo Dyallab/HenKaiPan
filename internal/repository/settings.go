@@ -19,10 +19,10 @@ type settingsRepo struct {
 func (r *settingsRepo) GetNotificationSettings(ctx context.Context) (*models.NotificationSettings, error) {
 	var s models.NotificationSettings
 	err := r.db.QueryRow(ctx, `
-		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, updated_at
+		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, updated_at
 		FROM notification_settings
 		WHERE singleton = TRUE`,
-	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.UpdatedAt)
+	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &s.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get notification settings: %w", err)
 	}
@@ -46,6 +46,9 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 	if upd.AlertScanFailed != nil {
 		current.AlertScanFailed = *upd.AlertScanFailed
 	}
+	if upd.AlertSLABreach != nil {
+		current.AlertSLABreach = *upd.AlertSLABreach
+	}
 
 	var out models.NotificationSettings
 	err = r.db.QueryRow(ctx, `
@@ -54,11 +57,13 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 		    alert_high = $2,
 		    alert_scan_complete = $3,
 		    alert_scan_failed = $4,
+		    alert_sla_breach = $5,
 		    updated_at = NOW()
 		WHERE singleton = TRUE
-		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, updated_at`,
+		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, updated_at`,
 		current.AlertCritical, current.AlertHigh, current.AlertScanComplete, current.AlertScanFailed,
-	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.UpdatedAt)
+		current.AlertSLABreach,
+	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &out.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update notification settings: %w", err)
 	}

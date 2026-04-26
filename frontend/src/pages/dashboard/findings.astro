@@ -56,6 +56,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <option value="containers">Containers</option>
         <option value="dast">DAST</option>
       </select>
+      <select id="filter-file" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All files</option>
+      </select>
       <select id="filter-scanner" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
         <option value="">All scanners</option>
         <option value="semgrep">semgrep</option>
@@ -188,6 +191,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     return `<span class="text-xs text-slate-500">${new Date(f.sla_deadline).toLocaleDateString()}</span>`;
   }
 
+  function escapeHTML(value: string): string {
+    return value
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function safeExternalURL(value: string): string | null {
+    try {
+      const url = new URL(value);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+        return null;
+      }
+      return url.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  function jiraDisplay(f: Finding): string {
+    const issue = f.jira_issue;
+    if (!issue?.issue_key) {
+      return '<span class="text-xs text-slate-600">—</span>';
+    }
+    const issueKey = escapeHTML(issue.issue_key);
+    const issueURL = issue.issue_url ? safeExternalURL(issue.issue_url) : null;
+    if (!issueURL) {
+      return `<span class="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300">${issueKey}</span>`;
+    }
+    return `
+      <a href="${escapeHTML(issueURL)}" target="_blank" rel="noreferrer" class="inline-flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300 hover:bg-blue-500/15 hover:text-blue-200 transition-all">
+        ${issueKey}
+        <span class="material-symbols-outlined text-sm">open_in_new</span>
+      </a>`;
+  }
+
   function selectedSeverities() {
     return Array.from(document.querySelectorAll<HTMLInputElement>('[data-severity-filter]:checked')).map((input) => input.value);
   }
@@ -199,8 +240,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const status   = (document.getElementById('filter-status') as HTMLSelectElement).value;
     const cve_id   = (document.getElementById('filter-cve') as HTMLInputElement).value.trim();
     const overdue  = (document.getElementById('filter-overdue') as HTMLInputElement).checked;
+    const file_path = (document.getElementById('filter-file') as HTMLSelectElement).value;
 
-    const { findings, total } = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id);
+    const { findings, total } = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id, false, file_path);
     document.getElementById('findings-total')!.textContent = `${total} total`;
 
     const el = document.getElementById('findings-table')!;
@@ -219,6 +261,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Scanner</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">SLA</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Jira</th>
             <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Detail</th>
           </tr>
         </thead>
@@ -251,6 +294,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded tracking-wider border ${stat}">${STATUS_LABELS[f.status] ?? f.status}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell"><span class="font-mono text-xs text-slate-400">${f.scanner}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell">${slaDisplay(f)}</td>
+                <td class="px-6 py-4 hidden lg:table-cell">${jiraDisplay(f)}</td>
                 <td class="px-6 py-4 text-right">
                   <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sky-500/20 bg-sky-500/5 text-sky-300 text-xs font-bold uppercase tracking-wider hover:bg-sky-500/10 transition-all">
                     Open
@@ -299,9 +343,26 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('filter-status') as HTMLSelectElement).value = '';
     (document.getElementById('filter-cve') as HTMLInputElement).value = '';
     (document.getElementById('filter-overdue') as HTMLInputElement).checked = false;
+    (document.getElementById('filter-file') as HTMLSelectElement).value = '';
     loadFindings();
   });
 
+  async function loadFileOptions() {
+    try {
+      const files = await api.getUniqueFiles();
+      const select = document.getElementById('filter-file') as HTMLSelectElement;
+      files.forEach((file) => {
+        const opt = document.createElement('option');
+        opt.value = file;
+        opt.textContent = file;
+        select.appendChild(opt);
+      });
+    } catch {
+      // no files
+    }
+  }
+
   loadSLA();
+  loadFileOptions();
   loadFindings();
 </script>

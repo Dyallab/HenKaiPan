@@ -296,43 +296,6 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                 </div>
 
-                <!-- GitHub token -->
-                <div>
-                    <p
-                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
-                    >
-                        SCM Credentials
-                    </p>
-                    <div
-                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
-                    >
-                        <div class="space-y-2">
-                            <label
-                                class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                                >GitHub Personal Access Token</label
-                            >
-                            <div class="flex gap-3">
-                                <input
-                                    id="github-token"
-                                    type="password"
-                                    placeholder="ghp_••••••••••••••••••••••••••••••••••••••"
-                                    class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
-                                />
-                                <button
-                                    id="save-token"
-                                    class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                            <p class="text-xs text-slate-500">
-                                Used for private repository access. Stored
-                                locally in your browser.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
                 <div>
                     <p
                         class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
@@ -513,6 +476,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                         sub: "Notify when a scan encounters an error",
                                         default: true,
                                     },
+                                    {
+                                        id: "alert-sla-breach",
+                                        key: "alert_sla_breach",
+                                        label: "SLA Breaches",
+                                        sub: "Notify when open findings exceed their SLA deadline",
+                                        default: true,
+                                    },
                                 ].map((a) => (
                                     <div class="flex items-center justify-between">
                                         <div>
@@ -618,7 +588,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Events</label>
-                                    <p class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400">Critical findings, high findings, scan completed, scan failed</p>
+                                    <p class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400">Critical findings, high findings, SLA breaches, scan completed, scan failed</p>
                                 </div>
                             </div>
                             <p id="webhook-delivery-help" class="text-xs text-slate-500">Generic mode posts the raw ASPM event envelope to your endpoint.</p>
@@ -1245,19 +1215,6 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         (document.getElementById("admin-user") as HTMLInputElement).value =
             savedUser;
 
-    // --- Integrations: GitHub token ---
-    const savedToken = localStorage.getItem("aspm_github_token");
-    if (savedToken)
-        (document.getElementById("github-token") as HTMLInputElement).value =
-            savedToken;
-
-    document.getElementById("save-token")!.addEventListener("click", () => {
-        const val = (
-            document.getElementById("github-token") as HTMLInputElement
-        ).value.trim();
-        if (val) localStorage.setItem("aspm_github_token", val);
-    });
-
     function setToggleState(btn: HTMLButtonElement, enabled: boolean) {
         btn.setAttribute("aria-pressed", String(enabled));
         btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${enabled ? "bg-sky-500" : "bg-slate-700"}`;
@@ -1306,7 +1263,6 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 "aspm_org_name",
                 "aspm_api_url",
                 "aspm_admin_user",
-                "aspm_github_token",
                 "aspm_webhooks",
             ].forEach((k) => localStorage.removeItem(k));
             window.location.href = "/login";
@@ -2173,7 +2129,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     label,
                     url,
                     delivery_type: deliveryType,
-                    events: ["finding.critical", "finding.high", "scan.completed", "scan.failed"],
+                    events: ["finding.critical", "finding.high", "finding.sla_breach", "scan.completed", "scan.failed"],
                 });
                 document
                     .getElementById("webhook-form")!
