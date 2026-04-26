@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/findings/summarymeta"
 	"aspm/internal/models"
 	"aspm/internal/scanner"
-	"aspm/internal/summarizer"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -314,7 +314,7 @@ func (r *findingRepo) PrepareAISummary(ctx context.Context, findingID string) (*
 		return &PreparedSummary{State: "none"}, nil
 	}
 
-	meta := summarizer.BuildMetadata(src.Scanner, src.RuleID, src.Title, src.Raw)
+	meta := summarymeta.Build(src.Scanner, src.RuleID, src.Title, src.Raw)
 
 	var cachedSummary, cachedStatus string
 	err = r.db.QueryRow(ctx, `

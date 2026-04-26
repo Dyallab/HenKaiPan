@@ -82,12 +82,12 @@ func (h *Handler) maybeQueueFindingSummary(r *http.Request, finding *models.Find
 	if !prepared.ShouldEnqueue {
 		return
 	}
-	payload, err := tasks.MarshalAgentSummarizePayload(tasks.AgentSummarizePayload{FindingID: finding.ID})
+	payload, err := tasks.MarshalFindingSummarizePayload(tasks.FindingSummarizePayload{FindingID: finding.ID})
 	if err != nil {
 		slog.Warn("marshal finding summary payload failed", "finding_id", finding.ID, "err", err)
 		return
 	}
-	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeAgentSummarize, payload)); err != nil {
+	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeFindingSummarize, payload)); err != nil {
 		slog.Warn("enqueue finding summary failed", "finding_id", finding.ID, "err", err)
 	}
 	finding.SummaryState = "pending"
@@ -159,7 +159,7 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 	cw.Write([]string{"id", "scan_id", "scanner", "rule_id", "title", "description",
 		"severity", "file_path", "line_start", "created_at",
 		"status", "assigned_to", "false_positive", "notes", "resolved_at", "sla_deadline",
-		"cve_id", "cwe_id", "confidence_score", "corroboration_count"})
+		"cve_id", "cwe_id"})
 
 	for _, f := range rows {
 		fp := "false"
@@ -171,17 +171,10 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 			f.Severity, f.FilePath, strconv.Itoa(f.LineStart), f.CreatedAt.Format(time.RFC3339),
 			f.Status, derefStr(f.AssignedTo), fp, derefStr(f.Notes),
 			fmtTime(f.ResolvedAt), fmtTime(f.SLADeadline),
-			derefStr(f.CVEID), derefStr(f.CWEID), fmtFloat(f.ConfidenceScore), strconv.Itoa(f.CorroborationCount),
+			derefStr(f.CVEID), derefStr(f.CWEID),
 		})
 	}
 	cw.Flush()
-}
-
-func fmtFloat(v *float64) string {
-	if v == nil {
-		return ""
-	}
-	return strconv.FormatFloat(*v, 'f', 2, 64)
 }
 
 func parseCSVParam(raw string) []string {

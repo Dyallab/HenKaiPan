@@ -60,7 +60,7 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		payload, _ := tasks.MarshalPayload(tasks.ScanPayload{ScanID: scanID, Target: req.Target, Scanner: name})
+		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, Target: req.Target, Scanner: name})
 		h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload))
 		ids = append(ids, scanID)
 	}

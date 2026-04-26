@@ -312,9 +312,7 @@ export interface Finding {
   sla_deadline?: string;
   cve_id?: string;
   cwe_id?: string;
-  confidence_score: number | null;
-  corroboration_count: number;
-  ai_analyzed?: boolean;
+	ai_analyzed?: boolean;
   ai_summary?: string;
   summary_state?: 'none' | 'pending' | 'ready' | 'failed';
   suppressed: boolean;

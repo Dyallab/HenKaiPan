@@ -74,8 +74,8 @@ type Finding struct {
 	SLADeadline        *time.Time     `json:"sla_deadline,omitempty"`
 	CVEID              *string        `json:"cve_id,omitempty"`
 	CWEID              *string        `json:"cwe_id,omitempty"`
-	ConfidenceScore    *float64       `json:"confidence_score"`
-	CorroborationCount int            `json:"corroboration_count"`
+	ConfidenceScore    *float64       `json:"-"`
+	CorroborationCount int            `json:"-"`
 	AIAnalyzed         bool           `json:"ai_analyzed"`
 	AISummary          string         `json:"ai_summary,omitempty"`
 	SummaryState       string         `json:"summary_state,omitempty"`

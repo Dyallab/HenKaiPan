@@ -47,10 +47,10 @@ type runResult struct {
 	err    error
 }
 
-// HandleScan is the single asynq handler for all scanners.
+// HandleScan runs a queued scan job for any configured scanner.
 func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
-		p, err := UnmarshalPayload(t.Payload())
+		p, err := UnmarshalScanPayload(t.Payload())
 		if err != nil {
 			return err
 		}
@@ -285,12 +285,12 @@ func normalizeSeverity(s string) string {
 }
 
 func enqueueAgentValidate(ctx context.Context, queue *asynq.Client, findingID string) {
-	payload, err := MarshalAgentValidatePayload(AgentValidatePayload{FindingID: findingID})
+	payload, err := MarshalFindingValidatePayload(FindingValidatePayload{FindingID: findingID})
 	if err != nil {
 		slog.Warn("marshal agent:validate payload failed", "finding_id", findingID, "err", err)
 		return
 	}
-	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeAgentValidate, payload)); err != nil {
+	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeFindingValidate, payload)); err != nil {
 		slog.Warn("enqueue agent:validate failed", "finding_id", findingID, "err", err)
 	}
 }
@@ -304,12 +304,12 @@ func enqueueFindingSummary(ctx context.Context, findings repository.FindingRepos
 	if prepared == nil || !prepared.ShouldEnqueue {
 		return
 	}
-	payload, err := MarshalAgentSummarizePayload(AgentSummarizePayload{FindingID: findingID})
+	payload, err := MarshalFindingSummarizePayload(FindingSummarizePayload{FindingID: findingID})
 	if err != nil {
 		slog.Warn("marshal agent:summarize payload failed", "finding_id", findingID, "err", err)
 		return
 	}
-	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeAgentSummarize, payload)); err != nil {
+	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeFindingSummarize, payload)); err != nil {
 		slog.Warn("enqueue agent:summarize failed", "finding_id", findingID, "err", err)
 	}
 }

@@ -4,14 +4,14 @@ import (
 	"context"
 	"log/slog"
 
-	"aspm/internal/agents"
+	"aspm/internal/findings"
 
 	"github.com/hibiken/asynq"
 )
 
-func HandleAgentValidate(validator *agents.ValidatorAgent) asynq.HandlerFunc {
+func HandleFindingValidate(validator *findings.ValidationAgent) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
-		p, err := UnmarshalAgentValidatePayload(t.Payload())
+		p, err := UnmarshalFindingValidatePayload(t.Payload())
 		if err != nil {
 			return err
 		}
