@@ -14,6 +14,7 @@ import (
 	appmw "aspm/internal/middleware"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
+	"aspm/internal/secrets"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -25,6 +26,7 @@ func main() {
 	cfg := config.Load()
 
 	auth.SetSecret(cfg.JWTSecret)
+	secrets.SetKey(cfg.SecretEncryptionKey)
 	ai.Init(cfg)
 	ai.SetOpenRouterConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 	if cfg.CfAPIToken != "" {
@@ -38,7 +40,7 @@ func main() {
 	defer queueClient.Close()
 
 	store := repository.NewPostgresStores(pool)
-	h := handlers.New(store, queueClient, cfg.FrontendURL)
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -46,6 +48,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Post("/api/auth/login", h.Login)
+	r.Post("/api/auth/logout", h.Logout)
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware)
@@ -130,6 +133,7 @@ func main() {
 		r.With(auth.RequireRole("admin")).Post("/api/webhooks/{id}/test", h.TestWebhook)
 		r.With(auth.RequireRole("admin")).Get("/api/settings/notifications", h.GetNotificationSettings)
 		r.With(auth.RequireRole("admin")).Patch("/api/settings/notifications", h.UpdateNotificationSettings)
+		r.With(auth.RequireRole("admin")).Post("/api/settings/notifications/test-email", h.TestNotificationEmail)
 		r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
 		r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
 	})

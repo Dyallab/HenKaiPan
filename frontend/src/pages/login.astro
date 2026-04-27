@@ -71,9 +71,21 @@ import Layout from "../layouts/Layout.astro";
     </div>
 
     <script>
-        if (localStorage.getItem("aspm_token")) {
-            window.location.href = "/dashboard";
-        }
+        import { API_BASE } from "../lib/api";
+
+        (async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/me`, {
+                    credentials: "include",
+                });
+                if (!res.ok) {
+                    return;
+                }
+                window.location.href = "/dashboard";
+            } catch {
+                // not authenticated yet
+            }
+        })();
 
         document
             .getElementById("login-form")!
@@ -99,6 +111,7 @@ import Layout from "../layouts/Layout.astro";
                         "http://localhost:8080/api/auth/login",
                         {
                             method: "POST",
+                            credentials: "include",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ username, password }),
                         },
@@ -107,8 +120,6 @@ import Layout from "../layouts/Layout.astro";
                         const d = await res.json();
                         throw new Error(d.error || "Invalid credentials");
                     }
-                    const { token } = await res.json();
-                    localStorage.setItem("aspm_token", token);
                     window.location.href = "/dashboard";
                 } catch (err: any) {
                     errorEl.textContent = err.message;

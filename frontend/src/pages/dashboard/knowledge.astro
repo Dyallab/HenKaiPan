@@ -174,17 +174,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   }
 
   // ── Role check ──────────────────────────────────────────────
-  const token = localStorage.getItem('aspm_token') ?? '';
-  let isAdmin = false;
-  if (token) {
+  import { api } from '../../lib/api';
+
+  (async () => {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      isAdmin = payload.role === 'admin';
+      const me = await api.getMe();
+      if (me.role === 'admin') {
+        document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
+      }
     } catch {}
-  }
-  if (isAdmin) {
-    document.querySelectorAll('.admin-only').forEach(el => el.classList.remove('hidden'));
-  }
+  })();
 
   // ── State ────────────────────────────────────────────────────
   let articles: Article[] = [];

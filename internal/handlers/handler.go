@@ -10,13 +10,14 @@ import (
 )
 
 type Handler struct {
-	store       repository.Stores
-	queue       *asynq.Client
-	frontendURL string
+	store        repository.Stores
+	queue        *asynq.Client
+	frontendURL  string
+	cookieSecure bool
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

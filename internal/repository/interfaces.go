@@ -371,6 +371,7 @@ type NotificationSettingsUpdate struct {
 	AlertScanComplete *bool
 	AlertScanFailed   *bool
 	AlertSLABreach    *bool
+	EmailRecipients   *[]string
 }
 
 type JiraIntegrationUpdate struct {

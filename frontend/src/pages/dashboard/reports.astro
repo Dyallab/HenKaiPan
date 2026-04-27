@@ -973,10 +973,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             btn.textContent = "Exporting…";
 
             try {
-                const token = localStorage.getItem("aspm_token") ?? "";
                 const url = api.exportFindingsURL(sev, "", status);
                 const res = await fetch(url, {
-                    headers: { Authorization: `Bearer ${token}` },
+                    credentials: "include",
                 });
                 if (!res.ok) throw new Error(res.statusText);
                 const blob = await res.blob();

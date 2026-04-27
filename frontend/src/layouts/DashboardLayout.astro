@@ -267,16 +267,25 @@ const navGroups = [
         </div>
 
         <script>
+            import { api } from "../lib/api";
+
             document
                 .getElementById("logout-btn")
-                ?.addEventListener("click", () => {
-                    localStorage.removeItem("aspm_token");
-                    window.location.href = "/login";
+                ?.addEventListener("click", async () => {
+                    try {
+                        await api.logout();
+                    } finally {
+                        window.location.href = "/login";
+                    }
                 });
 
-            if (!localStorage.getItem("aspm_token")) {
-                window.location.href = "/login";
-            }
+            (async () => {
+                try {
+                    await api.getMe();
+                } catch {
+                    window.location.href = "/login";
+                }
+            })();
         </script>
     </body>
 </html>

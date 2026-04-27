@@ -37,10 +37,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "token error")
 		return
 	}
+	auth.SetAuthCookie(w, token, h.cookieSecure)
+
+	w.Header().Set("Cache-Control", "no-store")
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"token":    token,
 		"role":     role,
 		"username": req.Username,
 	})
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	auth.ClearAuthCookie(w, h.cookieSecure)
+	w.WriteHeader(http.StatusNoContent)
 }

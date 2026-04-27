@@ -11,6 +11,8 @@ import (
 
 var secret = "dev-secret"
 
+const authCookieName = "aspm_token"
+
 // SetSecret must be called at startup with the value from config.
 func SetSecret(s string) { secret = s }
 
@@ -38,13 +40,38 @@ func IssueToken(username, role, userID string) (string, error) {
 
 func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, err := parseBearer(r)
+		claims, err := parseToken(r)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		ctx := context.WithValue(r.Context(), claimsKey, claims)
 		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func SetAuthCookie(w http.ResponseWriter, token string, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     authCookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   int((24 * time.Hour).Seconds()),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func ClearAuthCookie(w http.ResponseWriter, secure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     authCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -84,12 +111,11 @@ func GetClaims(r *http.Request) *Claims {
 	return c
 }
 
-func parseBearer(r *http.Request) (jwt.MapClaims, error) {
-	header := r.Header.Get("Authorization")
-	if !strings.HasPrefix(header, "Bearer ") {
+func parseToken(r *http.Request) (jwt.MapClaims, error) {
+	tokenStr := strings.TrimSpace(tokenFromRequest(r))
+	if tokenStr == "" {
 		return nil, jwt.ErrSignatureInvalid
 	}
-	tokenStr := strings.TrimPrefix(header, "Bearer ")
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, jwt.ErrSignatureInvalid
@@ -104,6 +130,17 @@ func parseBearer(r *http.Request) (jwt.MapClaims, error) {
 		return nil, jwt.ErrSignatureInvalid
 	}
 	return claims, nil
+}
+
+func tokenFromRequest(r *http.Request) string {
+	header := r.Header.Get("Authorization")
+	if strings.HasPrefix(header, "Bearer ") {
+		return strings.TrimPrefix(header, "Bearer ")
+	}
+	if cookie, err := r.Cookie(authCookieName); err == nil {
+		return cookie.Value
+	}
+	return ""
 }
 
 func jwtSecret() string { return secret }
