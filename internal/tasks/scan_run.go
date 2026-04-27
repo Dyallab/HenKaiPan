@@ -35,7 +35,6 @@ func NewNotificationConfig(cfg *config.Config) NotificationConfig {
 			Username: cfg.SMTPUsername,
 			Password: cfg.SMTPPassword,
 			From:     cfg.SMTPFrom,
-			To:       cfg.EmailTo,
 			Enabled:  cfg.EmailEnabled,
 		},
 	}
@@ -374,16 +373,17 @@ func enqueueFindingNotification(ctx context.Context, settings repository.Setting
 		EventType:   "finding.created",
 	}
 	payload.AISummary = ai.GenerateNotificationSummary(ctx, nc)
+	recipients := notificationSettings.EmailRecipients
 	switch payload.Severity {
 	case "critical":
 		if notificationSettings.AlertCritical {
 			enqueueWebhookEvent(ctx, webhooks, queue, "finding.critical", payload)
-			enqueueEmailEvent(ctx, queue, notifications.Email, "Critical finding detected", buildFindingEmailBody("finding.critical", payload))
+			enqueueEmailEvent(ctx, queue, notifications.Email, recipients, "Critical finding detected", buildFindingEmailBody("finding.critical", payload))
 		}
 	case "high":
 		if notificationSettings.AlertHigh {
 			enqueueWebhookEvent(ctx, webhooks, queue, "finding.high", payload)
-			enqueueEmailEvent(ctx, queue, notifications.Email, "High severity finding detected", buildFindingEmailBody("finding.high", payload))
+			enqueueEmailEvent(ctx, queue, notifications.Email, recipients, "High severity finding detected", buildFindingEmailBody("finding.high", payload))
 		}
 	}
 }
@@ -414,8 +414,9 @@ func enqueueScanNotification(ctx context.Context, scans repository.ScanRepositor
 		Error:        errorMessage,
 		CompletedAt:  now,
 	}
+	recipients := notificationSettings.EmailRecipients
 	enqueueWebhookEvent(ctx, webhooks, queue, eventType, payload)
-	enqueueEmailEvent(ctx, queue, notifications.Email, scanEmailSubject(eventType), buildScanEmailBody(eventType, payload))
+	enqueueEmailEvent(ctx, queue, notifications.Email, recipients, scanEmailSubject(eventType), buildScanEmailBody(eventType, payload))
 }
 
 func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookRepository, queue *asynq.Client, eventType string, payload any) int {
@@ -465,11 +466,11 @@ func enqueueWebhookEvent(ctx context.Context, webhooks repository.WebhookReposit
 	return enqueued
 }
 
-func enqueueEmailEvent(ctx context.Context, queue *asynq.Client, cfg EmailConfig, subject, body string) bool {
-	if !cfg.Enabled {
+func enqueueEmailEvent(ctx context.Context, queue *asynq.Client, cfg EmailConfig, recipients []string, subject, body string) bool {
+	if !cfg.Enabled || len(recipients) == 0 {
 		return false
 	}
-	payload, err := MarshalEmailSendPayload(EmailSendPayload{Subject: subject, Body: body})
+	payload, err := MarshalEmailSendPayload(EmailSendPayload{Subject: subject, Body: body, To: recipients})
 	if err != nil {
 		slog.Warn("marshal email payload failed", "err", err)
 		return false
@@ -576,6 +577,7 @@ func CheckSLABreaches(ctx context.Context, settings repository.SettingsRepositor
 	if !notificationSettings.AlertSLABreach {
 		return
 	}
+	recipients := notificationSettings.EmailRecipients
 	breaches, err := findings.ListPendingSLABreaches(ctx, 100)
 	if err != nil {
 		slog.Warn("failed to list pending sla breaches", "err", err)
@@ -611,7 +613,7 @@ func CheckSLABreaches(ctx context.Context, settings repository.SettingsRepositor
 			AISummary:   ai.GenerateNotificationSummary(ctx, fc),
 		}
 		webhookCount := enqueueWebhookEvent(ctx, webhooks, queue, "finding.sla_breach", payload)
-		emailQueued := enqueueEmailEvent(ctx, queue, notifications.Email, "SLA breach detected", buildSLABreachEmailBody(payload))
+		emailQueued := enqueueEmailEvent(ctx, queue, notifications.Email, recipients, "SLA breach detected", buildSLABreachEmailBody(payload))
 		if webhookCount > 0 || emailQueued {
 			marked = append(marked, breach.FindingID)
 		}

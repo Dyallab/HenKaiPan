@@ -19,7 +19,6 @@ type EmailConfig struct {
 	Username string
 	Password string
 	From     string
-	To       []string
 	Enabled  bool
 }
 
@@ -29,13 +28,60 @@ type EmailSendPayload struct {
 	To      []string `json:"to,omitempty"`
 }
 
+type EmailSender interface {
+	Enabled() bool
+	Send(ctx context.Context, to []string, subject, body string) error
+}
+
+type SMTPEmailSender struct {
+	cfg EmailConfig
+}
+
+func NewSMTPEmailSender(cfg EmailConfig) SMTPEmailSender {
+	return SMTPEmailSender{cfg: cfg}
+}
+
+func (s SMTPEmailSender) Enabled() bool {
+	return s.cfg.Enabled
+}
+
+func (s SMTPEmailSender) Send(ctx context.Context, to []string, subject, body string) error {
+	if !s.cfg.Enabled {
+		return nil
+	}
+
+	addr := s.cfg.Host + ":" + s.cfg.Port
+	var auth smtp.Auth
+	if strings.TrimSpace(s.cfg.Username) != "" || strings.TrimSpace(s.cfg.Password) != "" {
+		auth = smtp.PlainAuth("", s.cfg.Username, s.cfg.Password, s.cfg.Host)
+	}
+	message := buildEmailMessage(s.cfg.From, to, subject, body)
+
+	done := make(chan error, 1)
+	go func() {
+		done <- smtp.SendMail(addr, auth, s.cfg.From, to, []byte(message))
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-done:
+		if err != nil {
+			return fmt.Errorf("send email: %w", err)
+		}
+		return nil
+	case <-time.After(20 * time.Second):
+		return fmt.Errorf("send email timeout")
+	}
+}
+
 func MarshalEmailSendPayload(p EmailSendPayload) ([]byte, error) {
 	return json.Marshal(p)
 }
 
-func HandleEmailSend(cfg EmailConfig) asynq.HandlerFunc {
+func HandleEmailSend(sender EmailSender) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
-		if !cfg.Enabled {
+		if !sender.Enabled() {
 			return nil
 		}
 		var payload EmailSendPayload
@@ -43,32 +89,10 @@ func HandleEmailSend(cfg EmailConfig) asynq.HandlerFunc {
 			return fmt.Errorf("unmarshal email payload: %w", err)
 		}
 		recipients := payload.To
-		if len(recipients) == 0 {
-			recipients = cfg.To
-		}
 		if strings.TrimSpace(payload.Subject) == "" || strings.TrimSpace(payload.Body) == "" || len(recipients) == 0 {
 			return fmt.Errorf("email payload incomplete")
 		}
-
-		addr := cfg.Host + ":" + cfg.Port
-		auth := smtp.PlainAuth("", cfg.Username, cfg.Password, cfg.Host)
-		message := buildEmailMessage(cfg.From, recipients, payload.Subject, payload.Body)
-
-		done := make(chan error, 1)
-		go func() {
-			done <- smtp.SendMail(addr, auth, cfg.From, recipients, []byte(message))
-		}()
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-done:
-			if err != nil {
-				return fmt.Errorf("send email: %w", err)
-			}
-			return nil
-		case <-time.After(20 * time.Second):
-			return fmt.Errorf("send email timeout")
-		}
+		return sender.Send(ctx, recipients, payload.Subject, payload.Body)
 	}
 }
 

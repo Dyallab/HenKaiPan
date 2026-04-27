@@ -80,7 +80,7 @@ New target product model:
 - [x] Reports page — Risk score per target horizontal bars (**legacy implementation used repo**)
 - [x] Reports page — Export CSV with severity + status filters
 - [x] Add "Reports" nav item to `DashboardLayout.astro`
-- [ ] PDF report generation (browser print stylesheet)
+- [x] PDF report generation (browser print stylesheet)
 
 ---
 
@@ -148,7 +148,7 @@ New target product model:
 - [x] Webhook system: `POST /api/webhooks` + event delivery with retries
 - [x] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
 - [x] Jira integration: create ticket from finding
-- [ ] Email notifications: provider-backed delivery (SES/SendGrid/Postmark/Mailgun), SMTP only as dev/fallback
+- [x] Email notifications: Brevo en producción, Mailpit en desarrollo local (`docker-compose`), con abstracción de provider para no acoplar el código al vendor
 - [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
 
 ---

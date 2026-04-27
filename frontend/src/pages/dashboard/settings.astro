@@ -507,6 +507,38 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 ))
                             }
                         </div>
+                        <div class="space-y-3 rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4">
+                            <div>
+                                <p class="text-sm font-semibold text-on-background">Email recipients</p>
+                                <p class="text-xs text-slate-500">Comma-separated emails stored in DB. Prod source of truth.</p>
+                            </div>
+                            <textarea
+                                id="email-recipients"
+                                rows="3"
+                                placeholder="alice@company.com, bob@company.com"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none"
+                            ></textarea>
+                            <div class="flex items-center gap-3">
+                                <button
+                                    id="save-email-recipients"
+                                    class="px-3 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                >
+                                    Save recipients
+                                </button>
+                                <p id="recipients-msg" class="text-xs hidden"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button
+                                id="test-email-btn"
+                                class="px-3 py-2 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all"
+                            >
+                                Send test email
+                            </button>
+                            <p class="text-[11px] text-slate-500">
+                                Sends a message to the configured SMTP recipients.
+                            </p>
+                        </div>
                         <p id="notification-msg" class="text-xs hidden"></p>
                     </div>
 
@@ -629,9 +661,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </p>
                 </div>
 
-                <!-- Current session token -->
+                <!-- Session security -->
                 <div
-                    class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                    class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-3"
                 >
                     <h4
                         class="font-bold text-on-background flex items-center gap-2"
@@ -640,40 +672,12 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             class="material-symbols-outlined text-sky-400 text-xl"
                             >key</span
                         >
-                        Current Session Token
+                        Session Security
                     </h4>
-                    <div class="space-y-2">
-                        <label
-                            class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                            >JWT (read-only)</label
-                        >
-                        <div class="flex gap-3">
-                            <input
-                                id="token-display"
-                                type="password"
-                                readonly
-                                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-slate-400 text-xs font-mono outline-none cursor-default"
-                            />
-                            <button
-                                id="copy-token"
-                                class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2"
-                            >
-                                <span class="material-symbols-outlined text-sm"
-                                    >content_copy</span
-                                >
-                                Copy
-                            </button>
-                            <button
-                                id="reveal-token"
-                                class="px-4 py-2.5 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-2"
-                            >
-                                <span class="material-symbols-outlined text-sm"
-                                    >visibility</span
-                                >
-                                Reveal
-                            </button>
-                        </div>
-                    </div>
+                    <p class="text-sm text-slate-400">
+                        The session token is stored in an HttpOnly cookie, so it is not
+                        readable from JavaScript. Use Sign Out to clear it.
+                    </p>
                 </div>
 
                 <!-- Danger zone -->
@@ -1222,55 +1226,33 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${enabled ? "right-0.5" : "left-0.5"}`;
     }
 
-    // --- Security: token display ---
-    const token = localStorage.getItem("aspm_token") ?? "";
-    (document.getElementById("token-display") as HTMLInputElement).value =
-        token;
+    import { api } from "../../lib/api";
 
-    document.getElementById("copy-token")!.addEventListener("click", () => {
-        navigator.clipboard.writeText(token);
-        const btn = document.getElementById("copy-token")!;
-        btn.innerHTML =
-            '<span class="material-symbols-outlined text-sm">check</span> Copied';
-        setTimeout(() => {
-            btn.innerHTML =
-                '<span class="material-symbols-outlined text-sm">content_copy</span> Copy';
-        }, 2000);
-    });
-
-    let revealed = false;
-    document.getElementById("reveal-token")!.addEventListener("click", () => {
-        const input = document.getElementById(
-            "token-display",
-        ) as HTMLInputElement;
-        revealed = !revealed;
-        input.type = revealed ? "text" : "password";
-        const btn = document.getElementById("reveal-token")!;
-        btn.innerHTML = revealed
-            ? '<span class="material-symbols-outlined text-sm">visibility_off</span> Hide'
-            : '<span class="material-symbols-outlined text-sm">visibility</span> Reveal';
-    });
-
-    document.getElementById("danger-logout")!.addEventListener("click", () => {
-        localStorage.removeItem("aspm_token");
-        window.location.href = "/login";
-    });
-
-    document.getElementById("danger-clear")!.addEventListener("click", () => {
-        if (confirm("Clear all locally stored tokens and settings?")) {
-            [
-                "aspm_token",
-                "aspm_org_name",
-                "aspm_api_url",
-                "aspm_admin_user",
-                "aspm_webhooks",
-            ].forEach((k) => localStorage.removeItem(k));
+    document.getElementById("danger-logout")!.addEventListener("click", async () => {
+        try {
+            await api.logout();
+        } finally {
             window.location.href = "/login";
         }
     });
 
+    document.getElementById("danger-clear")!.addEventListener("click", async () => {
+        if (!confirm("Clear all locally stored settings?")) return;
+
+        try {
+            await api.logout();
+        } catch {}
+
+        [
+            "aspm_org_name",
+            "aspm_api_url",
+            "aspm_admin_user",
+            "aspm_webhooks",
+        ].forEach((k) => localStorage.removeItem(k));
+        window.location.href = "/login";
+    });
+
     // ---------- Users ----------
-    import { api } from "../../lib/api";
     type User = Awaited<ReturnType<typeof api.getUsers>>[number];
     type Team = Awaited<ReturnType<typeof api.getTeams>>[number];
     type NotificationSettings = Awaited<
@@ -1280,6 +1262,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     async function loadNotificationSettings() {
         try {
             const settings = await api.getNotificationSettings();
+            (document.getElementById("email-recipients") as HTMLTextAreaElement).value =
+                (settings.email_recipients ?? []).join(", ");
             document
                 .querySelectorAll<HTMLButtonElement>(".toggle-btn")
                 .forEach((btn) => {
@@ -1287,7 +1271,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         .notificationKey as keyof NotificationSettings;
                     if (!key) return;
                     setToggleState(btn, Boolean(settings[key]));
-                });
+            });
         } catch (e: any) {
             const msg = document.getElementById("notification-msg")!;
             msg.textContent =
@@ -1296,6 +1280,31 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             msg.classList.remove("hidden");
         }
     }
+
+    document.getElementById("save-email-recipients")!.addEventListener("click", async () => {
+        const btn = document.getElementById("save-email-recipients") as HTMLButtonElement;
+        const msg = document.getElementById("recipients-msg")!;
+        const raw = (document.getElementById("email-recipients") as HTMLTextAreaElement).value;
+        const email_recipients = raw.split(",").map((v) => v.trim()).filter(Boolean);
+
+        btn.disabled = true;
+        msg.classList.add("hidden");
+
+        try {
+            const settings = await api.updateNotificationSettings({ email_recipients });
+            (document.getElementById("email-recipients") as HTMLTextAreaElement).value =
+                (settings.email_recipients ?? []).join(", ");
+            msg.textContent = "Recipients saved.";
+            msg.className = "text-xs text-secondary";
+            msg.classList.remove("hidden");
+        } catch (e: any) {
+            msg.textContent = e.message ?? "Failed to save recipients.";
+            msg.className = "text-xs text-error";
+            msg.classList.remove("hidden");
+        } finally {
+            btn.disabled = false;
+        }
+    });
 
     document
         .querySelectorAll<HTMLButtonElement>(".toggle-btn")
@@ -1325,6 +1334,28 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 }
             });
         });
+
+    document.getElementById("test-email-btn")!.addEventListener("click", async () => {
+        const btn = document.getElementById("test-email-btn") as HTMLButtonElement;
+        const msg = document.getElementById("notification-msg")!;
+        btn.disabled = true;
+        btn.textContent = "Sending...";
+        msg.classList.add("hidden");
+
+        try {
+            const result = await api.testNotificationEmail();
+            msg.textContent = result.message ?? "Test email queued.";
+            msg.className = "text-xs text-secondary";
+            msg.classList.remove("hidden");
+        } catch (e: any) {
+            msg.textContent = e.message ?? "Failed to queue test email.";
+            msg.className = "text-xs text-error";
+            msg.classList.remove("hidden");
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Send test email";
+        }
+    });
 
     async function loadJiraIntegration() {
         try {

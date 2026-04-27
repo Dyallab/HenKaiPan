@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"aspm/internal/models"
+	"aspm/internal/secrets"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,13 +19,18 @@ type settingsRepo struct {
 
 func (r *settingsRepo) GetNotificationSettings(ctx context.Context) (*models.NotificationSettings, error) {
 	var s models.NotificationSettings
+	var emailRecipientsRaw []byte
 	err := r.db.QueryRow(ctx, `
-		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, updated_at
+		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, updated_at
 		FROM notification_settings
 		WHERE singleton = TRUE`,
-	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &s.UpdatedAt)
+	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &emailRecipientsRaw, &s.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get notification settings: %w", err)
+	}
+	_ = json.Unmarshal(emailRecipientsRaw, &s.EmailRecipients)
+	if s.EmailRecipients == nil {
+		s.EmailRecipients = []string{}
 	}
 	return &s, nil
 }
@@ -49,6 +55,15 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 	if upd.AlertSLABreach != nil {
 		current.AlertSLABreach = *upd.AlertSLABreach
 	}
+	if upd.EmailRecipients != nil {
+		current.EmailRecipients = compactStrings(*upd.EmailRecipients)
+	}
+
+	emailRecipientsJSON, err := json.Marshal(current.EmailRecipients)
+	if err != nil {
+		return nil, fmt.Errorf("marshal email recipients: %w", err)
+	}
+	var emailRecipientsRaw []byte
 
 	var out models.NotificationSettings
 	err = r.db.QueryRow(ctx, `
@@ -58,14 +73,19 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 		    alert_scan_complete = $3,
 		    alert_scan_failed = $4,
 		    alert_sla_breach = $5,
+		    email_recipients = $6,
 		    updated_at = NOW()
 		WHERE singleton = TRUE
-		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, updated_at`,
+		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, updated_at`,
 		current.AlertCritical, current.AlertHigh, current.AlertScanComplete, current.AlertScanFailed,
-		current.AlertSLABreach,
-	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &out.UpdatedAt)
+		current.AlertSLABreach, emailRecipientsJSON,
+	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update notification settings: %w", err)
+	}
+	_ = json.Unmarshal(emailRecipientsRaw, &out.EmailRecipients)
+	if out.EmailRecipients == nil {
+		out.EmailRecipients = []string{}
 	}
 	return &out, nil
 }
@@ -86,25 +106,34 @@ func (r *settingsRepo) GetJiraIntegration(ctx context.Context) (*models.JiraInte
 	if j.Labels == nil {
 		j.Labels = []string{}
 	}
-	j.HasToken = strings.TrimSpace(token) != ""
-	j.TokenMasked = maskSecret(token)
+	decrypted, err := secrets.Decrypt(token)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt jira token: %w", err)
+	}
+	j.HasToken = strings.TrimSpace(decrypted) != ""
+	j.TokenMasked = maskSecret(decrypted)
 	return &j, nil
 }
 
 func (r *settingsRepo) GetJiraCredentials(ctx context.Context) (*JiraCredentials, error) {
 	var creds JiraCredentials
 	var labelsRaw []byte
+	var token string
 	err := r.db.QueryRow(ctx, `
 		SELECT base_url, user_email, project_key, issue_type, labels, token, enabled
 		FROM jira_integrations
 		WHERE singleton = TRUE`,
-	).Scan(&creds.BaseURL, &creds.UserEmail, &creds.ProjectKey, &creds.IssueType, &labelsRaw, &creds.Token, &creds.Enabled)
+	).Scan(&creds.BaseURL, &creds.UserEmail, &creds.ProjectKey, &creds.IssueType, &labelsRaw, &token, &creds.Enabled)
 	if err != nil {
 		return nil, fmt.Errorf("get jira credentials: %w", err)
 	}
 	_ = json.Unmarshal(labelsRaw, &creds.Labels)
 	if creds.Labels == nil {
 		creds.Labels = []string{}
+	}
+	creds.Token, err = secrets.Decrypt(token)
+	if err != nil {
+		return nil, fmt.Errorf("decrypt jira credentials: %w", err)
 	}
 	return &creds, nil
 }
@@ -137,6 +166,11 @@ func (r *settingsRepo) UpsertJiraIntegration(ctx context.Context, upd JiraIntegr
 		currentCreds.Token = strings.TrimSpace(*upd.Token)
 	}
 
+	encryptedToken, err := secrets.Encrypt(currentCreds.Token)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt jira token: %w", err)
+	}
+
 	labelsJSON, err := json.Marshal(currentCreds.Labels)
 	if err != nil {
 		return nil, fmt.Errorf("marshal jira labels: %w", err)
@@ -159,7 +193,7 @@ func (r *settingsRepo) UpsertJiraIntegration(ctx context.Context, upd JiraIntegr
 		currentCreds.IssueType,
 		labelsJSON,
 		currentCreds.Enabled,
-		currentCreds.Token,
+		encryptedToken,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("update jira integration: %w", err)

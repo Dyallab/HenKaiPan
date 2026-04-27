@@ -1,25 +1,19 @@
-const API_BASE = 'http://localhost:8080';
-
-function getToken(): string | null {
-  return typeof localStorage !== 'undefined' ? localStorage.getItem('aspm_token') : null;
-}
+export const API_BASE = 'http://localhost:8080';
 
 function serializeMultiValue(value: string | string[]): string {
   return Array.isArray(value) ? value.join(',') : value;
 }
 
 async function req<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers ?? {}),
     },
   });
   if (res.status === 401) {
-    localStorage.removeItem('aspm_token');
     window.location.href = '/login';
     throw new Error('unauthorized');
   }
@@ -41,10 +35,12 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   login: (username: string, password: string) =>
-    req<{ token: string }>('/api/auth/login', {
+    req<{ role: string; username: string }>('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     }),
+
+  logout: () => req<void>('/api/auth/logout', { method: 'POST' }),
 
   getMetrics: () => req<MetricsSummary>('/api/metrics/summary'),
 
@@ -252,6 +248,10 @@ export const api = {
     req<NotificationSettings>('/api/settings/notifications', {
       method: 'PATCH',
       body: JSON.stringify(data),
+    }),
+  testNotificationEmail: () =>
+    req<{ status: string; message: string }>('/api/settings/notifications/test-email', {
+      method: 'POST',
     }),
 
   getJiraIntegration: () => req<JiraIntegration>('/api/integrations/jira'),
@@ -530,6 +530,7 @@ export interface NotificationSettings {
   alert_scan_complete: boolean;
   alert_scan_failed: boolean;
   alert_sla_breach: boolean;
+  email_recipients: string[];
   updated_at: string;
 }
 

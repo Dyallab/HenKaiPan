@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,9 +13,11 @@ import (
 	"aspm/internal/jira"
 	"aspm/internal/models"
 	"aspm/internal/repository"
+	"aspm/internal/tasks"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/hibiken/asynq"
 )
 
 func (h *Handler) GetNotificationSettings(w http.ResponseWriter, r *http.Request) {
@@ -33,6 +36,7 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		AlertScanComplete *bool `json:"alert_scan_complete"`
 		AlertScanFailed   *bool `json:"alert_scan_failed"`
 		AlertSLABreach    *bool `json:"alert_sla_breach"`
+		EmailRecipients   *[]string `json:"email_recipients"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid body")
@@ -44,12 +48,44 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		AlertScanComplete: body.AlertScanComplete,
 		AlertScanFailed:   body.AlertScanFailed,
 		AlertSLABreach:    body.AlertSLABreach,
+		EmailRecipients:   body.EmailRecipients,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to update notification settings")
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)
+}
+
+func (h *Handler) TestNotificationEmail(w http.ResponseWriter, r *http.Request) {
+	settings, err := h.store.Settings.GetNotificationSettings(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to load notification settings")
+		return
+	}
+	if len(settings.EmailRecipients) == 0 {
+		writeError(w, http.StatusBadRequest, "configure email recipients first")
+		return
+	}
+	payload, err := tasks.MarshalEmailSendPayload(tasks.EmailSendPayload{
+		Subject: "HenKaiPan email test",
+		Body:    "This is a test email from HenKaiPan. If you received this, Mailpit/Brevo is working.",
+		To:      settings.EmailRecipients,
+	})
+	if err != nil {
+		slog.Error("failed to marshal test email payload", "err", err)
+		writeError(w, http.StatusInternalServerError, "failed to create test email")
+		return
+	}
+
+	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeEmailSend, payload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second)); err != nil {
+		slog.Error("failed to enqueue test email task", "err", err)
+		writeError(w, http.StatusInternalServerError, "failed to enqueue test email")
+		return
+	}
+
+	slog.Info("enqueued test email")
+	writeJSON(w, http.StatusOK, map[string]string{"status": "queued", "message": "Test email queued for delivery"})
 }
 
 func (h *Handler) GetJiraIntegration(w http.ResponseWriter, r *http.Request) {

@@ -146,7 +146,7 @@ flowchart TD
 - Uses `frontend/src/lib/api.ts` as the browser-side API client.
 - Provides:
   - Landing page with scanner showcase and feature bento grid
-  - Login page with JWT authentication
+  - Login page with JWT auth via HttpOnly cookie
   - Dashboard with metrics, severity bars, scanner bars, recent scans
   - Scans page with scanner type badges and status indicators
   - Findings page with filters, SLA tracking, and triage modal
@@ -161,7 +161,7 @@ flowchart TD
 
 - Entry point: `cmd/api/main.go`
 - Responsibilities:
-  - JWT authentication and role-based authorization (admin/analyst/viewer)
+  - JWT authentication via HttpOnly cookie and role-based authorization (admin/analyst/viewer)
   - REST endpoints for:
     - Authentication (`/api/auth`)
     - Users (`/api/users`)
@@ -216,6 +216,334 @@ All scanners are executed as Docker containers so the worker stays generic and s
 - Repository layer lives under `internal/repository`.
 - Models live under `internal/models`.
 - Migrations live in `/migrations` and are auto-run by Docker on container initialization.
+
+### Database Schema (DBML)
+
+```dbml
+Table users {
+  id uuid [pk]
+  username text [not null, unique]
+  email text [not null, unique]
+  password_hash text [not null]
+  role text [not null, default: 'analyst']
+  created_at timestamptz
+  last_login timestamptz
+}
+
+Table teams {
+  id uuid [pk]
+  name text [not null, unique]
+  created_at timestamptz
+}
+
+Table team_members {
+  team_id uuid [pk, not null]
+  user_id uuid [pk, not null]
+}
+
+Table apps {
+  id uuid [pk]
+  name text [not null, unique]
+  description text [not null, default: '']
+  team_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table repos {
+  id uuid [pk]
+  name varchar(255) [not null]
+  url text [not null, unique]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table projects {
+  id uuid [pk]
+  name text [not null]
+  description text [not null, default: '']
+  app_id uuid [not null]
+  repo_id uuid
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table scans {
+  id uuid [pk]
+  repo_id uuid
+  scan_batch_id uuid [not null]
+  scanner varchar(50) [not null]
+  status varchar(20) [not null, default: 'pending']
+  target text [not null]
+  started_at timestamptz
+  completed_at timestamptz
+  created_at timestamptz
+  error text
+  container_log text
+}
+
+Table findings {
+  id uuid [pk]
+  scan_id uuid [not null]
+  scanner varchar(50) [not null]
+  rule_id varchar(255)
+  cve_id text
+  cwe_id text
+  title text [not null]
+  description text
+  severity varchar(20) [not null, default: 'info']
+  file_path text
+  line_start int
+  line_end int
+  code_snippet text
+  raw jsonb
+  status varchar(20) [not null, default: 'open']
+  assigned_to text
+  false_positive boolean [not null, default: false]
+  notes text
+  resolved_at timestamptz
+  sla_deadline timestamptz
+  remediation_slug text
+  confidence_score float
+  corroboration_count int [not null, default: 0]
+  suppressed boolean [not null, default: false]
+  ai_summary text
+  summary_fingerprint text
+  summary_state text [not null, default: 'none']
+  sla_breach_attempted_at timestamptz
+  created_at timestamptz
+}
+
+Table agent_analyses {
+  id uuid [pk]
+  finding_id uuid [not null]
+  agent_type text [not null, default: 'validator']
+  confidence float [not null, default: 0]
+  fp_likelihood text [not null, default: 'unknown']
+  reasoning text
+  raw_output jsonb
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table finding_correlations {
+  id uuid [pk]
+  finding_id_a uuid [not null]
+  finding_id_b uuid [not null]
+  correlation_type text [not null, default: 'same_location']
+  created_at timestamptz
+}
+
+Table finding_summary_cache {
+  fingerprint text [pk]
+  scanner text [not null]
+  rule_id text [not null]
+  title text [not null]
+  issue_type text
+  status text [not null, default: 'pending']
+  summary text
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table knowledge_articles {
+  id uuid [pk]
+  slug text [not null, unique]
+  title text [not null]
+  content_md text [not null]
+  tags text[] [not null]
+  cwe_ids text[] [not null]
+  rule_ids text[] [not null]
+  scanner text [not null, default: '']
+  auto_generated boolean [not null, default: false]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table policies {
+  id uuid [pk]
+  name text [not null]
+  conditions jsonb [not null]
+  actions jsonb [not null]
+  enabled boolean [not null, default: true]
+  created_at timestamptz
+}
+
+Table suppressions {
+  id uuid [pk]
+  name text [not null]
+  rule_id text
+  file_pattern text
+  scanner text
+  reason text
+  created_at timestamptz
+}
+
+Table webhooks {
+  id uuid [pk]
+  label text [not null]
+  url text [not null]
+  events jsonb [not null]
+  enabled boolean [not null, default: true]
+  last_delivery timestamptz
+  delivery_count int [not null, default: 0]
+  error_count int [not null, default: 0]
+  last_error text
+  delivery_type text [not null, default: 'generic']
+  created_at timestamptz
+}
+
+Table webhook_delivery_logs {
+  id uuid [pk]
+  webhook_id uuid [not null]
+  event_type text [not null]
+  payload jsonb [not null]
+  status_code int
+  response_body text
+  error_message text
+  created_at timestamptz
+}
+
+Table notification_settings {
+  singleton boolean [pk, not null, default: true]
+  alert_critical boolean [not null, default: true]
+  alert_high boolean [not null, default: false]
+  alert_scan_complete boolean [not null, default: true]
+  alert_scan_failed boolean [not null, default: true]
+  alert_sla_breach boolean [not null, default: true]
+  email_recipients jsonb [not null]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table jira_integrations {
+  singleton boolean [pk, not null, default: true]
+  base_url text [not null, default: '']
+  user_email text [not null, default: '']
+  project_key text [not null, default: '']
+  issue_type text [not null, default: 'Task']
+  labels jsonb [not null]
+  token text [not null, default: '']
+  enabled boolean [not null, default: false]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table jira_issue_links {
+  id uuid [pk]
+  finding_id uuid [not null, unique]
+  issue_key text
+  issue_url text
+  status text
+  created_at timestamptz
+}
+
+Ref: team_members.team_id > teams.id
+Ref: team_members.user_id > users.id
+Ref: apps.team_id > teams.id
+Ref: projects.app_id > apps.id
+Ref: projects.repo_id > repos.id
+Ref: scans.repo_id > repos.id
+Ref: findings.scan_id > scans.id
+Ref: agent_analyses.finding_id > findings.id
+Ref: finding_correlations.finding_id_a > findings.id
+Ref: finding_correlations.finding_id_b > findings.id
+Ref: webhook_delivery_logs.webhook_id > webhooks.id
+Ref: jira_issue_links.finding_id > findings.id
+```
+
+> Note: sensitive persisted integration secrets (for example the Jira token) are encrypted at rest; user passwords remain hashed.
+
+### Core Schema Diagram (Mermaid)
+
+```mermaid
+erDiagram
+    USERS ||--o{ TEAM_MEMBERS : member_of
+    TEAMS ||--o{ TEAM_MEMBERS : has
+    TEAMS ||--o{ APPS : owns
+    APPS ||--o{ PROJECTS : contains
+    REPOS ||--o{ PROJECTS : linked_to
+    REPOS ||--o{ SCANS : scanned_by
+    SCANS ||--o{ FINDINGS : produces
+    FINDINGS ||--o{ AGENT_ANALYSES : validated_by
+    FINDINGS ||--o{ FINDING_CORRELATIONS : correlated_with
+    FINDINGS ||--o| JIRA_ISSUE_LINKS : linked_by
+    WEBHOOKS ||--o{ WEBHOOK_DELIVERY_LOGS : logs
+
+    USERS {
+        uuid id PK
+        text username
+        text email
+        text password_hash
+        text role
+    }
+    TEAMS {
+        uuid id PK
+        text name
+    }
+    TEAM_MEMBERS {
+        uuid team_id PK
+        uuid user_id PK
+    }
+    APPS {
+        uuid id PK
+        text name
+        uuid team_id FK
+    }
+    PROJECTS {
+        uuid id PK
+        text name
+        uuid app_id FK
+        uuid repo_id FK
+    }
+    REPOS {
+        uuid id PK
+        text name
+        text url
+    }
+    SCANS {
+        uuid id PK
+        uuid repo_id FK
+        uuid scan_batch_id
+        text scanner
+        text status
+    }
+    FINDINGS {
+        uuid id PK
+        uuid scan_id FK
+        text scanner
+        text rule_id
+        text severity
+        text status
+    }
+    AGENT_ANALYSES {
+        uuid id PK
+        uuid finding_id FK
+        text agent_type
+    }
+    FINDING_CORRELATIONS {
+        uuid id PK
+        uuid finding_id_a FK
+        uuid finding_id_b FK
+    }
+    JIRA_ISSUE_LINKS {
+        uuid id PK
+        uuid finding_id FK
+        text issue_key
+    }
+    WEBHOOKS {
+        uuid id PK
+        text label
+        text url
+    }
+    WEBHOOK_DELIVERY_LOGS {
+        uuid id PK
+        uuid webhook_id FK
+        text event_type
+    }
+```
+
+> Mermaid is intentionally simplified; the DBML block above is the full schema reference.
 
 ### Queue Layer
 
