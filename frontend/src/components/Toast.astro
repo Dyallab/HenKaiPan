@@ -1,0 +1,94 @@
+---
+interface Props {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
+  duration?: number;
+}
+
+const { id, type, message, duration = 5000 } = Astro.props;
+
+const bgColor = {
+  success: 'bg-green-500/10 border-green-500/20',
+  error: 'bg-red-500/10 border-red-500/20',
+  info: 'bg-blue-500/10 border-blue-500/20',
+  warning: 'bg-yellow-500/10 border-yellow-500/20',
+}[type];
+
+const textColor = {
+  success: 'text-green-400',
+  error: 'text-red-400',
+  info: 'text-blue-400',
+  warning: 'text-yellow-400',
+}[type];
+
+const icon = {
+  success: 'check_circle',
+  error: 'error',
+  info: 'info',
+  warning: 'warning',
+}[type];
+---
+
+<div
+  id={id}
+  class={`toast fixed bottom-4 right-4 flex items-gap-3 border rounded-lg px-4 py-3 max-w-sm animate-slide-in ${bgColor}`}
+  role="alert"
+  data-type={type}
+  data-duration={duration}
+>
+  <span class={`material-symbols-outlined ms-fill text-xl ${textColor}`}>
+    {icon}
+  </span>
+  <span class={`text-sm ${textColor}`}>
+    {message}
+  </span>
+  <button
+    class="ml-auto text-slate-400 hover:text-slate-300 transition-colors"
+    onclick={`document.getElementById('${id}').remove()`}
+    aria-label="Close notification"
+  >
+    <span class="material-symbols-outlined ms-fill">close</span>
+  </button>
+</div>
+
+<script define:vars={{ duration, id }}>
+  // Auto-dismiss after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      const elem = document.getElementById(id);
+      if (elem) {
+        elem.style.animation = 'slide-out 300ms ease-out forwards';
+        setTimeout(() => elem.remove(), 300);
+      }
+    }, duration);
+  }
+</script>
+
+<style>
+  @keyframes slide-in {
+    from {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-out {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(400px);
+      opacity: 0;
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 300ms ease-out;
+  }
+</style>

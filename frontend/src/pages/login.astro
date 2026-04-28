@@ -53,15 +53,10 @@ import Layout from "../layouts/Layout.astro";
                             class="w-full bg-surface-container-low border border-outline-variant/40 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
                         />
                     </div>
-                    <div
-                        id="error-msg"
-                        class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5"
-                    >
-                    </div>
                     <button
                         type="submit"
                         id="submit-btn"
-                        class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all text-sm uppercase tracking-widest"
+                        class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Sign in
                     </button>
@@ -72,6 +67,7 @@ import Layout from "../layouts/Layout.astro";
 
     <script>
         import { API_BASE } from "../lib/api";
+        import { toast } from "../lib/toast";
 
         (async () => {
             try {
@@ -79,11 +75,13 @@ import Layout from "../layouts/Layout.astro";
                     credentials: "include",
                 });
                 if (!res.ok) {
+                    console.log("Not authenticated, staying on login");
                     return;
                 }
+                console.log("Already authenticated, redirecting to dashboard");
                 window.location.href = "/dashboard";
-            } catch {
-                // not authenticated yet
+            } catch (err) {
+                console.error("Auth check error:", err);
             }
         })();
 
@@ -94,7 +92,6 @@ import Layout from "../layouts/Layout.astro";
                 const btn = document.getElementById(
                     "submit-btn",
                 ) as HTMLButtonElement;
-                const errorEl = document.getElementById("error-msg")!;
                 const username = (
                     document.getElementById("username") as HTMLInputElement
                 ).value;
@@ -103,8 +100,8 @@ import Layout from "../layouts/Layout.astro";
                 ).value;
 
                 btn.disabled = true;
+                const originalText = btn.textContent;
                 btn.textContent = "Signing in...";
-                errorEl.classList.add("hidden");
 
                 try {
                     const res = await fetch(
@@ -116,16 +113,33 @@ import Layout from "../layouts/Layout.astro";
                             body: JSON.stringify({ username, password }),
                         },
                     );
+
+                    console.log("Login response status:", res.status);
+                    const data = await res.json();
+
                     if (!res.ok) {
-                        const d = await res.json();
-                        throw new Error(d.error || "Invalid credentials");
+                        const errorMsg =
+                            data.error || `Login failed (${res.status})`;
+                        console.error("Login failed:", errorMsg);
+                        toast(errorMsg, "error");
+                        return;
                     }
-                    window.location.href = "/dashboard";
+
+                    toast(`Welcome back, ${data.username}!`, "success");
+
+                    // Give toast time to show before redirect
+                    setTimeout(() => {
+                        window.location.href = "/dashboard";
+                    }, 500);
                 } catch (err: any) {
-                    errorEl.textContent = err.message;
-                    errorEl.classList.remove("hidden");
+                    const errorMsg =
+                        err?.message ||
+                        "Connection error. Check that the API server is running.";
+                    console.error("Login error:", err);
+                    toast(`Error: ${errorMsg}`, "error");
+                } finally {
                     btn.disabled = false;
-                    btn.textContent = "Sign in";
+                    btn.textContent = originalText;
                 }
             });
     </script>

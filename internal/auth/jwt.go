@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -42,6 +43,16 @@ func JWTMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		claims, err := parseToken(r)
 		if err != nil {
+			slog.WarnContext(r.Context(), "JWT middleware failed", "error", err.Error(), "path", r.URL.Path)
+			// Debug: log what we found
+			if cookie, cerr := r.Cookie(authCookieName); cerr == nil {
+				slog.DebugContext(r.Context(), "cookie found but parsing failed", "cookie_len", len(cookie.Value))
+			} else {
+				slog.DebugContext(r.Context(), "no auth cookie found", "cookie_error", cerr.Error())
+			}
+			if auth := r.Header.Get("Authorization"); auth != "" {
+				slog.DebugContext(r.Context(), "Authorization header found", "header_len", len(auth))
+			}
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -51,6 +62,7 @@ func JWTMiddleware(next http.Handler) http.Handler {
 }
 
 func SetAuthCookie(w http.ResponseWriter, token string, secure bool) {
+	slog.Debug("setting auth cookie", "token_len", len(token), "secure", secure, "samesite", "Lax")
 	http.SetCookie(w, &http.Cookie{
 		Name:     authCookieName,
 		Value:    token,
@@ -114,21 +126,31 @@ func GetClaims(r *http.Request) *Claims {
 func parseToken(r *http.Request) (jwt.MapClaims, error) {
 	tokenStr := strings.TrimSpace(tokenFromRequest(r))
 	if tokenStr == "" {
+		slog.Debug("no token found in request")
 		return nil, jwt.ErrSignatureInvalid
 	}
+	slog.Debug("parsing JWT", "token_len", len(tokenStr))
 	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			slog.Warn("invalid token method", "method", t.Method.Alg())
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return []byte(jwtSecret()), nil
 	})
-	if err != nil || !token.Valid {
+	if err != nil {
+		slog.Warn("JWT parse error", "error", err.Error())
+		return nil, err
+	}
+	if !token.Valid {
+		slog.Warn("JWT invalid")
 		return nil, jwt.ErrSignatureInvalid
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
+		slog.Warn("failed to extract claims")
 		return nil, jwt.ErrSignatureInvalid
 	}
+	slog.Debug("JWT parsed successfully", "subject", claims["sub"])
 	return claims, nil
 }
 
