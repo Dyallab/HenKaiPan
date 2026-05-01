@@ -170,31 +170,4 @@ func envBool(key string, def bool) bool {
 	return v
 }
 
-func envInt(key string, def int) int {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return def
-	}
-	value, err := strconv.Atoi(raw)
-	if err != nil {
-		slog.Warn("invalid integer env var, using default", "key", key)
-		return def
-	}
-	return value
-}
 
-func envCSV(key string) []string {
-	raw := strings.TrimSpace(os.Getenv(key))
-	if raw == "" {
-		return []string{}
-	}
-	parts := strings.Split(raw, ",")
-	out := make([]string, 0, len(parts))
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-		if part != "" {
-			out = append(out, part)
-		}
-	}
-	return out
-}

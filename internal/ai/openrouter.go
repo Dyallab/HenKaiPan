@@ -64,47 +64,7 @@ type chatCompletionResponse struct {
 	} `json:"choices"`
 }
 
-func OpenRouterGenerateRemediation(ctx context.Context, req RemediationRequest) (string, error) {
-	prompt := buildPrompt(req)
-	content, err := OpenRouterGenerateText(ctx, remediationSystemPrompt, prompt, "")
-	if err != nil {
-		return "", err
-	}
-	if strings.TrimSpace(content) == "" {
-		return "", errors.New("empty remediation response from openrouter")
-	}
-	return content, nil
-}
 
-func GenerateJSON[T any](ctx context.Context, systemPrompt, userPrompt string, maxTokens int) (*T, error) {
-	return GenerateJSONWithModel[T](ctx, systemPrompt, userPrompt, maxTokens, "")
-}
-
-func GenerateJSONWithModel[T any](ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (*T, error) {
-	content, err := OpenRouterGenerateText(ctx, systemPrompt+"\n\nReturn a single JSON object only. Do not use markdown fences.", userPrompt, modelName)
-	if err != nil {
-		return nil, err
-	}
-
-	cleaned := strings.TrimSpace(content)
-	var target T
-	if err := json.Unmarshal([]byte(cleaned), &target); err == nil {
-		return &target, nil
-	}
-
-	jsonObject, err := extractJSONObject(cleaned)
-	if err != nil {
-		return nil, fmt.Errorf("parse structured response: %w", err)
-	}
-	if err := json.Unmarshal([]byte(jsonObject), &target); err != nil {
-		return nil, fmt.Errorf("unmarshal structured response: %w", err)
-	}
-	return &target, nil
-}
-
-func OpenRouterGenerateText(ctx context.Context, systemPrompt, userPrompt, modelName string) (string, error) {
-	return OpenRouterGenerateTextWithModel(ctx, systemPrompt, userPrompt, 2048, modelName)
-}
 
 func OpenRouterGenerateTextWithModel(ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, error) {
 	if apiKey == "" {
