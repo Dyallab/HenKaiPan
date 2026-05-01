@@ -165,8 +165,6 @@ New target product model:
 - [ ] Add filters/sorting for credibility score
 - [ ] Add correlation details endpoint/UI for "which scanners corroborated this"
 
-## v0.7.a - AI on-demand validation as a modifier on top of base credibility score
-
 ---
 
 ## v0.8 — First Paying Customers (SMB-ready)
@@ -200,13 +198,13 @@ New target product model:
 
 ## v0.9 — Compliance Readiness Path
 
-- [ ] Compliance starter mode: show "getting ready for SOC 2 / ISO 27001" instead of enterprise-heavy control management
-- [ ] Guided policy packs mapped to common early-stage controls (access control, secrets, vulnerability management, cloud hygiene)
-- [ ] Evidence-friendly exports: findings status, SLA handling, ownership, remediation history
-- [ ] Audit log (who changed what, when)
-- [ ] Risk acceptance / exception workflow with exportable rationale
-- [ ] Lightweight asset inventory view for projects, apps, scanners, owners, and last scan coverage
-- [ ] Compliance progress dashboard focused on readiness, not certification theater
+- [x] Compliance starter mode: show "getting ready for SOC 2 / ISO 27001" instead of enterprise-heavy control management
+- [x] Guided policy packs mapped to common early-stage controls (access control, secrets, vulnerability management, cloud hygiene)
+- [x] Evidence-friendly exports: findings status, SLA handling, ownership, remediation history
+- [x] Audit log (who changed what, when)
+- [x] Risk acceptance / exception workflow with exportable rationale
+- [x] Lightweight asset inventory view for projects, apps, scanners, owners, and last scan coverage
+- [x] Compliance progress dashboard focused on readiness, not certification theater
 
 ---
 

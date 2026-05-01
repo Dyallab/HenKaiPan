@@ -1,4 +1,4 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend up down build tidy
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air
 
 ifneq (,$(wildcard .env))
   include .env
@@ -9,13 +9,17 @@ dev-infra:
 	docker compose up postgres redis -d
 
 dev-api:
-	go run ./cmd/api
+	air -c .air.toml
 
 dev-worker:
-	go run ./cmd/worker
+	air -c .air-worker.toml
 
 dev-frontend:
 	cd frontend && pnpm dev
+
+dev: install-air
+	air -c .air.toml &
+	air -c .air-worker.toml
 
 up:
 	docker compose up --build
