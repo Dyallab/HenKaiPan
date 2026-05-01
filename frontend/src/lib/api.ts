@@ -147,6 +147,12 @@ export const api = {
   deleteRepo: (id: string) =>
     req<void>(`/api/repos/${id}`, { method: "DELETE" }),
 
+  updateRepoGitHubToken: (id: string, token: string) =>
+    req<void>(`/api/repos/${id}/github-token`, {
+      method: "PUT",
+      body: JSON.stringify({ token }),
+    }),
+
   getMe: () => req<User>("/api/me"),
 
   // Knowledge Center
@@ -326,6 +332,35 @@ export const api = {
   deleteSuppression: (id: string) =>
     req<void>(`/api/suppressions/${id}`, { method: "DELETE" }),
 
+  // Audit Logs
+  getAuditLogs: (entityType = "", action = "") =>
+    req<{ logs: AuditLog[]; total: number }>(
+      `/api/audit-logs?entity_type=${encodeURIComponent(entityType)}&action=${encodeURIComponent(action)}`,
+    ),
+
+  // Risk Acceptances
+  getRiskAcceptances: (status = "", findingId = "") =>
+    req<{ acceptances: RiskAcceptance[]; total: number }>(
+      `/api/risk-acceptances?status=${encodeURIComponent(status)}&finding_id=${encodeURIComponent(findingId)}`,
+    ),
+  createRiskAcceptance: (data: { finding_id: string; rationale: string; expires_at: string }) =>
+    req<RiskAcceptance>("/api/risk-acceptances", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  approveRiskAcceptance: (id: string, reviewNotes: string) =>
+    req<void>(`/api/risk-acceptances/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ review_notes: reviewNotes }),
+    }),
+  rejectRiskAcceptance: (id: string, reviewNotes: string) =>
+    req<void>(`/api/risk-acceptances/${id}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ review_notes: reviewNotes }),
+    }),
+  getRiskAcceptanceByFinding: (findingId: string) =>
+    req<RiskAcceptance>(`/api/findings/${findingId}/risk-acceptance`),
+
   getWebhooks: () => req<Webhook[]>("/api/webhooks"),
   createWebhook: (data: WebhookCreate) =>
     req<Webhook>("/api/webhooks", {
@@ -424,6 +459,8 @@ export interface Finding {
   suppressed: boolean;
   remediation_slug?: string;
   jira_issue?: JiraIssueLink;
+  confidence_score?: number | null;
+  corroboration_count?: number;
 }
 
 export interface AgentAnalysis {
@@ -452,9 +489,12 @@ export interface PolicyAction {
 export interface Policy {
   id: string;
   name: string;
+  description: string;
   conditions: PolicyCondition[];
   actions: PolicyAction[];
   enabled: boolean;
+  pack_type: string;
+  compliance_controls: string[];
   created_at: string;
 }
 
@@ -466,6 +506,34 @@ export interface Suppression {
   scanner?: string;
   reason?: string;
   created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  user_id: string;
+  user_email: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  old_value?: any;
+  new_value?: any;
+  ip_address?: string;
+  user_agent?: string;
+  created_at: string;
+}
+
+export interface RiskAcceptance {
+  id: string;
+  finding_id: string;
+  user_id: string;
+  rationale: string;
+  expires_at: string;
+  approved_by?: string;
+  approved_at?: string;
+  status: string;
+  review_notes?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface SLASummary {
@@ -507,6 +575,7 @@ export interface Repo {
   id: string;
   name: string;
   url: string;
+  has_token: boolean;
   created_at: string;
 }
 
