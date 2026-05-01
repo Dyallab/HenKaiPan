@@ -43,10 +43,60 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     </div>
   </div>
 
+  <!-- GitHub Token Modal -->
+  <div id="token-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 w-full max-w-md">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold text-on-background">Configure GitHub Token</h3>
+        <button id="close-token-modal" class="text-slate-400 hover:text-slate-200">
+          <span class="material-symbols-outlined text-xl">close</span>
+        </button>
+      </div>
+      <p class="text-sm text-slate-400 mb-4">
+        Enter a GitHub Personal Access Token to clone private repositories. The token will be encrypted and stored securely.
+      </p>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Repository</label>
+          <p id="modal-repo-name" class="text-sm font-semibold text-on-background"></p>
+        </div>
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">GitHub Token</label>
+          <input
+            id="github-token-input"
+            type="password"
+            placeholder="ghp_..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+          />
+          <p class="text-xs text-slate-500 mt-1">
+            Create a token with <span class="font-mono text-sky-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-sky-400 hover:underline">github.com/settings/tokens</a>
+          </p>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button
+            id="save-github-token"
+            class="flex-1 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
+          >
+            Save Token
+          </button>
+          <button
+            id="remove-github-token"
+            class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold transition-all"
+          >
+            Remove
+          </button>
+        </div>
+        <div id="token-msg" class="hidden text-sm"></div>
+      </div>
+    </div>
+  </div>
+
 </DashboardLayout>
 
 <script>
   import { api } from '../../lib/api';
+
+  let currentRepoId: string | null = null;
 
   async function loadRepos() {
     const repos = await api.getRepos();
@@ -63,10 +113,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             <div class="flex items-center gap-2 mb-1">
               <span class="material-symbols-outlined text-slate-500 text-base">hub</span>
               <p class="text-sm font-bold text-on-background">${r.name}</p>
+              ${r.has_token ? '<span class="material-symbols-outlined text-green-400 text-base" title="GitHub token configured">key</span>' : ''}
             </div>
             <p class="text-xs text-slate-500 font-mono truncate max-w-md">${r.url}</p>
           </div>
           <div class="flex items-center gap-3 shrink-0 ml-4">
+            <button
+              type="button"
+              data-configure-token="${r.id}"
+              data-repo-name="${r.name}"
+              data-repo-has-token="${r.has_token}"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors"
+            >
+              <span class="material-symbols-outlined text-sm">${r.has_token ? 'key' : 'key_off'}</span>
+              ${r.has_token ? 'Token Set' : 'Set Token'}
+            </button>
             <a href="/dashboard/scans?repo=${encodeURIComponent(r.url)}"
                class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
               <span class="material-symbols-outlined text-sm">security_update_good</span>
@@ -87,6 +148,31 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       `).join('')}
     </div>`;
 
+    // Configure token buttons
+    el.querySelectorAll('[data-configure-token]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const target = btn as HTMLElement;
+        currentRepoId = target.dataset.configureToken || null;
+        const repoName = target.dataset.repoName || '';
+        const hasToken = target.dataset.repoHasToken === 'true';
+
+        document.getElementById('modal-repo-name')!.textContent = repoName;
+        const tokenInput = document.getElementById('github-token-input') as HTMLInputElement;
+        tokenInput.value = '';
+        tokenInput.placeholder = hasToken ? '••••••••••••' : 'ghp_...';
+        
+        const removeBtn = document.getElementById('remove-github-token')!;
+        removeBtn.classList.toggle('hidden', !hasToken);
+        
+        const msg = document.getElementById('token-msg')!;
+        msg.className = 'hidden text-sm';
+        msg.textContent = '';
+
+        document.getElementById('token-modal')!.classList.remove('hidden');
+      });
+    });
+
+    // Delete repo buttons
     el.querySelectorAll('[data-delete-repo]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const target = btn as HTMLElement;
@@ -109,6 +195,73 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   }
 
+  // Modal close
+  document.getElementById('close-token-modal')!.addEventListener('click', () => {
+    document.getElementById('token-modal')!.classList.add('hidden');
+    currentRepoId = null;
+  });
+
+  // Save token
+  document.getElementById('save-github-token')!.addEventListener('click', async () => {
+    if (!currentRepoId) return;
+    
+    const tokenInput = document.getElementById('github-token-input') as HTMLInputElement;
+    const token = tokenInput.value.trim();
+    const msg = document.getElementById('token-msg')!;
+
+    if (!token) {
+      msg.textContent = 'Token is required';
+      msg.className = 'text-sm text-red-400';
+      return;
+    }
+
+    try {
+      await api.updateRepoGitHubToken(currentRepoId, token);
+      msg.textContent = 'Token saved successfully';
+      msg.className = 'text-sm text-emerald-400';
+      setTimeout(() => {
+        document.getElementById('token-modal')!.classList.add('hidden');
+        loadRepos();
+      }, 1000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save token';
+      msg.textContent = message;
+      msg.className = 'text-sm text-red-400';
+    }
+  });
+
+  // Remove token
+  document.getElementById('remove-github-token')!.addEventListener('click', async () => {
+    if (!currentRepoId) return;
+
+    const msg = document.getElementById('token-msg')!;
+    
+    if (!confirm('Remove the GitHub token for this repository?')) return;
+
+    try {
+      await api.updateRepoGitHubToken(currentRepoId, '');
+      msg.textContent = 'Token removed';
+      msg.className = 'text-sm text-emerald-400';
+      setTimeout(() => {
+        document.getElementById('token-modal')!.classList.add('hidden');
+        loadRepos();
+      }, 1000);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to remove token';
+      msg.textContent = message;
+      msg.className = 'text-sm text-red-400';
+    }
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('token-modal')!.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      document.getElementById('token-modal')!.classList.add('hidden');
+      currentRepoId = null;
+    }
+  });
+
+  // Add repo form
   document.getElementById('repo-form')!.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = (document.getElementById('repo-name') as HTMLInputElement).value.trim();

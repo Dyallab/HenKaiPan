@@ -83,6 +83,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <option value="fixed">Fixed</option>
         <option value="verified">Verified</option>
       </select>
+      <select id="sort-credibility" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">Sort: Default</option>
+        <option value="confidence_desc">Confidence (High-Low)</option>
+        <option value="confidence_asc">Confidence (Low-High)</option>
+        <option value="corroborated">Most Corroborated</option>
+      </select>
       <div class="relative">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base pointer-events-none">search</span>
         <input id="filter-cve" type="text" placeholder="CVE-YYYY-NNNNN"
@@ -228,8 +234,24 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const cve_id   = (document.getElementById('filter-cve') as HTMLInputElement).value.trim();
     const overdue  = (document.getElementById('filter-overdue') as HTMLInputElement).checked;
     const file_path = (document.getElementById('filter-file') as HTMLSelectElement).value;
+    const sortBy   = (document.getElementById('sort-credibility') as HTMLSelectElement).value;
 
     const { findings, total } = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id, false, file_path);
+    
+    // Apply client-side sorting by credibility
+    if (sortBy) {
+      findings.sort((a, b) => {
+        if (sortBy === 'confidence_desc') {
+          return (b.confidence_score ?? 0) - (a.confidence_score ?? 0);
+        } else if (sortBy === 'confidence_asc') {
+          return (a.confidence_score ?? 0) - (b.confidence_score ?? 0);
+        } else if (sortBy === 'corroborated') {
+          return (b.corroboration_count ?? 0) - (a.corroboration_count ?? 0);
+        }
+        return 0;
+      });
+    }
+    
     document.getElementById('findings-total')!.textContent = `${total} total`;
 
     const el = document.getElementById('findings-table')!;
@@ -246,6 +268,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 			<th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">Scanner</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden 2xl:table-cell">Credibility</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden xl:table-cell">SLA</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 hidden lg:table-cell">Jira</th>
             <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Detail</th>
@@ -256,6 +279,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             const sev = SEV_STYLES[f.severity] ?? SEV_STYLES.info;
             const stat = STATUS_STYLES[f.status] ?? STATUS_STYLES.open;
 			const scanner = scannerType(f.scanner);
+            const hasCorroboration = (f.corroboration_count ?? 0) > 0;
+            const confidenceBadge = f.confidence_score != null && f.confidence_score > 0.5
+              ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-500/20 bg-emerald-500/10 text-emerald-300" title="Confidence: ${(f.confidence_score * 100).toFixed(0)}%">High</span>`
+              : f.confidence_score != null && f.confidence_score < 0.5
+              ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-slate-500/20 bg-slate-500/10 text-slate-400" title="Confidence: ${(f.confidence_score * 100).toFixed(0)}%">Low</span>`
+              : '';
+            const corrobBadge = hasCorroboration
+              ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300" title="Corroborated by ${f.corroboration_count} scanner(s)">+${f.corroboration_count}</span>`
+              : '';
 			return `
               <tr class="group hover:bg-slate-900/30 transition-colors ${f.false_positive ? 'opacity-50' : ''}">
                 <td class="px-6 py-4">
@@ -265,6 +297,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                      <div class="flex items-center gap-2 mt-2 flex-wrap">
                        <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
                        ${f.ai_analyzed ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-purple-500/20 bg-purple-500/10 text-purple-300">AI analyzed</span>' : ''}
+                       ${hasCorroboration ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300">Corroborated</span>' : ''}
                        ${f.assigned_to ? `<span class="text-[11px] text-sky-400/80">Owner: ${f.assigned_to}</span>` : ''}
                      </div>
                    </a>
@@ -272,6 +305,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 				 <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${sev}">${f.severity}</span></td>
                 <td class="px-6 py-4"><span class="px-2 py-1 text-[10px] font-bold rounded tracking-wider border ${stat}">${STATUS_LABELS[f.status] ?? f.status}</span></td>
                 <td class="px-6 py-4 hidden xl:table-cell"><span class="font-mono text-xs text-slate-400">${f.scanner}</span></td>
+                <td class="px-6 py-4 hidden 2xl:table-cell">
+                  <div class="flex items-center gap-1 flex-wrap">
+                    ${confidenceBadge}
+                    ${corrobBadge}
+                  </div>
+                </td>
                 <td class="px-6 py-4 hidden xl:table-cell">${slaDisplay(f)}</td>
                 <td class="px-6 py-4 hidden lg:table-cell">${jiraDisplay(f)}</td>
                 <td class="px-6 py-4 text-right">
@@ -301,6 +340,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   document.getElementById('filter-btn')!.addEventListener('click', loadFindings);
   document.getElementById('filter-overdue')!.addEventListener('change', loadFindings);
+  document.getElementById('sort-credibility')!.addEventListener('change', loadFindings);
   document.getElementById('filter-cve')!.addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') loadFindings();
   });
@@ -323,6 +363,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('filter-cve') as HTMLInputElement).value = '';
     (document.getElementById('filter-overdue') as HTMLInputElement).checked = false;
     (document.getElementById('filter-file') as HTMLSelectElement).value = '';
+    (document.getElementById('sort-credibility') as HTMLSelectElement).value = '';
     loadFindings();
   });
 

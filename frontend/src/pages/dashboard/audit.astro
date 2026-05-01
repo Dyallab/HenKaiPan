@@ -1,0 +1,167 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Audit Log" active="audit">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-white">Audit Log</h1>
+      <p class="text-slate-400 text-sm mt-1">Compliance trail of all security-relevant changes</p>
+    </div>
+    <div class="flex gap-3">
+      <select id="filter-entity" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All entity types</option>
+        <option value="finding">Findings</option>
+        <option value="policy">Policies</option>
+        <option value="suppression">Suppressions</option>
+        <option value="risk_acceptance">Risk Acceptances</option>
+        <option value="scan">Scans</option>
+        <option value="user">Users</option>
+      </select>
+      <select id="filter-action" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+        <option value="">All actions</option>
+        <option value="finding.update">Finding Update</option>
+        <option value="finding.create">Finding Create</option>
+        <option value="policy.enable">Policy Enable</option>
+        <option value="policy.disable">Policy Disable</option>
+        <option value="risk_acceptance.create">Risk Acceptance Create</option>
+        <option value="risk_acceptance.approve">Risk Acceptance Approve</option>
+        <option value="risk_acceptance.reject">Risk Acceptance Reject</option>
+      </select>
+      <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold">
+        <span class="material-symbols-outlined text-base">filter_list</span>
+        Filter
+      </button>
+      <button id="clear-btn" class="px-3 py-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">Clear</button>
+    </div>
+  </div>
+
+  <!-- Logs table -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between gap-4">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Audit Events</p>
+        <p class="text-sm text-slate-400 mt-1">Track who did what, when, and what changed</p>
+      </div>
+      <span id="logs-total" class="text-xs text-slate-500 font-mono"></span>
+    </div>
+    <div id="logs-table" class="overflow-x-auto">
+      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  const ACTION_ICONS: Record<string, string> = {
+    'finding.update': 'edit',
+    'finding.create': 'add',
+    'policy.enable': 'check_circle',
+    'policy.disable': 'cancel',
+    'suppression.create': 'block',
+    'risk_acceptance.create': 'gavel',
+    'risk_acceptance.approve': 'verified',
+    'risk_acceptance.reject': 'cancel',
+    'scan.create': 'radar',
+    'user.create': 'person_add',
+  };
+
+  const ACTION_COLORS: Record<string, string> = {
+    'finding.update': 'text-sky-400 bg-sky-500/10',
+    'finding.create': 'text-emerald-400 bg-emerald-500/10',
+    'policy.enable': 'text-emerald-400 bg-emerald-500/10',
+    'policy.disable': 'text-amber-400 bg-amber-500/10',
+    'suppression.create': 'text-slate-400 bg-slate-500/10',
+    'risk_acceptance.create': 'text-purple-400 bg-purple-500/10',
+    'risk_acceptance.approve': 'text-emerald-400 bg-emerald-500/10',
+    'risk_acceptance.reject': 'text-red-400 bg-red-500/10',
+    'scan.create': 'text-blue-400 bg-blue-500/10',
+    'user.create': 'text-indigo-400 bg-indigo-500/10',
+  };
+
+  function formatDate(dateStr: string): string {
+    return new Date(dateStr).toLocaleString();
+  }
+
+  function actionLabel(action: string): string {
+    const parts = action.split('.');
+    return `${parts[0].charAt(0).toUpperCase() + parts[0].slice(1)} ${parts[1]}`;
+  }
+
+  async function loadLogs() {
+    const entityType = (document.getElementById('filter-entity') as HTMLSelectElement).value;
+    const action = (document.getElementById('filter-action') as HTMLSelectElement).value;
+
+    try {
+      const { logs, total } = await api.getAuditLogs(entityType, action);
+      document.getElementById('logs-total')!.textContent = `${total} total`;
+
+      const el = document.getElementById('logs-table')!;
+      if (!logs.length) {
+        el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No audit logs found.</p>';
+        return;
+      }
+
+      el.innerHTML = `
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-950/50 border-b border-slate-800">
+              <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Timestamp</th>
+              <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">User</th>
+              <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Action</th>
+              <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Entity</th>
+              <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Changes</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/50">
+            ${logs.map((log: any) => {
+              const icon = ACTION_ICONS[log.action] || 'info';
+              const color = ACTION_COLORS[log.action] || 'text-slate-400 bg-slate-500/10';
+              const changes = log.new_value ? JSON.stringify(log.new_value).slice(0, 100) + (JSON.stringify(log.new_value).length > 100 ? '...' : '') : '—';
+              return `
+                <tr class="hover:bg-slate-900/30 transition-colors">
+                  <td class="px-6 py-4">
+                    <p class="font-mono text-xs text-slate-400">${formatDate(log.created_at)}</p>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div>
+                      <p class="text-sm font-semibold text-on-background">${log.user_email}</p>
+                      <p class="text-[10px] text-slate-500 font-mono">${log.user_id.slice(0, 8)}</p>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${color}">
+                      <span class="material-symbols-outlined text-sm">${icon}</span>
+                      ${actionLabel(log.action)}
+                    </span>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div>
+                      <p class="text-xs font-bold text-sky-400">${log.entity_type}</p>
+                      <p class="text-[10px] text-slate-500 font-mono">${log.entity_id.slice(0, 8)}</p>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 max-w-xs">
+                    <p class="text-xs text-slate-400 font-mono truncate" title="${changes}">${changes}</p>
+                  </td>
+                </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  document.getElementById('filter-btn')!.addEventListener('click', loadLogs);
+  document.getElementById('clear-btn')!.addEventListener('click', () => {
+    (document.getElementById('filter-entity') as HTMLSelectElement).value = '';
+    (document.getElementById('filter-action') as HTMLSelectElement).value = '';
+    loadLogs();
+  });
+
+  loadLogs();
+</script>

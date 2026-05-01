@@ -149,7 +149,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 <p
                                     class="text-[10px] font-mono text-slate-600 mt-2"
                                 >
-                                    v0.1.0 · itti.digital
+                                    v0.1.0
                                 </p>
                             </div>
                         </div>
@@ -455,13 +455,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                         sub: "Alert on any critical severity detection",
                                         default: true,
                                     },
-                                     {
-                                         id: "alert-high",
-                                         key: "alert_high",
-                                         label: "High Findings",
-                                         sub: "Alert on high severity findings",
-                                         default: true,
-                                     },
+                                    {
+                                        id: "alert-high",
+                                        key: "alert_high",
+                                        label: "High Findings",
+                                        sub: "Alert on high severity findings",
+                                        default: true,
+                                    },
                                     {
                                         id: "alert-complete",
                                         key: "alert_scan_complete",
@@ -507,10 +507,19 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 ))
                             }
                         </div>
-                        <div class="space-y-3 rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4">
+                        <div
+                            class="space-y-3 rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4"
+                        >
                             <div>
-                                <p class="text-sm font-semibold text-on-background">Email recipients</p>
-                                <p class="text-xs text-slate-500">Comma-separated emails stored in DB. Prod source of truth.</p>
+                                <p
+                                    class="text-sm font-semibold text-on-background"
+                                >
+                                    Email recipients
+                                </p>
+                                <p class="text-xs text-slate-500">
+                                    Comma-separated emails stored in DB. Prod
+                                    source of truth.
+                                </p>
                             </div>
                             <textarea
                                 id="email-recipients"
@@ -525,7 +534,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 >
                                     Save recipients
                                 </button>
-                                <p id="recipients-msg" class="text-xs hidden"></p>
+                                <p id="recipients-msg" class="text-xs hidden">
+                                </p>
                             </div>
                         </div>
                         <div class="flex items-center gap-3">
@@ -536,7 +546,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 Send test email
                             </button>
                             <p class="text-[11px] text-slate-500">
-                                Sends a message to the configured SMTP recipients.
+                                Sends a message to the configured SMTP
+                                recipients.
                             </p>
                         </div>
                         <p id="notification-msg" class="text-xs hidden"></p>
@@ -563,26 +574,78 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             >
                         </div>
 
-                        <div class="rounded-xl border border-sky-500/15 bg-sky-500/5 p-4 space-y-3">
+                        <div
+                            class="rounded-xl border border-sky-500/15 bg-sky-500/5 p-4 space-y-3"
+                        >
                             <div class="flex items-center gap-2 text-sky-300">
-                                <span class="material-symbols-outlined text-base">info</span>
-                                <p class="text-xs font-bold uppercase tracking-[0.22em]">Delivery types</p>
+                                <span
+                                    class="material-symbols-outlined text-base"
+                                    >info</span
+                                >
+                                <p
+                                    class="text-xs font-bold uppercase tracking-[0.22em]"
+                                >
+                                    Delivery types
+                                </p>
                             </div>
                             <div class="grid gap-3 md:grid-cols-3 text-xs">
-                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
-                                    <p class="font-semibold text-on-background">Generic</p>
-                                    <p class="text-slate-500">Receives the raw JSON envelope with <span class="font-mono text-slate-300">event</span>, <span class="font-mono text-slate-300">data</span>, and <span class="font-mono text-slate-300">timestamp</span>.</p>
+                                <div
+                                    class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5"
+                                >
+                                    <p class="font-semibold text-on-background">
+                                        Generic
+                                    </p>
+                                    <p class="text-slate-500">
+                                        Receives the raw JSON envelope with <span
+                                            class="font-mono text-slate-300"
+                                            >event</span
+                                        >, <span
+                                            class="font-mono text-slate-300"
+                                            >data</span
+                                        >, and <span
+                                            class="font-mono text-slate-300"
+                                            >timestamp</span
+                                        >.
+                                    </p>
                                 </div>
-                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
-                                    <p class="font-semibold text-on-background">Slack</p>
-                                    <p class="text-slate-500">Receives a Slack-compatible message body with <span class="font-mono text-slate-300">text</span> and <span class="font-mono text-slate-300">blocks</span>.</p>
+                                <div
+                                    class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5"
+                                >
+                                    <p class="font-semibold text-on-background">
+                                        Slack
+                                    </p>
+                                    <p class="text-slate-500">
+                                        Receives a Slack-compatible message body
+                                        with <span
+                                            class="font-mono text-slate-300"
+                                            >text</span
+                                        > and <span
+                                            class="font-mono text-slate-300"
+                                            >blocks</span
+                                        >.
+                                    </p>
                                 </div>
-                                <div class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5">
-                                    <p class="font-semibold text-on-background">Discord</p>
-                                    <p class="text-slate-500">Receives a Discord-compatible message with <span class="font-mono text-slate-300">content</span> and <span class="font-mono text-slate-300">embeds</span>.</p>
+                                <div
+                                    class="rounded-lg border border-outline-variant/20 bg-slate-950/50 p-3 space-y-1.5"
+                                >
+                                    <p class="font-semibold text-on-background">
+                                        Discord
+                                    </p>
+                                    <p class="text-slate-500">
+                                        Receives a Discord-compatible message
+                                        with <span
+                                            class="font-mono text-slate-300"
+                                            >content</span
+                                        > and <span
+                                            class="font-mono text-slate-300"
+                                            >embeds</span
+                                        >.
+                                    </p>
                                 </div>
                             </div>
-                            <pre id="generic-webhook-example" class="overflow-auto rounded-lg border border-outline-variant/20 bg-slate-950 px-3 py-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap">{`{
+                            <pre
+                                id="generic-webhook-example"
+                                class="overflow-auto rounded-lg border border-outline-variant/20 bg-slate-950 px-3 py-3 text-[11px] text-slate-300 font-mono whitespace-pre-wrap">{`{
   "event": "finding.critical",
   "data": { "title": "Hardcoded secret", "severity": "critical" },
   "timestamp": "2026-04-25T04:47:25Z"
@@ -608,22 +671,45 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             />
                             <div class="grid gap-3 md:grid-cols-2">
                                 <div class="space-y-1.5">
-                                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Delivery Type</label>
+                                    <label
+                                        class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                        >Delivery Type</label
+                                    >
                                     <select
                                         id="webhook-delivery-type"
                                         class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
                                     >
-                                        <option value="generic">Generic JSON</option>
-                                        <option value="slack">Slack Incoming Webhook</option>
-                                        <option value="discord">Discord Webhook</option>
+                                        <option value="generic"
+                                            >Generic JSON</option
+                                        >
+                                        <option value="slack"
+                                            >Slack Incoming Webhook</option
+                                        >
+                                        <option value="discord"
+                                            >Discord Webhook</option
+                                        >
                                     </select>
                                 </div>
                                 <div class="space-y-1.5">
-                                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Events</label>
-                                    <p class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400">Critical findings, high findings, SLA breaches, scan completed, scan failed</p>
+                                    <label
+                                        class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                                        >Events</label
+                                    >
+                                    <p
+                                        class="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-slate-400"
+                                    >
+                                        Critical findings, high findings, SLA
+                                        breaches, scan completed, scan failed
+                                    </p>
                                 </div>
                             </div>
-                            <p id="webhook-delivery-help" class="text-xs text-slate-500">Generic mode posts the raw ASPM event envelope to your endpoint.</p>
+                            <p
+                                id="webhook-delivery-help"
+                                class="text-xs text-slate-500"
+                            >
+                                Generic mode posts the raw ASPM event envelope
+                                to your endpoint.
+                            </p>
                             <div class="flex gap-2">
                                 <button
                                     id="save-webhook"
@@ -675,8 +761,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         Session Security
                     </h4>
                     <p class="text-sm text-slate-400">
-                        The session token is stored in an HttpOnly cookie, so it is not
-                        readable from JavaScript. Use Sign Out to clear it.
+                        The session token is stored in an HttpOnly cookie, so it
+                        is not readable from JavaScript. Use Sign Out to clear
+                        it.
                     </p>
                 </div>
 
@@ -1228,29 +1315,33 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     import { api } from "../../lib/api";
 
-    document.getElementById("danger-logout")!.addEventListener("click", async () => {
-        try {
-            await api.logout();
-        } finally {
+    document
+        .getElementById("danger-logout")!
+        .addEventListener("click", async () => {
+            try {
+                await api.logout();
+            } finally {
+                window.location.href = "/login";
+            }
+        });
+
+    document
+        .getElementById("danger-clear")!
+        .addEventListener("click", async () => {
+            if (!confirm("Clear all locally stored settings?")) return;
+
+            try {
+                await api.logout();
+            } catch {}
+
+            [
+                "aspm_org_name",
+                "aspm_api_url",
+                "aspm_admin_user",
+                "aspm_webhooks",
+            ].forEach((k) => localStorage.removeItem(k));
             window.location.href = "/login";
-        }
-    });
-
-    document.getElementById("danger-clear")!.addEventListener("click", async () => {
-        if (!confirm("Clear all locally stored settings?")) return;
-
-        try {
-            await api.logout();
-        } catch {}
-
-        [
-            "aspm_org_name",
-            "aspm_api_url",
-            "aspm_admin_user",
-            "aspm_webhooks",
-        ].forEach((k) => localStorage.removeItem(k));
-        window.location.href = "/login";
-    });
+        });
 
     // ---------- Users ----------
     type User = Awaited<ReturnType<typeof api.getUsers>>[number];
@@ -1262,8 +1353,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     async function loadNotificationSettings() {
         try {
             const settings = await api.getNotificationSettings();
-            (document.getElementById("email-recipients") as HTMLTextAreaElement).value =
-                (settings.email_recipients ?? []).join(", ");
+            (
+                document.getElementById(
+                    "email-recipients",
+                ) as HTMLTextAreaElement
+            ).value = (settings.email_recipients ?? []).join(", ");
             document
                 .querySelectorAll<HTMLButtonElement>(".toggle-btn")
                 .forEach((btn) => {
@@ -1271,7 +1365,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         .notificationKey as keyof NotificationSettings;
                     if (!key) return;
                     setToggleState(btn, Boolean(settings[key]));
-            });
+                });
         } catch (e: any) {
             const msg = document.getElementById("notification-msg")!;
             msg.textContent =
@@ -1281,30 +1375,46 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         }
     }
 
-    document.getElementById("save-email-recipients")!.addEventListener("click", async () => {
-        const btn = document.getElementById("save-email-recipients") as HTMLButtonElement;
-        const msg = document.getElementById("recipients-msg")!;
-        const raw = (document.getElementById("email-recipients") as HTMLTextAreaElement).value;
-        const email_recipients = raw.split(",").map((v) => v.trim()).filter(Boolean);
+    document
+        .getElementById("save-email-recipients")!
+        .addEventListener("click", async () => {
+            const btn = document.getElementById(
+                "save-email-recipients",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("recipients-msg")!;
+            const raw = (
+                document.getElementById(
+                    "email-recipients",
+                ) as HTMLTextAreaElement
+            ).value;
+            const email_recipients = raw
+                .split(",")
+                .map((v) => v.trim())
+                .filter(Boolean);
 
-        btn.disabled = true;
-        msg.classList.add("hidden");
+            btn.disabled = true;
+            msg.classList.add("hidden");
 
-        try {
-            const settings = await api.updateNotificationSettings({ email_recipients });
-            (document.getElementById("email-recipients") as HTMLTextAreaElement).value =
-                (settings.email_recipients ?? []).join(", ");
-            msg.textContent = "Recipients saved.";
-            msg.className = "text-xs text-secondary";
-            msg.classList.remove("hidden");
-        } catch (e: any) {
-            msg.textContent = e.message ?? "Failed to save recipients.";
-            msg.className = "text-xs text-error";
-            msg.classList.remove("hidden");
-        } finally {
-            btn.disabled = false;
-        }
-    });
+            try {
+                const settings = await api.updateNotificationSettings({
+                    email_recipients,
+                });
+                (
+                    document.getElementById(
+                        "email-recipients",
+                    ) as HTMLTextAreaElement
+                ).value = (settings.email_recipients ?? []).join(", ");
+                msg.textContent = "Recipients saved.";
+                msg.className = "text-xs text-secondary";
+                msg.classList.remove("hidden");
+            } catch (e: any) {
+                msg.textContent = e.message ?? "Failed to save recipients.";
+                msg.className = "text-xs text-error";
+                msg.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+            }
+        });
 
     document
         .querySelectorAll<HTMLButtonElement>(".toggle-btn")
@@ -1335,43 +1445,52 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             });
         });
 
-    document.getElementById("test-email-btn")!.addEventListener("click", async () => {
-        const btn = document.getElementById("test-email-btn") as HTMLButtonElement;
-        const msg = document.getElementById("notification-msg")!;
-        btn.disabled = true;
-        btn.textContent = "Sending...";
-        msg.classList.add("hidden");
+    document
+        .getElementById("test-email-btn")!
+        .addEventListener("click", async () => {
+            const btn = document.getElementById(
+                "test-email-btn",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("notification-msg")!;
+            btn.disabled = true;
+            btn.textContent = "Sending...";
+            msg.classList.add("hidden");
 
-        try {
-            const result = await api.testNotificationEmail();
-            msg.textContent = result.message ?? "Test email queued.";
-            msg.className = "text-xs text-secondary";
-            msg.classList.remove("hidden");
-        } catch (e: any) {
-            msg.textContent = e.message ?? "Failed to queue test email.";
-            msg.className = "text-xs text-error";
-            msg.classList.remove("hidden");
-        } finally {
-            btn.disabled = false;
-            btn.textContent = "Send test email";
-        }
-    });
+            try {
+                const result = await api.testNotificationEmail();
+                msg.textContent = result.message ?? "Test email queued.";
+                msg.className = "text-xs text-secondary";
+                msg.classList.remove("hidden");
+            } catch (e: any) {
+                msg.textContent = e.message ?? "Failed to queue test email.";
+                msg.className = "text-xs text-error";
+                msg.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Send test email";
+            }
+        });
 
     async function loadJiraIntegration() {
         try {
             const integration = await api.getJiraIntegration();
-            (document.getElementById("jira-base-url") as HTMLInputElement).value =
-                integration.base_url ?? "";
-            (document.getElementById("jira-user-email") as HTMLInputElement).value =
-                integration.user_email ?? "";
-            (document.getElementById("jira-project-key") as HTMLInputElement).value =
-                integration.project_key ?? "";
-            (document.getElementById("jira-issue-type") as HTMLInputElement).value =
-                integration.issue_type ?? "Task";
+            (
+                document.getElementById("jira-base-url") as HTMLInputElement
+            ).value = integration.base_url ?? "";
+            (
+                document.getElementById("jira-user-email") as HTMLInputElement
+            ).value = integration.user_email ?? "";
+            (
+                document.getElementById("jira-project-key") as HTMLInputElement
+            ).value = integration.project_key ?? "";
+            (
+                document.getElementById("jira-issue-type") as HTMLInputElement
+            ).value = integration.issue_type ?? "Task";
             (document.getElementById("jira-labels") as HTMLInputElement).value =
                 (integration.labels ?? []).join(", ");
-            (document.getElementById("jira-enabled") as HTMLInputElement).checked =
-                integration.enabled;
+            (
+                document.getElementById("jira-enabled") as HTMLInputElement
+            ).checked = integration.enabled;
             document.getElementById("jira-token-state")!.textContent =
                 integration.has_token
                     ? `Saved token: ${integration.token_masked ?? "configured"}`
@@ -1384,58 +1503,80 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         }
     }
 
-    document.getElementById("save-jira")!.addEventListener("click", async () => {
-        const btn = document.getElementById("save-jira") as HTMLButtonElement;
-        const msg = document.getElementById("jira-msg")!;
-        btn.disabled = true;
-        msg.classList.add("hidden");
+    document
+        .getElementById("save-jira")!
+        .addEventListener("click", async () => {
+            const btn = document.getElementById(
+                "save-jira",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("jira-msg")!;
+            btn.disabled = true;
+            msg.classList.add("hidden");
 
-        try {
-            const tokenInput = (
-                document.getElementById("jira-api-token") as HTMLInputElement
-            ).value.trim();
-            const integration = await api.updateJiraIntegration({
-                base_url: (
-                    document.getElementById("jira-base-url") as HTMLInputElement
-                ).value.trim(),
-                user_email: (
-                    document.getElementById("jira-user-email") as HTMLInputElement
-                ).value.trim(),
-                project_key: (
-                    document.getElementById("jira-project-key") as HTMLInputElement
-                ).value.trim(),
-                issue_type:
-                    (
-                        document.getElementById("jira-issue-type") as HTMLInputElement
-                    ).value.trim() || "Task",
-                labels: (
-                    document.getElementById("jira-labels") as HTMLInputElement
-                )
-                    .value.split(",")
-                    .map((value) => value.trim())
-                    .filter(Boolean),
-                enabled: (
-                    document.getElementById("jira-enabled") as HTMLInputElement
-                ).checked,
-                ...(tokenInput ? { token: tokenInput } : {}),
-            });
-            (document.getElementById("jira-api-token") as HTMLInputElement).value =
-                "";
-            document.getElementById("jira-token-state")!.textContent =
-                integration.has_token
-                    ? `Saved token: ${integration.token_masked ?? "configured"}`
-                    : "No token saved yet.";
-            msg.textContent = "Jira integration saved.";
-            msg.className = "text-xs text-secondary";
-            msg.classList.remove("hidden");
-        } catch (e: any) {
-            msg.textContent = e.message ?? "Failed to save Jira integration.";
-            msg.className = "text-xs text-error";
-            msg.classList.remove("hidden");
-        } finally {
-            btn.disabled = false;
-        }
-    });
+            try {
+                const tokenInput = (
+                    document.getElementById(
+                        "jira-api-token",
+                    ) as HTMLInputElement
+                ).value.trim();
+                const integration = await api.updateJiraIntegration({
+                    base_url: (
+                        document.getElementById(
+                            "jira-base-url",
+                        ) as HTMLInputElement
+                    ).value.trim(),
+                    user_email: (
+                        document.getElementById(
+                            "jira-user-email",
+                        ) as HTMLInputElement
+                    ).value.trim(),
+                    project_key: (
+                        document.getElementById(
+                            "jira-project-key",
+                        ) as HTMLInputElement
+                    ).value.trim(),
+                    issue_type:
+                        (
+                            document.getElementById(
+                                "jira-issue-type",
+                            ) as HTMLInputElement
+                        ).value.trim() || "Task",
+                    labels: (
+                        document.getElementById(
+                            "jira-labels",
+                        ) as HTMLInputElement
+                    ).value
+                        .split(",")
+                        .map((value) => value.trim())
+                        .filter(Boolean),
+                    enabled: (
+                        document.getElementById(
+                            "jira-enabled",
+                        ) as HTMLInputElement
+                    ).checked,
+                    ...(tokenInput ? { token: tokenInput } : {}),
+                });
+                (
+                    document.getElementById(
+                        "jira-api-token",
+                    ) as HTMLInputElement
+                ).value = "";
+                document.getElementById("jira-token-state")!.textContent =
+                    integration.has_token
+                        ? `Saved token: ${integration.token_masked ?? "configured"}`
+                        : "No token saved yet.";
+                msg.textContent = "Jira integration saved.";
+                msg.className = "text-xs text-secondary";
+                msg.classList.remove("hidden");
+            } catch (e: any) {
+                msg.textContent =
+                    e.message ?? "Failed to save Jira integration.";
+                msg.className = "text-xs text-error";
+                msg.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+            }
+        });
 
     let allUsers: User[] = [];
 
@@ -2118,7 +2259,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     function refreshWebhookDeliveryHelp() {
         const deliveryType = (
-            document.getElementById("webhook-delivery-type") as HTMLSelectElement
+            document.getElementById(
+                "webhook-delivery-type",
+            ) as HTMLSelectElement
         ).value as Webhook["delivery_type"];
         document.getElementById("webhook-delivery-help")!.textContent =
             webhookTypeMeta(deliveryType).help;
@@ -2147,7 +2290,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 document.getElementById("webhook-url") as HTMLInputElement
             ).value.trim();
             const deliveryType = (
-                document.getElementById("webhook-delivery-type") as HTMLSelectElement
+                document.getElementById(
+                    "webhook-delivery-type",
+                ) as HTMLSelectElement
             ).value as Webhook["delivery_type"];
 
             if (!label || !url) {
@@ -2160,7 +2305,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     label,
                     url,
                     delivery_type: deliveryType,
-                    events: ["finding.critical", "finding.high", "finding.sla_breach", "scan.completed", "scan.failed"],
+                    events: [
+                        "finding.critical",
+                        "finding.high",
+                        "finding.sla_breach",
+                        "scan.completed",
+                        "scan.failed",
+                    ],
                 });
                 document
                     .getElementById("webhook-form")!
@@ -2172,7 +2323,9 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     document.getElementById("webhook-url") as HTMLInputElement
                 ).value = "";
                 (
-                    document.getElementById("webhook-delivery-type") as HTMLSelectElement
+                    document.getElementById(
+                        "webhook-delivery-type",
+                    ) as HTMLSelectElement
                 ).value = "generic";
                 refreshWebhookDeliveryHelp();
                 await loadWebhooks();

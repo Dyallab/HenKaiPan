@@ -1,15 +1,109 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
-<DashboardLayout title="Compliance Posture" active="compliance">
+<DashboardLayout title="Compliance Readiness" active="compliance">
 
-  <!-- Header -->
+  <!-- Header: Compliance Starter Mode -->
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-sky-400 text-2xl">rocket_launch</span>
+        <h1 class="text-2xl font-bold text-white">Compliance Starter Mode</h1>
+      </div>
       <p class="text-slate-400 text-sm mt-1 max-w-xl">
-        Real-time adherence monitoring. Findings from your scanners mapped to industry security frameworks.
+        Get ready for SOC 2 Type II and ISO 27001 certification. Enable recommended policies, track your progress, and export evidence for auditors.
       </p>
     </div>
+    <div class="flex gap-3 shrink-0">
+      <button id="export-btn"
+        class="flex items-center gap-2 px-4 py-2 border border-outline-variant/40 bg-surface-container text-on-surface rounded-xl hover:bg-surface-container-high transition-colors text-sm font-semibold">
+        <span class="material-symbols-outlined text-lg">download</span>
+        Export Evidence Report
+      </button>
+    </div>
+  </div>
+
+  <!-- Progress Overview Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="material-symbols-outlined text-sky-400 text-2xl">checklist</span>
+        <span id="progress-pct" class="text-3xl font-black text-sky-400">0%</span>
+      </div>
+      <p class="text-sm text-slate-400">Controls Compliant</p>
+      <p id="progress-text" class="text-xs text-slate-500 mt-1">0 of 0 controls</p>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="material-symbols-outlined text-emerald-400 text-2xl">policy</span>
+        <span id="policies-enabled" class="text-3xl font-black text-emerald-400">0</span>
+      </div>
+      <p class="text-sm text-slate-400">Policies Enabled</p>
+      <p class="text-xs text-slate-500 mt-1">Recommended for compliance</p>
+    </div>
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="material-symbols-outlined text-amber-400 text-2xl">warning</span>
+        <span id="findings-open" class="text-3xl font-black text-amber-400">0</span>
+      </div>
+      <p class="text-sm text-slate-400">Open Findings</p>
+      <p class="text-xs text-slate-500 mt-1">Blocking compliance</p>
+    </div>
+  </div>
+
+  <!-- Policy Packs Section -->
+  <div class="bg-gradient-to-br from-sky-500/10 to-purple-500/10 border border-sky-500/20 rounded-2xl p-6 mb-8">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="material-symbols-outlined text-sky-400 text-xl">auto_awesome</span>
+      <h2 class="text-lg font-bold text-white">Recommended Policy Packs</h2>
+    </div>
+    <p class="text-sm text-slate-400 mb-4">Enable these pre-configured policies to automatically enforce compliance controls.</p>
+    
+    <div class="grid md:grid-cols-2 gap-4">
+      <!-- SOC2 Starter Pack -->
+      <div class="bg-surface-container-low border border-sky-500/20 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-sky-400 text-xl">security</span>
+            <h3 class="font-bold text-on-background">SOC2 Starter Pack</h3>
+          </div>
+          <span class="text-xs font-bold text-sky-400 bg-sky-500/10 px-2 py-1 rounded border border-sky-500/20">5 policies</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">Essential policies for SOC 2 Type II readiness: access control, vulnerability management, secure coding, change management, and monitoring.</p>
+        <div class="flex flex-wrap gap-1 mb-4">
+          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC6.1</span>
+          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC7.1</span>
+          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC6.3</span>
+          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC8.1</span>
+          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">A1.2</span>
+        </div>
+        <button id="enable-soc2-pack" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest rounded transition-colors">
+          <span class="material-symbols-outlined text-base">add_task</span>
+          Enable SOC2 Pack
+        </button>
+      </div>
+
+      <!-- ISO 27001 Basics Pack -->
+      <div class="bg-surface-container-low border border-purple-500/20 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-purple-400 text-xl">language</span>
+            <h3 class="font-bold text-on-background">ISO 27001 Basics</h3>
+          </div>
+          <span class="text-xs font-bold text-purple-400 bg-purple-500/10 px-2 py-1 rounded border border-purple-500/20">2 policies</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">Core policies for ISO 27001 information security management: malicious code protection and risk escalation.</p>
+        <div class="flex flex-wrap gap-1 mb-4">
+          <span class="text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">A.12.2.1</span>
+          <span class="text-[10px] text-purple-300 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">A.12.6.1</span>
+        </div>
+        <button id="enable-iso-pack" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-bold uppercase tracking-widest rounded transition-colors">
+          <span class="material-symbols-outlined text-base">add_task</span>
+          Enable ISO 27001 Pack
+        </button>
+      </div>
+    </div>
+  </div>
     <div class="flex gap-3 shrink-0">
       <button id="export-btn"
         class="flex items-center gap-2 px-4 py-2 border border-outline-variant/40 bg-surface-container text-on-surface rounded-xl hover:bg-surface-container-high transition-colors text-sm font-semibold">
@@ -171,12 +265,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   let findingsByScanner: FindingMap = {};
   let currentFw = 'soc2';
+  let allPolicies: any[] = [];
+  let enabledPoliciesByPack: Record<string, number> = { 'soc2-starter': 0, 'iso27001-basics': 0 };
 
   async function loadData() {
     try {
-      const [metrics, { findings }] = await Promise.all([
+      const [metrics, { findings }, policies] = await Promise.all([
         api.getMetrics(),
         api.getFindings('', ''),
+        api.getPolicies(),
       ]);
 
       // Build per-scanner finding counts
@@ -191,10 +288,61 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         else if (f.severity === 'medium')   findingsByScanner[f.scanner].medium++;
       });
 
+      allPolicies = policies;
+      countEnabledPoliciesByPack();
+      updateProgressCards();
       renderFramework(currentFw);
     } catch (e) {
       console.error(e);
     }
+  }
+
+  function countEnabledPoliciesByPack() {
+    enabledPoliciesByPack = { 'soc2-starter': 0, 'iso27001-basics': 0 };
+    allPolicies.forEach(p => {
+      if (p.enabled && p.pack_type === 'soc2-starter') enabledPoliciesByPack['soc2-starter']++;
+      if (p.enabled && p.pack_type === 'iso27001-basics') enabledPoliciesByPack['iso27001-basics']++;
+    });
+    updatePackButtons();
+  }
+
+  function updatePackButtons() {
+    const soc2Btn = document.getElementById('enable-soc2-pack')!;
+    const isoBtn = document.getElementById('enable-iso-pack')!;
+    
+    // SOC2 has 5 policies, ISO has 2
+    const soc2AllEnabled = enabledPoliciesByPack['soc2-starter'] >= 5;
+    const isoAllEnabled = enabledPoliciesByPack['iso27001-basics'] >= 2;
+    
+    if (soc2AllEnabled) {
+      soc2Btn.innerHTML = '<span class="material-symbols-outlined text-base">check</span> SOC2 Enabled';
+      soc2Btn.classList.remove('bg-sky-500', 'hover:bg-sky-400');
+      soc2Btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
+    }
+    if (isoAllEnabled) {
+      isoBtn.innerHTML = '<span class="material-symbols-outlined text-base">check</span> ISO Enabled';
+      isoBtn.classList.remove('bg-purple-500', 'hover:bg-purple-400');
+      isoBtn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
+    }
+  }
+
+  function updateProgressCards() {
+    // Count compliant controls
+    const fw = FRAMEWORKS[currentFw];
+    const compliant = fw.controls.filter(c => controlStatus(c.scanners) === 'compliant').length;
+    const total = fw.controls.length;
+    const pct = Math.round((compliant / total) * 100);
+    
+    document.getElementById('progress-pct')!.textContent = `${pct}%`;
+    document.getElementById('progress-text')!.textContent = `${compliant} of ${total} controls`;
+    
+    // Count enabled policies
+    const totalEnabled = enabledPoliciesByPack['soc2-starter'] + enabledPoliciesByPack['iso27001-basics'];
+    document.getElementById('policies-enabled')!.textContent = String(totalEnabled);
+    
+    // Count open findings
+    const openFindings = Object.values(findingsByScanner).reduce((acc, s) => acc + s.total, 0);
+    document.getElementById('findings-open')!.textContent = String(openFindings);
   }
 
   function controlStatus(scanners: string[]): 'compliant' | 'review' | 'failed' {
@@ -386,15 +534,81 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const fw  = FRAMEWORKS[currentFw];
     const rows = fw.controls.map(c => {
       const stat = controlStatus(c.scanners);
-      return `${c.id}\t${c.title}\t${STATUS_LABEL[stat]}\t${c.scanners.join(', ')}`;
+      const policiesForControl = allPolicies.filter(p => 
+        p.enabled && p.compliance_controls?.includes(c.id)
+      );
+      const policyNames = policiesForControl.map(p => p.name).join('; ');
+      return `${c.id}\t${c.title}\t${STATUS_LABEL[stat]}\t${c.scanners.join(', ')}\t${policyNames}`;
     });
-    const tsv = ['Control ID\tTitle\tStatus\tScanners', ...rows].join('\n');
+    const tsv = ['Control ID\tTitle\tStatus\tScanners\tEnabled Policies', ...rows].join('\n');
     const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
     const a = Object.assign(document.createElement('a'), {
       href: URL.createObjectURL(blob),
-      download: `compliance-${currentFw}-${new Date().toISOString().slice(0,10)}.tsv`,
+      download: `compliance-evidence-${currentFw}-${new Date().toISOString().slice(0,10)}.tsv`,
     });
     a.click();
+  });
+
+  // Enable SOC2 Starter Pack
+  document.getElementById('enable-soc2-pack')!.addEventListener('click', async () => {
+    const btn = document.getElementById('enable-soc2-pack')!;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Enabling...';
+    
+    try {
+      // Enable all soc2-starter policies
+      const soc2Policies = allPolicies.filter(p => p.pack_type === 'soc2-starter');
+      for (const policy of soc2Policies) {
+        if (!policy.enabled) {
+          await api.updatePolicy(policy.id, { enabled: true });
+        }
+      }
+      // Reload policies
+      const policies = await api.getPolicies();
+      allPolicies = policies;
+      countEnabledPoliciesByPack();
+      updateProgressCards();
+      updatePackButtons();
+    } catch (e: any) {
+      console.error('Failed to enable SOC2 pack:', e);
+      btn.innerHTML = '<span class="material-symbols-outlined text-base">error</span> Failed';
+      setTimeout(() => {
+        btn.innerHTML = '<span class="material-symbols-outlined text-base">add_task</span> Enable SOC2 Pack';
+        btn.disabled = false;
+      }, 2000);
+      return;
+    }
+  });
+
+  // Enable ISO 27001 Basics Pack
+  document.getElementById('enable-iso-pack')!.addEventListener('click', async () => {
+    const btn = document.getElementById('enable-iso-pack')!;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Enabling...';
+    
+    try {
+      // Enable all iso27001-basics policies
+      const isoPolicies = allPolicies.filter(p => p.pack_type === 'iso27001-basics');
+      for (const policy of isoPolicies) {
+        if (!policy.enabled) {
+          await api.updatePolicy(policy.id, { enabled: true });
+        }
+      }
+      // Reload policies
+      const policies = await api.getPolicies();
+      allPolicies = policies;
+      countEnabledPoliciesByPack();
+      updateProgressCards();
+      updatePackButtons();
+    } catch (e: any) {
+      console.error('Failed to enable ISO pack:', e);
+      btn.innerHTML = '<span class="material-symbols-outlined text-base">error</span> Failed';
+      setTimeout(() => {
+        btn.innerHTML = '<span class="material-symbols-outlined text-base">add_task</span> Enable ISO 27001 Pack';
+        btn.disabled = false;
+      }, 2000);
+      return;
+    }
   });
 
   loadData();

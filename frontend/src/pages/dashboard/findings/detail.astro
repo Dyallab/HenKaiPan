@@ -76,6 +76,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
       <button data-tab-trigger="overview" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80">Overview</button>
       <button data-tab-trigger="evidence" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Evidence</button>
       <button data-tab-trigger="remediation" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Remediation</button>
+      <button data-tab-trigger="risk" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Risk Acceptance</button>
       <button data-tab-trigger="activity" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Activity</button>
     </div>
 
@@ -181,9 +182,15 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 
 		  <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
 			<div class="flex items-center justify-between gap-3">
-			  <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Related Findings</p>
+			  <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Correlated Findings</p>
 			  <span id="correlation-count" class="text-xs text-slate-500"></span>
 			</div>
+            <div id="correlation-context" class="hidden rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
+              <p class="text-sm text-blue-200">
+                <span class="font-semibold">Correlation by secret value:</span>
+                This finding was corroborated by multiple scanners detecting the exact same secret value.
+              </p>
+            </div>
             <div id="correlation-list" class="space-y-3">
               <p class="text-sm text-slate-500">Loading correlation context…</p>
             </div>
@@ -210,6 +217,94 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
           <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
             <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Timeline</p>
             <div id="activity-timeline" class="space-y-3"></div>
+          </div>
+        </section>
+
+        <section data-tab-panel="risk" class="tab-panel hidden">
+          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Risk Acceptance Status</p>
+              <span id="risk-status-badge" class="hidden px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider"></span>
+            </div>
+            
+            <div id="risk-acceptance-form" class="space-y-4 max-w-2xl">
+              <p class="text-sm text-slate-400">Formally accept this security risk with an expiration date for re-review.</p>
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Rationale *</label>
+                <textarea id="risk-rationale" rows="4" placeholder="Why is this risk being accepted? What compensating controls exist?" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
+              </div>
+              <div>
+                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Expires At *</label>
+                <input id="risk-expires-at" type="date" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all" />
+                <p class="text-[10px] text-slate-500 mt-1">Risk acceptance must be re-reviewed after this date</p>
+              </div>
+              <p id="risk-create-msg" class="text-xs hidden"></p>
+              <button id="risk-create-btn" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-slate-950 text-sm font-bold hover:bg-amber-400 transition-all active:scale-[0.99]">
+                <span class="material-symbols-outlined text-base">gavel</span>
+                Submit Risk Acceptance
+              </button>
+            </div>
+
+            <div id="risk-active" class="hidden max-w-2xl">
+              <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+                <div class="flex items-start gap-3">
+                  <span class="material-symbols-outlined text-lg text-amber-400">gavel</span>
+                  <div class="space-y-1 min-w-0">
+                    <p class="text-sm font-semibold text-on-background">Risk Accepted</p>
+                    <p id="risk-rationale-display" class="text-xs text-slate-400 leading-relaxed"></p>
+                    <p id="risk-expires-display" class="text-[10px] text-slate-500 mt-2 font-mono"></p>
+                  </div>
+                </div>
+              </div>
+              <div id="risk-review-notes" class="hidden mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Approval Notes</p>
+                <p id="risk-approval-notes-text" class="text-xs text-slate-400"></p>
+              </div>
+            </div>
+
+            <div id="risk-pending" class="hidden max-w-2xl space-y-4">
+              <div class="rounded-xl border border-slate-500/20 bg-slate-500/5 p-5">
+                <div class="flex items-center gap-3">
+                  <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
+                  <div>
+                    <p class="text-sm font-semibold text-on-background">Pending Approval</p>
+                    <p class="text-xs text-slate-400">Waiting for admin approval</p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Admin Approval Form -->
+              <div id="risk-approval-form" class="hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
+                <p class="text-sm text-slate-400">Review and approve or reject this risk acceptance request.</p>
+                <div>
+                  <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Review Notes</label>
+                  <textarea id="risk-review-notes-input" rows="3" placeholder="Add notes for the requester (optional for rejection, required for approval)" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
+                </div>
+                <p id="risk-approval-msg" class="text-xs hidden"></p>
+                <div class="flex gap-3">
+                  <button id="risk-approve-btn" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-slate-950 text-sm font-bold hover:bg-emerald-400 transition-all active:scale-[0.99]">
+                    <span class="material-symbols-outlined text-base">check_circle</span>
+                    Approve
+                  </button>
+                  <button id="risk-reject-btn" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-slate-950 text-sm font-bold hover:bg-red-400 transition-all active:scale-[0.99]">
+                    <span class="material-symbols-outlined text-base">cancel</span>
+                    Reject
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <div id="risk-rejected" class="hidden max-w-2xl">
+              <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
+                <div class="flex items-start gap-3">
+                  <span class="material-symbols-outlined text-lg text-red-400">cancel</span>
+                  <div class="space-y-1 min-w-0">
+                    <p class="text-sm font-semibold text-on-background">Risk Acceptance Rejected</p>
+                    <p id="risk-rejected-notes" class="text-xs text-slate-400 leading-relaxed"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
@@ -348,7 +443,19 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 
   function renderCorrelations(findings: Finding[]) {
     const list = document.getElementById('correlation-list')!;
-    document.getElementById('correlation-count')!.textContent = `${findings.length} related`;
+    const contextEl = document.getElementById('correlation-context')!;
+    document.getElementById('correlation-count')!.textContent = `${findings.length} corroborated`;
+    
+    // Show correlation context banner if there are corroborations from different scanners
+    const uniqueScanners = new Set(findings.map(f => f.scanner));
+    const hasMultiScannerCorroboration = uniqueScanners.size > 1;
+    
+    if (hasMultiScannerCorroboration) {
+      contextEl.classList.remove('hidden');
+    } else {
+      contextEl.classList.add('hidden');
+    }
+    
     if (!findings.length) {
       list.innerHTML = '<p class="text-sm text-slate-500">No corroborating findings were stored for this issue yet.</p>';
       return;
@@ -357,14 +464,17 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 		list.innerHTML = findings.map((finding) => {
 		  const severity = SEV_STYLES[finding.severity] ?? SEV_STYLES.info;
 		  const scanner = scannerType(finding.scanner);
+      const isSameScanner = findings.filter(f => f.scanner === finding.scanner).length > 1;
 		  return `
 			<a href="/dashboard/findings/detail?id=${encodeURIComponent(finding.id)}" class="block rounded-2xl border border-outline-variant/20 bg-slate-950/40 px-4 py-4 hover:border-sky-500/20 hover:bg-slate-950/60 transition-all">
 			  <div class="flex flex-wrap items-center gap-2">
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${severity}">${finding.severity}</span>
+                ${isSameScanner ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-slate-500/20 bg-slate-500/10 text-slate-400">Same scanner</span>' : ''}
 			  </div>
 			  <p class="text-sm font-semibold text-on-background mt-3">${finding.title}</p>
 			  <p class="text-xs text-slate-500 mt-1">${locationLabel(finding)}</p>
+              <p class="text-[10px] text-slate-600 mt-1 font-mono">${finding.scanner}</p>
         </a>`;
     }).join('');
   }
@@ -793,12 +903,167 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
       document.getElementById('loading')!.classList.add('hidden');
       document.getElementById('content')!.classList.remove('hidden');
       applyFinding(finding);
-      await Promise.all([loadCorrelations(), loadAnalysis(), loadJiraIssue()]);
+      await Promise.all([loadCorrelations(), loadAnalysis(), loadJiraIssue(), loadRiskAcceptance()]);
     } catch {
       document.getElementById('loading')!.classList.add('hidden');
       document.getElementById('not-found')!.classList.remove('hidden');
     }
   }
+
+  async function loadRiskAcceptance() {
+    try {
+      const ra = await api.getRiskAcceptanceByFinding(findingId!);
+      renderRiskAcceptance(ra);
+    } catch {
+      // No risk acceptance exists - show form
+      document.getElementById('risk-acceptance-form')!.classList.remove('hidden');
+      document.getElementById('risk-active')!.classList.add('hidden');
+      document.getElementById('risk-pending')!.classList.add('hidden');
+      document.getElementById('risk-rejected')!.classList.add('hidden');
+      document.getElementById('risk-approval-form')!.classList.add('hidden');
+      document.getElementById('risk-status-badge')!.classList.add('hidden');
+    }
+  }
+
+  function renderRiskAcceptance(ra: any) {
+    const form = document.getElementById('risk-acceptance-form')!;
+    const active = document.getElementById('risk-active')!;
+    const pending = document.getElementById('risk-pending')!;
+    const rejected = document.getElementById('risk-rejected')!;
+    const approvalForm = document.getElementById('risk-approval-form')!;
+    const badge = document.getElementById('risk-status-badge')!;
+    
+    form.classList.add('hidden');
+    active.classList.add('hidden');
+    pending.classList.add('hidden');
+    rejected.classList.add('hidden');
+    approvalForm.classList.add('hidden');
+    
+    if (ra.status === 'pending') {
+      pending.classList.remove('hidden');
+      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-slate-400 bg-slate-500/10 border-slate-500/20';
+      badge.textContent = 'Pending';
+      
+      // Show approval form only for admin users
+      if (currentUserRole === 'admin') {
+        approvalForm.classList.remove('hidden');
+      }
+    } else if (ra.status === 'approved') {
+      active.classList.remove('hidden');
+      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+      badge.textContent = 'Accepted';
+      
+      document.getElementById('risk-rationale-display')!.textContent = ra.rationale;
+      document.getElementById('risk-expires-display')!.textContent = `Expires: ${new Date(ra.expires_at).toLocaleDateString()}`;
+      
+      if (ra.review_notes) {
+        document.getElementById('risk-review-notes')!.classList.remove('hidden');
+        document.getElementById('risk-approval-notes-text')!.textContent = ra.review_notes;
+      } else {
+        document.getElementById('risk-review-notes')!.classList.add('hidden');
+      }
+    } else if (ra.status === 'rejected') {
+      rejected.classList.remove('hidden');
+      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-red-400 bg-red-500/10 border-red-500/20';
+      badge.textContent = 'Rejected';
+      
+      document.getElementById('risk-rejected-notes')!.textContent = ra.review_notes || 'No review notes provided';
+    }
+  }
+
+  // Risk acceptance form handler
+  document.getElementById('risk-create-btn')!.addEventListener('click', async () => {
+    if (!currentFinding) return;
+    const btn = document.getElementById('risk-create-btn') as HTMLButtonElement;
+    const msg = document.getElementById('risk-create-msg')!;
+    const rationale = (document.getElementById('risk-rationale') as HTMLTextAreaElement).value.trim();
+    const expiresAt = (document.getElementById('risk-expires-at') as HTMLInputElement).value;
+    
+    if (!rationale || !expiresAt) {
+      msg.textContent = 'Rationale and expiration date are required.';
+      msg.className = 'text-xs text-red-400';
+      msg.classList.remove('hidden');
+      return;
+    }
+    
+    btn.disabled = true;
+    msg.classList.add('hidden');
+    
+    try {
+      await api.createRiskAcceptance({
+        finding_id: currentFinding.id,
+        rationale: rationale,
+        expires_at: new Date(expiresAt).toISOString(),
+      });
+      msg.textContent = 'Risk acceptance submitted for approval';
+      msg.className = 'text-xs text-emerald-400';
+      msg.classList.remove('hidden');
+      
+      // Reload risk acceptance status
+      await loadRiskAcceptance();
+    } catch (error: any) {
+      msg.textContent = error.message ?? 'Failed to submit risk acceptance.';
+      msg.className = 'text-xs text-red-400';
+      msg.classList.remove('hidden');
+      btn.disabled = false;
+    }
+  });
+
+  // Risk acceptance approval/rejection handlers
+  document.getElementById('risk-approve-btn')!.addEventListener('click', async () => {
+    if (!currentFinding) return;
+    const btn = document.getElementById('risk-approve-btn') as HTMLButtonElement;
+    const msg = document.getElementById('risk-approval-msg')!;
+    const reviewNotes = (document.getElementById('risk-review-notes-input') as HTMLTextAreaElement).value.trim();
+    
+    btn.disabled = true;
+    msg.classList.add('hidden');
+    
+    try {
+      const ra = await api.getRiskAcceptanceByFinding(currentFinding.id);
+      await api.approveRiskAcceptance(ra.id, reviewNotes || 'Approved');
+      msg.textContent = 'Risk acceptance approved';
+      msg.className = 'text-xs text-emerald-400';
+      msg.classList.remove('hidden');
+      await loadRiskAcceptance();
+    } catch (error: any) {
+      msg.textContent = error.message ?? 'Failed to approve risk acceptance.';
+      msg.className = 'text-xs text-red-400';
+      msg.classList.remove('hidden');
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById('risk-reject-btn')!.addEventListener('click', async () => {
+    if (!currentFinding) return;
+    const btn = document.getElementById('risk-reject-btn') as HTMLButtonElement;
+    const msg = document.getElementById('risk-approval-msg')!;
+    const reviewNotes = (document.getElementById('risk-review-notes-input') as HTMLTextAreaElement).value.trim();
+    
+    if (!reviewNotes) {
+      msg.textContent = 'Review notes are required for rejection.';
+      msg.className = 'text-xs text-red-400';
+      msg.classList.remove('hidden');
+      return;
+    }
+    
+    btn.disabled = true;
+    msg.classList.add('hidden');
+    
+    try {
+      const ra = await api.getRiskAcceptanceByFinding(currentFinding.id);
+      await api.rejectRiskAcceptance(ra.id, reviewNotes);
+      msg.textContent = 'Risk acceptance rejected';
+      msg.className = 'text-xs text-emerald-400';
+      msg.classList.remove('hidden');
+      await loadRiskAcceptance();
+    } catch (error: any) {
+      msg.textContent = error.message ?? 'Failed to reject risk acceptance.';
+      msg.className = 'text-xs text-red-400';
+      msg.classList.remove('hidden');
+      btn.disabled = false;
+    }
+  });
 
   document.getElementById('triage-save')!.addEventListener('click', async () => {
     if (!currentFinding) return;
@@ -902,6 +1167,10 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 
   api.getMe().then((me) => {
     currentUserRole = me.role;
+    // Re-render risk acceptance to show/hide admin approval form
+    if (findingId) {
+      api.getRiskAcceptanceByFinding(findingId).then(renderRiskAcceptance).catch(() => {});
+    }
     applyJiraIssue(currentJiraIssue);
   }).catch(() => {});
 
