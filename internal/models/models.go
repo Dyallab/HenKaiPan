@@ -3,10 +3,12 @@ package models
 import "time"
 
 type Repo struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	URL       string    `json:"url"`
-	CreatedAt time.Time `json:"created_at"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	URL          string     `json:"url"`
+	GitHubToken  *string    `json:"github_token,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
+	HasToken     bool       `json:"has_token"`
 }
 
 type ScanStatus = string
@@ -82,6 +84,7 @@ type Finding struct {
 	Suppressed         bool           `json:"suppressed"`
 	RemediationSlug    *string        `json:"remediation_slug,omitempty"`
 	JiraIssue          *JiraIssueLink `json:"jira_issue,omitempty"`
+	SecretHash         string         `json:"-"`
 }
 
 type SLASummary struct {
@@ -177,12 +180,15 @@ type PolicyAction struct {
 }
 
 type Policy struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	Conditions []PolicyCondition `json:"conditions"`
-	Actions    []PolicyAction    `json:"actions"`
-	Enabled    bool              `json:"enabled"`
-	CreatedAt  time.Time         `json:"created_at"`
+	ID                 string            `json:"id"`
+	Name               string            `json:"name"`
+	Description        string            `json:"description"`
+	Conditions         []PolicyCondition `json:"conditions"`
+	Actions            []PolicyAction    `json:"actions"`
+	Enabled            bool              `json:"enabled"`
+	PackType           string            `json:"pack_type"`
+	ComplianceControls []string          `json:"compliance_controls"`
+	CreatedAt          time.Time         `json:"created_at"`
 }
 
 type Suppression struct {
@@ -267,4 +273,32 @@ type FindingCorrelation struct {
 	FindingIDB      string    `json:"finding_id_b"`
 	CorrelationType string    `json:"correlation_type"`
 	CreatedAt       time.Time `json:"created_at"`
+}
+
+type AuditLog struct {
+	ID           string    `json:"id"`
+	UserID       string    `json:"user_id"`
+	UserEmail    string    `json:"user_email"`
+	Action       string    `json:"action"`
+	EntityType   string    `json:"entity_type"`
+	EntityID     string    `json:"entity_id"`
+	OldValue     any       `json:"old_value,omitempty"`
+	NewValue     any       `json:"new_value,omitempty"`
+	IPAddress    string    `json:"ip_address,omitempty"`
+	UserAgent    string    `json:"user_agent,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+type RiskAcceptance struct {
+	ID          string     `json:"id"`
+	FindingID   string     `json:"finding_id"`
+	UserID      string     `json:"user_id"`
+	Rationale   string     `json:"rationale"`
+	ExpiresAt   time.Time  `json:"expires_at"`
+	ApprovedBy  *string    `json:"approved_by,omitempty"`
+	ApprovedAt  *time.Time `json:"approved_at,omitempty"`
+	Status      string     `json:"status"`
+	ReviewNotes *string    `json:"review_notes,omitempty"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
