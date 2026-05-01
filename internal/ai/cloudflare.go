@@ -107,23 +107,3 @@ func CloudflareGenerate(ctx context.Context, model, systemPrompt, userPrompt str
 	return strings.TrimSpace(result.Result.Response), nil
 }
 
-func CloudflareGenerateJSON[T any](ctx context.Context, model, systemPrompt, userPrompt string) (*T, error) {
-	content, err := CloudflareGenerate(ctx, model, systemPrompt+"\n\nReturn a single JSON object only.", userPrompt)
-	if err != nil {
-		return nil, err
-	}
-
-	var target T
-	if err := json.Unmarshal([]byte(content), &target); err == nil {
-		return &target, nil
-	}
-
-	obj, err := extractJSONObject(content)
-	if err != nil {
-		return nil, fmt.Errorf("parse cloudflare response: %w", err)
-	}
-	if err := json.Unmarshal([]byte(obj), &target); err != nil {
-		return nil, fmt.Errorf("unmarshal cloudflare response: %w", err)
-	}
-	return &target, nil
-}
