@@ -11,8 +11,10 @@ import (
 	"time"
 
 	"aspm/internal/models"
+	"aspm/internal/pagination"
 	"aspm/internal/repository"
 	"aspm/internal/tasks"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hibiken/asynq"
@@ -20,8 +22,7 @@ import (
 
 func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	page, _ := strconv.Atoi(q.Get("page"))
-	limit, _ := strconv.Atoi(q.Get("limit"))
+	p := pagination.FromQuery(q)
 
 	findings, total, err := h.store.Findings.List(r.Context(), repository.FindingFilter{
 		Severities:     parseCSVParam(q.Get("severity")),
@@ -31,9 +32,10 @@ func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 		CVESearch:      q.Get("cve_id"),
 		Overdue:        q.Get("overdue") == "true",
 		ShowSuppressed: q.Get("suppressed") == "true",
-		Page:           page,
-		Limit:          limit,
+		Page:           p.Page,
+		Limit:          p.Limit,
 		FilePath:       q.Get("file_path"),
+		SortBy:         q.Get("sort_by"),
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list findings")
@@ -108,15 +110,14 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.Status != nil {
-		valid := map[string]bool{
-			"open": true, "in_review": true, "accepted_risk": true,
-			"fixed": true, "verified": true,
-		}
-		if !valid[*body.Status] {
+		if !validation.IsValid(validation.FindingStatuses, *body.Status) {
 			writeError(w, http.StatusBadRequest, "invalid status")
 			return
 		}
 	}
+
+	// Get old value for audit trail
+	oldFinding, _ := h.store.Findings.GetByID(r.Context(), id)
 
 	f, err := h.store.Findings.Update(r.Context(), id, repository.FindingUpdate{
 		Status:        body.Status,
@@ -128,6 +129,9 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "finding not found")
 		return
 	}
+
+	h.auditLog(r, "finding.update", "finding", id, oldFinding, f)
+
 	writeJSON(w, http.StatusOK, f)
 }
 

@@ -3,8 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
+	"time"
 
+	"aspm/internal/pagination"
 	"aspm/internal/scanner"
 	"aspm/internal/tasks"
 
@@ -14,10 +15,9 @@ import (
 )
 
 func (h *Handler) ListScans(w http.ResponseWriter, r *http.Request) {
-	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
-	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	p := pagination.FromQuery(r.URL.Query())
 
-	scans, total, err := h.store.Scans.List(r.Context(), page, limit)
+	scans, total, err := h.store.Scans.List(r.Context(), p.Page, p.Limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list scans")
 		return
@@ -41,6 +41,16 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	var scannerNames []string
 	if req.Scanner == "all" {
 		scannerNames = scanner.GitScannerNames()
+	} else if req.Scanner == "sast" {
+		scannerNames = []string{"semgrep", "gosec"}
+	} else if req.Scanner == "sca" {
+		scannerNames = []string{"trivy", "grype", "osv-scanner"}
+	} else if req.Scanner == "secrets" {
+		scannerNames = []string{"trufflehog", "gitleaks"}
+	} else if req.Scanner == "iac" {
+		scannerNames = []string{"checkov", "tfsec", "kics"}
+	} else if req.Scanner == "containers" {
+		scannerNames = []string{"trivy-image", "grype-image"}
 	} else {
 		if _, ok := scanner.Get(req.Scanner); !ok {
 			writeError(w, http.StatusBadRequest, "unknown scanner: "+req.Scanner)
@@ -60,8 +70,12 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, Target: req.Target, Scanner: name})
-		h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload))
+		repoIDStr := ""
+		if repoID != nil {
+			repoIDStr = *repoID
+		}
+		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, RepoID: repoIDStr, Target: req.Target, Scanner: name})
+		h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload), asynq.MaxRetry(3), asynq.Timeout(30*time.Minute))
 		ids = append(ids, scanID)
 	}
 
