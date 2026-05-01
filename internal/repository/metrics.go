@@ -212,3 +212,35 @@ func (r *metricsRepo) SLACompliance(ctx context.Context) (*models.SLACompliance,
 	}
 	return &s, nil
 }
+
+// PrometheusStats returns metrics for Prometheus exposition
+func (r *metricsRepo) PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error) {
+	err = r.db.QueryRow(ctx, `
+		SELECT
+			COUNT(*) FILTER (WHERE true) AS total,
+			COUNT(*) FILTER (WHERE status = 'running') AS running,
+			COUNT(*) FILTER (WHERE status = 'failed') AS failed
+		FROM scans`).
+		Scan(&scansTotal, &scansRunning, &scansFailed)
+	if err != nil {
+		return 0, 0, 0, nil, fmt.Errorf("scans stats: %w", err)
+	}
+
+	rows, err := r.db.Query(ctx, `SELECT severity, COUNT(*) FROM findings GROUP BY severity`)
+	if err != nil {
+		return 0, 0, 0, nil, fmt.Errorf("findings stats: %w", err)
+	}
+	defer rows.Close()
+
+	findingsBySeverity = make(map[string]int)
+	for rows.Next() {
+		var sev string
+		var count int
+		if err := rows.Scan(&sev, &count); err != nil {
+			continue
+		}
+		findingsBySeverity[sev] = count
+	}
+
+	return scansTotal, scansRunning, scansFailed, findingsBySeverity, nil
+}

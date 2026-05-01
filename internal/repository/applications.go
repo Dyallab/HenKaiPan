@@ -98,6 +98,5 @@ func (r *appRepo) Update(ctx context.Context, id string, upd AppUpdate) error {
 }
 
 func (r *appRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM apps WHERE id = $1`, id)
-	return err
+	return DeleteByID(ctx, r.db, "apps", id)
 }

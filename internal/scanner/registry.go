@@ -35,6 +35,7 @@ type FindingRow struct {
 	Raw         []byte
 	CVEID       string // e.g. "CVE-2021-44228"
 	CWEID       string // e.g. "CWE-89"
+	SecretHash  string // SHA256 hash of detected secret value (for trufflehog/gitleaks correlation)
 }
 
 type ParserFunc func(output []byte) ([]FindingRow, error)

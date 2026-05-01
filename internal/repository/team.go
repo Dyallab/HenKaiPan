@@ -64,8 +64,7 @@ func (r *teamRepo) Create(ctx context.Context, name string) (*models.Team, error
 }
 
 func (r *teamRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM teams WHERE id = $1`, id)
-	return err
+	return DeleteByID(ctx, r.db, "teams", id)
 }
 
 func (r *teamRepo) AddMember(ctx context.Context, teamID, userID string) error {

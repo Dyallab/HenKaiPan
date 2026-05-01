@@ -23,10 +23,7 @@ func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Proj
 		rows.Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoID, &p.RepoName, &p.RepoURL, &p.CreatedAt)
 		projects = append(projects, p)
 	}
-	if projects == nil {
-		projects = []models.Project{}
-	}
-	return projects, nil
+	return EnsureSlice(projects), nil
 }
 
 func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCreate) (*models.Project, error) {
@@ -55,8 +52,7 @@ func (r *appRepo) UpdateProject(ctx context.Context, id string, upd ProjectUpdat
 }
 
 func (r *appRepo) DeleteProject(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM projects WHERE id = $1`, id)
-	return err
+	return DeleteByID(ctx, r.db, "projects", id)
 }
 
 // projectsByAppIDs batch-loads projects for multiple app IDs (fixes N+1).
