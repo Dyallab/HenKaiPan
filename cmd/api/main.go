@@ -68,10 +68,18 @@ func main() {
 		r.Get("/api/findings/{id}/analysis", h.GetFindingAnalysis)
 		r.Post("/api/findings/{id}/analyze", h.AnalyzeFinding)
 		r.Get("/api/findings/files", h.GetUniqueFiles)
+		r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
 
 		r.Get("/api/repos", h.ListRepos)
 		r.Post("/api/repos", h.CreateRepo)
 		r.With(auth.RequireRole("admin")).Delete("/api/repos/{id}", h.DeleteRepo)
+		r.With(auth.RequireRole("admin")).Put("/api/repos/{id}/github-token", h.UpdateRepoGitHubToken)
+
+		r.Get("/api/audit-logs", h.ListAuditLogs)
+		r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
+		r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
+		r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", h.ApproveRiskAcceptance)
+		r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", h.RejectRiskAcceptance)
 
 		r.Get("/api/metrics/summary", h.GetMetricsSummary)
 		r.Get("/api/metrics/trends", h.GetTrends)

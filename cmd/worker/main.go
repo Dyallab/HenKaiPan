@@ -11,8 +11,10 @@ import (
 	"aspm/internal/db"
 	"aspm/internal/findings"
 	"aspm/internal/logger"
+	"aspm/internal/metrics"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
+	"aspm/internal/secrets"
 	"aspm/internal/tasks"
 
 	"github.com/hibiken/asynq"
@@ -22,6 +24,7 @@ func main() {
 	logger.Init()
 	cfg := config.Load()
 	ai.Init(cfg)
+	secrets.SetKey(cfg.SecretEncryptionKey)
 
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
@@ -32,6 +35,21 @@ func main() {
 		slog.Info("recovered stuck scans", "count", n)
 	}
 
+	// Start Prometheus metrics server
+	metrics.StartPrometheusServer(":9090")
+	slog.Info("Prometheus metrics endpoint exposed at :9090/metrics")
+
+	// Start queue metrics collector
+	inspector := asynq.NewInspector(asynq.RedisClientOpt{Addr: cfg.RedisAddr})
+	metrics.StartQueueMetricsCollector(context.Background(), inspector, 30*time.Second)
+	slog.Info("Queue metrics collection started")
+
+	// Start DB metrics collector
+	metrics.StartDBMetricsCollector(context.Background(), func() (int, int, int, map[string]int, error) {
+		return store.Metrics.PrometheusStats(context.Background())
+	}, 60*time.Second)
+	slog.Info("DB metrics collection started")
+
 	// queue client for enqueueing sub-tasks (e.g. agent:validate after scan)
 	queueClient := queue.NewClient(cfg.RedisAddr)
 	defer queueClient.Close()
@@ -41,7 +59,7 @@ func main() {
 	srv := queue.NewServer(cfg.RedisAddr, 5)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, queueClient, notifications))
+	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, store.Repos, queueClient, notifications))
 	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
 	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(emailSender))
 	tasks.StartSLABreachMonitor(context.Background(), store.Settings, store.Findings, store.Webhooks, queueClient, notifications, 15*time.Minute)
