@@ -15,7 +15,8 @@ type policyRepo struct{ db *pgxpool.Pool }
 
 func (r *policyRepo) List(ctx context.Context) ([]models.Policy, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, conditions, actions, enabled, created_at
+		SELECT id, name, COALESCE(description, ''), conditions, actions, enabled, 
+		       COALESCE(pack_type, 'custom'), COALESCE(compliance_controls, '{}'), created_at
 		FROM policies ORDER BY created_at DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("policies list: %w", err)
@@ -26,7 +27,7 @@ func (r *policyRepo) List(ctx context.Context) ([]models.Policy, error) {
 	for rows.Next() {
 		var p models.Policy
 		var condsRaw, actionsRaw []byte
-		if err := rows.Scan(&p.ID, &p.Name, &condsRaw, &actionsRaw, &p.Enabled, &p.CreatedAt); err != nil {
+		if err := rows.Scan(&p.ID, &p.Name, &p.Description, &condsRaw, &actionsRaw, &p.Enabled, &p.PackType, &p.ComplianceControls, &p.CreatedAt); err != nil {
 			continue
 		}
 		json.Unmarshal(condsRaw, &p.Conditions)
@@ -37,31 +38,64 @@ func (r *policyRepo) List(ctx context.Context) ([]models.Policy, error) {
 		if p.Actions == nil {
 			p.Actions = []models.PolicyAction{}
 		}
+		if p.ComplianceControls == nil {
+			p.ComplianceControls = []string{}
+		}
 		out = append(out, p)
 	}
-	if out == nil {
-		out = []models.Policy{}
-	}
-	return out, nil
+	return EnsureSlice(out), nil
 }
 
 func (r *policyRepo) Create(ctx context.Context, pc PolicyCreate) (*models.Policy, error) {
 	condsJSON, _ := json.Marshal(pc.Conditions)
 	actionsJSON, _ := json.Marshal(pc.Actions)
+	packType := pc.PackType
+	if packType == "" {
+		packType = "custom"
+	}
+	controls := pc.ComplianceControls
+	if controls == nil {
+		controls = []string{}
+	}
 
 	var p models.Policy
 	var condsRaw, actionsRaw []byte
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO policies (name, conditions, actions)
-		VALUES ($1, $2, $3)
-		RETURNING id, name, conditions, actions, enabled, created_at`,
-		pc.Name, condsJSON, actionsJSON,
-	).Scan(&p.ID, &p.Name, &condsRaw, &actionsRaw, &p.Enabled, &p.CreatedAt)
+		INSERT INTO policies (name, description, conditions, actions, pack_type, compliance_controls)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, name, COALESCE(description, ''), conditions, actions, enabled, pack_type, compliance_controls, created_at`,
+		pc.Name, pc.Description, condsJSON, actionsJSON, packType, controls,
+	).Scan(&p.ID, &p.Name, &p.Description, &condsRaw, &actionsRaw, &p.Enabled, &p.PackType, &p.ComplianceControls, &p.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create policy: %w", err)
 	}
 	json.Unmarshal(condsRaw, &p.Conditions)
 	json.Unmarshal(actionsRaw, &p.Actions)
+	return &p, nil
+}
+
+func (r *policyRepo) GetByID(ctx context.Context, id string) (*models.Policy, error) {
+	var p models.Policy
+	var condsRaw, actionsRaw []byte
+	err := r.db.QueryRow(ctx, `
+		SELECT id, name, COALESCE(description, ''), conditions, actions, enabled,
+		       COALESCE(pack_type, 'custom'), COALESCE(compliance_controls, '{}'), created_at
+		FROM policies WHERE id = $1`, id,
+	).Scan(&p.ID, &p.Name, &p.Description, &condsRaw, &actionsRaw, &p.Enabled, &p.PackType, &p.ComplianceControls, &p.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get policy: %w", err)
+	}
+	json.Unmarshal(condsRaw, &p.Conditions)
+	json.Unmarshal(actionsRaw, &p.Actions)
+	if p.Conditions == nil {
+		p.Conditions = []models.PolicyCondition{}
+	}
+	if p.Actions == nil {
+		p.Actions = []models.PolicyAction{}
+	}
+	if p.ComplianceControls == nil {
+		p.ComplianceControls = []string{}
+	}
 	return &p, nil
 }
 
