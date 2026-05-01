@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"net/http"
-	"strconv"
 
+	"aspm/internal/pagination"
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -11,15 +11,14 @@ import (
 
 func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	page, _ := strconv.Atoi(q.Get("page"))
-	limit, _ := strconv.Atoi(q.Get("limit"))
+	p := pagination.FromQueryWithDefaults(q, 100, 200)
 
 	vulns, total, err := h.store.Vulns.List(r.Context(), repository.VulnFilter{
 		Severities: parseCSVParam(q.Get("severity")),
 		Search:     q.Get("q"),
 		OnlyOpen:   q.Get("open") != "false",
-		Page:       page,
-		Limit:      limit,
+		Page:       p.Page,
+		Limit:      p.Limit,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list vulnerabilities")

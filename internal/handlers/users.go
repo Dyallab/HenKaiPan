@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"aspm/internal/repository"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -33,8 +34,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if body.Role == "" {
 		body.Role = "analyst"
 	}
-	validRole := map[string]bool{"admin": true, "analyst": true, "viewer": true}
-	if !validRole[body.Role] {
+	if !validation.IsValid(validation.Roles, body.Role) {
 		writeError(w, http.StatusBadRequest, "role must be admin, analyst, or viewer")
 		return
 	}
@@ -53,6 +53,9 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusConflict, "username or email already exists")
 		return
 	}
+
+	h.auditLog(r, "user.create", "user", u.ID, nil, u)
+
 	writeJSON(w, http.StatusCreated, u)
 }
 
@@ -70,8 +73,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if body.Role != nil {
-		validRole := map[string]bool{"admin": true, "analyst": true, "viewer": true}
-		if !validRole[*body.Role] {
+		if !validation.IsValid(validation.Roles, *body.Role) {
 			writeError(w, http.StatusBadRequest, "role must be admin, analyst, or viewer")
 			return
 		}
@@ -88,6 +90,9 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		hashPtr = &s
 	}
 
+	// Get old user state for audit
+	oldUser, _ := h.store.Users.GetByID(r.Context(), id)
+
 	u, err := h.store.Users.Update(r.Context(), id, repository.UserUpdate{
 		Email: body.Email, Role: body.Role, PasswordHash: hashPtr,
 	})
@@ -95,13 +100,24 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
+
+	h.auditLog(r, "user.update", "user", u.ID, oldUser, u)
+
 	writeJSON(w, http.StatusOK, u)
 }
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	if err := h.store.Users.Delete(r.Context(), chi.URLParam(r, "id")); err != nil {
+	id := chi.URLParam(r, "id")
+
+	// Get old user state for audit
+	oldUser, _ := h.store.Users.GetByID(r.Context(), id)
+
+	if err := h.store.Users.Delete(r.Context(), id); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to delete user")
 		return
 	}
+
+	h.auditLog(r, "user.delete", "user", id, oldUser, nil)
+
 	w.WriteHeader(http.StatusNoContent)
 }

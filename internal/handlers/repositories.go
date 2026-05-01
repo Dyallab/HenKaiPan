@@ -41,3 +41,22 @@ func (h *Handler) DeleteRepo(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *Handler) UpdateRepoGitHubToken(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.store.Repos.UpdateGitHubToken(r.Context(), id, req.Token); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update token")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

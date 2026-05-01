@@ -12,6 +12,7 @@ import (
 
 	"aspm/internal/repository"
 	"aspm/internal/tasks"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hibiken/asynq"
@@ -44,7 +45,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	body.DeliveryType = normalizeWebhookDeliveryType(body.DeliveryType)
+	body.DeliveryType = validation.NormalizeWebhookDeliveryType(body.DeliveryType)
 	if body.DeliveryType == "" {
 		writeError(w, http.StatusBadRequest, "invalid delivery_type")
 		return
@@ -67,7 +68,7 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.DeliveryType != nil {
-		normalized := normalizeWebhookDeliveryType(*body.DeliveryType)
+		normalized := validation.NormalizeWebhookDeliveryType(*body.DeliveryType)
 		if normalized == "" {
 			writeError(w, http.StatusBadRequest, "invalid delivery_type")
 			return
@@ -165,15 +166,4 @@ func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "queued", "message": "Test webhook queued for delivery"})
 }
 
-func normalizeWebhookDeliveryType(raw string) string {
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "", "generic":
-		return "generic"
-	case "slack":
-		return "slack"
-	case "discord":
-		return "discord"
-	default:
-		return ""
-	}
-}
+
