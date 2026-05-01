@@ -20,6 +20,7 @@ type FindingFilter struct {
 	Page           int
 	Limit          int
 	FilePath       string
+	SortBy         string // "confidence_desc", "confidence_asc", "corroborated"
 }
 
 type FindingUpdate struct {
@@ -45,6 +46,7 @@ type FindingInsert struct {
 	CVEID       *string
 	CWEID       *string
 	Suppressed  bool
+	SecretHash  string
 }
 
 type ExportFilter struct {
@@ -139,6 +141,8 @@ type RepoRepository interface {
 	List(ctx context.Context) ([]models.Repo, error)
 	Create(ctx context.Context, name, url string) (*models.Repo, error)
 	Delete(ctx context.Context, id string) error
+	UpdateGitHubToken(ctx context.Context, id, token string) error
+	GetGitHubToken(ctx context.Context, id string) (string, error)
 }
 
 // ── Apps + Projects ───────────────────────────────────────────────────────────
@@ -216,6 +220,7 @@ type MetricsRepository interface {
 	RiskScores(ctx context.Context) ([]models.RepoRiskScore, error)
 	TeamMetrics(ctx context.Context) ([]models.TeamMetrics, error)
 	SLACompliance(ctx context.Context) (*models.SLACompliance, error)
+	PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error)
 }
 
 // ── Knowledge ─────────────────────────────────────────────────────────────────
@@ -262,9 +267,12 @@ type KnowledgeRepository interface {
 // ── Policies + Suppressions ───────────────────────────────────────────────────
 
 type PolicyCreate struct {
-	Name       string
-	Conditions []models.PolicyCondition
-	Actions    []models.PolicyAction
+	Name               string
+	Description        string
+	Conditions         []models.PolicyCondition
+	Actions            []models.PolicyAction
+	PackType           string
+	ComplianceControls []string
 }
 
 type SuppressionCreate struct {
@@ -281,8 +289,32 @@ type PolicyRow struct {
 	Actions    []models.PolicyAction
 }
 
+type AuditFilter struct {
+	UserID     string
+	EntityType string
+	Action     string
+	Page       int
+	Limit      int
+}
+
+type RiskAcceptanceCreate struct {
+	FindingID string
+	UserID    string
+	Rationale string
+	ExpiresAt time.Time
+	Status    string
+}
+
+type RiskAcceptanceFilter struct {
+	Status    string
+	FindingID string
+	Page      int
+	Limit     int
+}
+
 type PolicyRepository interface {
 	List(ctx context.Context) ([]models.Policy, error)
+	GetByID(ctx context.Context, id string) (*models.Policy, error)
 	Create(ctx context.Context, p PolicyCreate) (*models.Policy, error)
 	SetEnabled(ctx context.Context, id string, enabled bool) error
 	Delete(ctx context.Context, id string) error
@@ -292,6 +324,20 @@ type PolicyRepository interface {
 	CreateSuppression(ctx context.Context, s SuppressionCreate) (*models.Suppression, error)
 	DeleteSuppression(ctx context.Context, id string) error
 	IsSuppressed(ctx context.Context, scanner, ruleID, filePath string) (bool, error)
+}
+
+type AuditRepository interface {
+	Log(ctx context.Context, entry AuditLogEntry) error
+	List(ctx context.Context, filter AuditFilter) ([]models.AuditLog, int, error)
+}
+
+type RiskAcceptanceRepository interface {
+	Create(ctx context.Context, req RiskAcceptanceCreate) (*models.RiskAcceptance, error)
+	GetByFindingID(ctx context.Context, findingID string) (*models.RiskAcceptance, error)
+	Approve(ctx context.Context, id, approvedBy, reviewNotes string) error
+	Reject(ctx context.Context, id, reviewNotes string) error
+	Expire(ctx context.Context) error
+	List(ctx context.Context, filter RiskAcceptanceFilter) ([]models.RiskAcceptance, int, error)
 }
 
 // ── Vulnerabilities ───────────────────────────────────────────────────────────
@@ -414,17 +460,19 @@ type SettingsRepository interface {
 }
 
 type Stores struct {
-	Findings  FindingRepository
-	Scans     ScanRepository
-	Repos     RepoRepository
-	Apps      AppRepository
-	Users     UserRepository
-	Teams     TeamRepository
-	Metrics   MetricsRepository
-	Knowledge KnowledgeRepository
-	Policies  PolicyRepository
-	Vulns     VulnerabilityRepository
-	Agents    AgentRepository
-	Webhooks  WebhookRepository
-	Settings  SettingsRepository
+	Findings       FindingRepository
+	Scans          ScanRepository
+	Repos          RepoRepository
+	Apps           AppRepository
+	Users          UserRepository
+	Teams          TeamRepository
+	Metrics        MetricsRepository
+	Knowledge      KnowledgeRepository
+	Policies       PolicyRepository
+	Vulns          VulnerabilityRepository
+	Agents         AgentRepository
+	Webhooks       WebhookRepository
+	Settings       SettingsRepository
+	Audit          AuditRepository
+	RiskAcceptance RiskAcceptanceRepository
 }

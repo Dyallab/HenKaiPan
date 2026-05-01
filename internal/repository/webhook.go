@@ -36,10 +36,7 @@ func (r *webhookRepo) List(ctx context.Context) ([]models.Webhook, error) {
 		}
 		out = append(out, w)
 	}
-	if out == nil {
-		out = []models.Webhook{}
-	}
-	return out, nil
+	return EnsureSlice(out), nil
 }
 
 func (r *webhookRepo) GetByID(ctx context.Context, id string) (*models.Webhook, error) {
@@ -131,11 +128,7 @@ func (r *webhookRepo) Update(ctx context.Context, id string, upd WebhookUpdate) 
 }
 
 func (r *webhookRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM webhooks WHERE id = $1`, id)
-	if err != nil {
-		return fmt.Errorf("delete webhook: %w", err)
-	}
-	return nil
+	return DeleteByID(ctx, r.db, "webhooks", id)
 }
 
 func (r *webhookRepo) ListEnabled(ctx context.Context) ([]models.Webhook, error) {

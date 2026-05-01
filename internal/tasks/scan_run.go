@@ -47,14 +47,16 @@ type runResult struct {
 }
 
 // HandleScan runs a queued scan job for any configured scanner.
-func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
+func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, repos repository.RepoRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		p, err := UnmarshalScanPayload(t.Payload())
 		if err != nil {
 			return err
 		}
 
-		log := slog.With("scan_id", p.ScanID, "scanner", p.Scanner, "target", p.Target)
+		log := slog.With("scan_id", p.ScanID, "scanner", p.Scanner, "target", p.Target, "repo_id", p.RepoID)
+
+		log.Info("scan task received", "payload_repo_id", p.RepoID)
 
 		sc, ok := scanner.Get(p.Scanner)
 		if !ok {
@@ -71,7 +73,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		switch sc.TargetType {
 		case scanner.TargetGit:
-			dir, cloneLog, err := cloneRepo(ctx, p.Target, p.ScanID)
+			dir, cloneLog, err := cloneRepo(ctx, repos, p.RepoID, p.Target, p.ScanID)
 			if err != nil {
 				scans.MarkFailed(ctx, p.ScanID, err.Error(), cloneLog)
 				enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.failed", err.Error(), time.Now())
@@ -99,7 +101,6 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		now := time.Now()
 		inserted := 0
-		summary := newScanFindingSummary(p.Target)
 		for _, f := range parsed {
 			sla := slaDeadlineFor(normalizeSeverity(f.Severity), now)
 			var cveID, cweID *string
@@ -121,6 +122,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				CodeSnippet: f.CodeSnippet, Raw: f.Raw,
 				SLADeadline: sla, CVEID: cveID, CWEID: cweID,
 				Suppressed: suppressed,
+				SecretHash: f.SecretHash,
 			})
 			if err != nil {
 				log.Error("insert finding failed", "rule_id", f.RuleID, "err", err)
@@ -134,7 +136,6 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				enqueueFindingSummary(ctx, findings, queue, findingID)
 			}
 			if !suppressed {
-				summary.Add(norm, f.Title, f.RuleID, f.FilePath, f.LineStart, sc.Name)
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)
 				enqueueAgentValidate(ctx, queue, findingID)
 			}
@@ -170,13 +171,52 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-func cloneRepo(ctx context.Context, url, scanID string) (dir string, execLog string, err error) {
+func cloneRepo(ctx context.Context, repos repository.RepoRepository, repoID, url, scanID string) (dir string, execLog string, err error) {
 	dir = filepath.Join(os.TempDir(), "aspm-scan-"+scanID)
+
+	slog.Info("cloneRepo called", "repo_id", repoID, "url", url, "scan_id", scanID)
+
+	// Clean up any existing directory from previous failed attempts
+	if _, err := os.Stat(dir); err == nil {
+		slog.Info("removing existing scan directory from previous attempt", "dir", dir)
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("failed to remove existing directory", "dir", dir, "err", rmErr)
+		}
+	}
+
+	// Get GitHub token if available
+	var token string
+	if repoID != "" {
+		var err error
+		token, err = repos.GetGitHubToken(ctx, repoID)
+		if err != nil {
+			slog.Warn("failed to get github token", "repo_id", repoID, "err", err)
+		} else {
+			slog.Info("github token retrieved", "repo_id", repoID, "token_len", len(token))
+		}
+	} else {
+		slog.Warn("no repo_id provided, skipping token lookup")
+	}
+
+	// Build clone URL with token if available
+	cloneURL := url
+	if token != "" {
+		// Inject token into URL: https://github.com/org/repo -> https://<token>@github.com/org/repo
+		if strings.HasPrefix(url, "https://") {
+			cloneURL = "https://" + token + "@" + strings.TrimPrefix(url, "https://")
+			slog.Info("token injected into clone URL", "url_host", "github.com")
+		}
+	}
+
 	start := time.Now()
-	cmd := exec.CommandContext(ctx, "git", "clone", "--depth=50", url, dir)
+	cmd := exec.CommandContext(ctx, "git", "clone", "--depth=50", cloneURL, dir)
 	out, cloneErr := cmd.CombinedOutput()
-	execLog = buildSimpleLog("git clone --depth=50 "+url, out, nil, cloneErr, time.Since(start))
+	execLog = buildSimpleLog("git clone --depth=50 "+cloneURL, out, nil, cloneErr, time.Since(start))
 	if cloneErr != nil {
+		// Clean up partial clone directory before returning error
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("failed to remove partial clone directory", "dir", dir, "err", rmErr)
+		}
 		return "", execLog, fmt.Errorf("git clone: %w\n%s", cloneErr, out)
 	}
 	return dir, execLog, nil
@@ -487,66 +527,6 @@ func derefErr(err *string) string {
 		return ""
 	}
 	return *err
-}
-
-type scanFindingSummary struct {
-	Repository string
-	Total      int
-	Counts     map[string]int
-	Items      []findingSummaryItem
-}
-
-type findingSummaryItem struct {
-	Severity string
-	Title    string
-	RuleID   string
-	FilePath string
-	Line     int
-	Scanner  string
-}
-
-func newScanFindingSummary(repository string) *scanFindingSummary {
-	return &scanFindingSummary{Repository: repository, Counts: map[string]int{}}
-}
-
-func (s *scanFindingSummary) Add(severity, title, ruleID, filePath string, line int, scanner string) {
-	s.Total++
-	s.Counts[severity]++
-	if len(s.Items) >= 10 {
-		return
-	}
-	s.Items = append(s.Items, findingSummaryItem{Severity: severity, Title: title, RuleID: ruleID, FilePath: filePath, Line: line, Scanner: scanner})
-}
-
-func buildGitHubPRSummaryBody(scanID string, summary *scanFindingSummary) string {
-	var b strings.Builder
-	b.WriteString("## HenKaiPan security scan summary\n\n")
-	fmt.Fprintf(&b, "Scan `%s` found **%d** finding(s) in `%s`.\n\n", scanID, summary.Total, summary.Repository)
-	b.WriteString("| Severity | Count |\n|---|---:|\n")
-	for _, severity := range []string{"critical", "high", "medium", "low", "info"} {
-		if count := summary.Counts[severity]; count > 0 {
-			fmt.Fprintf(&b, "| %s | %d |\n", strings.ToUpper(severity), count)
-		}
-	}
-	if len(summary.Items) > 0 {
-		b.WriteString("\n### Top findings\n")
-		for _, item := range summary.Items {
-			location := item.FilePath
-			if item.Line > 0 {
-				location = fmt.Sprintf("%s:%d", item.FilePath, item.Line)
-			}
-			fmt.Fprintf(&b, "- **%s** `%s` — %s", strings.ToUpper(item.Severity), item.Scanner, item.Title)
-			if item.RuleID != "" {
-				fmt.Fprintf(&b, " (`%s`)", item.RuleID)
-			}
-			if strings.TrimSpace(location) != "" {
-				fmt.Fprintf(&b, " at `%s`", location)
-			}
-			b.WriteString("\n")
-		}
-	}
-	b.WriteString("\n_Comment generated by HenKaiPan ASPM._")
-	return b.String()
 }
 
 func StartSLABreachMonitor(ctx context.Context, settings repository.SettingsRepository, findings repository.FindingRepository, webhooks repository.WebhookRepository, queue *asynq.Client, notifications NotificationConfig, interval time.Duration) {

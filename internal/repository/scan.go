@@ -43,9 +43,7 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 		}
 		scans = append(scans, s)
 	}
-	if scans == nil {
-		scans = []models.Scan{}
-	}
+	scans = EnsureSlice(scans)
 
 	var total int
 	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans`).Scan(&total)

@@ -27,10 +27,7 @@ func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 		}
 		users = append(users, u)
 	}
-	if users == nil {
-		users = []models.User{}
-	}
-	return users, nil
+	return EnsureSlice(users), nil
 }
 
 func (r *userRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
@@ -73,11 +70,7 @@ func (r *userRepo) Update(ctx context.Context, id string, upd UserUpdate) (*mode
 }
 
 func (r *userRepo) Delete(ctx context.Context, id string) error {
-	_, err := r.db.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
-	if err != nil {
-		return fmt.Errorf("delete user: %w", err)
-	}
-	return nil
+	return DeleteByID(ctx, r.db, "users", id)
 }
 
 func (r *userRepo) GetCredentials(ctx context.Context, username string) (id, hash, role string, err error) {

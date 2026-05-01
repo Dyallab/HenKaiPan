@@ -20,8 +20,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 	}
 	offset := (f.Page - 1) * f.Limit
 
-	rows, err := r.db.Query(ctx, `
-		SELECT
+	query := `SELECT
 			COALESCE(f.cve_id, f.rule_id)                       AS vuln_id,
 			MIN(f.cve_id)                                        AS cve_id,
 			MIN(f.cwe_id)                                        AS cwe_id,
@@ -39,9 +38,11 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 		  AND ($3 = FALSE OR f.status NOT IN ('fixed','verified','accepted_risk'))
 		GROUP BY COALESCE(f.cve_id, f.rule_id), f.severity
 		ORDER BY
-			CASE f.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
+			` + SeverityOrderSQL + `,
 			COUNT(DISTINCT COALESCE(s.repo_id::text, s.target)) DESC
-		LIMIT $4 OFFSET $5`,
+		LIMIT $4 OFFSET $5`
+
+	rows, err := r.db.Query(ctx, query,
 		f.Severities, f.Search, f.OnlyOpen, f.Limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("vulns list: %w", err)
@@ -59,9 +60,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 		v.Scanners = scanners
 		vulns = append(vulns, v)
 	}
-	if vulns == nil {
-		vulns = []models.VulnSummary{}
-	}
+	vulns = EnsureSlice(vulns)
 
 	var total int
 	r.db.QueryRow(ctx, `
@@ -112,8 +111,5 @@ func (r *vulnRepo) GetAffected(ctx context.Context, vulnID string) ([]models.Aff
 		a.Assignees = assignees
 		affected = append(affected, a)
 	}
-	if affected == nil {
-		affected = []models.AffectedRepo{}
-	}
-	return affected, nil
+	return EnsureSlice(affected), nil
 }

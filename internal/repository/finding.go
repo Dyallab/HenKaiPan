@@ -58,12 +58,13 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		  AND ($7 = TRUE OR f.suppressed = FALSE)
 		  AND ($10 = '' OR f.file_path = $10)
 		ORDER BY
-			CASE f.severity
-				WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5
-			END,
+			CASE WHEN $11 = 'confidence_desc' THEN COALESCE(f.confidence_score, 0) END DESC,
+			CASE WHEN $11 = 'confidence_asc' THEN COALESCE(f.confidence_score, 0) END ASC,
+			CASE WHEN $11 = 'corroborated' THEN f.corroboration_count END DESC,
+			`+SeverityOrderSQL+`,
 			f.created_at DESC
 		LIMIT $8 OFFSET $9`,
-		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset, f.FilePath)
+		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset, f.FilePath, f.SortBy)
 	if err != nil {
 		return nil, 0, fmt.Errorf("findings list: %w", err)
 	}
@@ -270,12 +271,12 @@ func (r *findingRepo) Insert(ctx context.Context, f FindingInsert) (string, erro
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO findings
 			(scan_id, scanner, rule_id, title, description, severity, file_path, line_start, line_end,
-			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
 		RETURNING id`,
 		f.ScanID, f.Scanner, f.RuleID, f.Title, f.Description,
 		f.Severity, f.FilePath, f.LineStart, f.LineEnd,
-		f.CodeSnippet, f.Raw, f.SLADeadline, f.CVEID, f.CWEID, f.Suppressed,
+		f.CodeSnippet, f.Raw, f.SLADeadline, f.CVEID, f.CWEID, f.Suppressed, f.SecretHash,
 	).Scan(&id)
 	if err != nil {
 		return "", fmt.Errorf("insert finding: %w", err)
@@ -518,6 +519,7 @@ type correlationContext struct {
 	FilePath     string
 	LineStart    int
 	CVEID        *string
+	SecretHash   string
 	Suppressed   bool
 	ScannerClass scanner.Category
 }
@@ -526,11 +528,12 @@ func (r *findingRepo) getCorrelationContext(ctx context.Context, findingID strin
 	var current correlationContext
 	err := r.db.QueryRow(ctx, `
 		SELECT f.id, f.scan_id, s.scan_batch_id, f.scanner, COALESCE(f.rule_id, ''),
-		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.cve_id, f.suppressed
+		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.cve_id, 
+		       COALESCE(f.secret_hash, ''), f.suppressed
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id
 		WHERE f.id = $1`, findingID,
-	).Scan(&current.FindingID, &current.ScanID, &current.BatchID, &current.Scanner, &current.RuleID, &current.FilePath, &current.LineStart, &current.CVEID, &current.Suppressed)
+	).Scan(&current.FindingID, &current.ScanID, &current.BatchID, &current.Scanner, &current.RuleID, &current.FilePath, &current.LineStart, &current.CVEID, &current.SecretHash, &current.Suppressed)
 	if err != nil {
 		return nil, fmt.Errorf("get correlation context: %w", err)
 	}
@@ -568,11 +571,13 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 		  AND f.suppressed = FALSE
 		  AND ($9 OR f.scanner <> $3)
 		  AND (
-				($4 <> '' AND f.rule_id = $4)
+				-- Secret hash match (strongest correlation for secrets)
+				($10 <> '' AND f.secret_hash = $10)
+				OR ($4 <> '' AND f.rule_id = $4)
 				OR ($5 IS NOT NULL AND f.cve_id = $5)
 				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= $8)
 			)`,
-		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK,
+		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK, current.SecretHash,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query batch matches: %w", err)
