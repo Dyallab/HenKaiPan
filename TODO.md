@@ -31,7 +31,11 @@ New target product model:
 - **Project** = primary technical unit and primary thing the user creates, connects, scans, and reviews
 - **Standalone projects** are allowed (`project.app_id = NULL`)
 
-## v0.1 — Core Platform ✅
+---
+
+## Completed Versions
+
+### v0.1 — Core Platform ✅
 
 - [x] Go API (chi + pgx v5 + JWT auth)
 - [x] Asynq worker + Redis queue
@@ -44,190 +48,249 @@ New target product model:
 - [x] Scans page — scanner type badges, status dots, glow effects
 - [x] Scan detail page — execution log, severity summary cards, findings table + modal
 - [x] Findings page — severity/scanner filters, type badges
-- [x] Repos page — add repo, scan shortcut (**legacy; superseded by Apps -> Projects reset direction**)
 - [x] Compliance page — SOC2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
 - [x] Settings page — General, Integrations, Notifications, Security tabs
 
----
-
-## v0.2 — Finding Lifecycle + SLA ✅
+### v0.2 — Finding Lifecycle + SLA ✅
 
 - [x] Migration `003_lifecycle.sql` — adds `status`, `assigned_to`, `false_positive`, `notes`, `resolved_at`, `sla_deadline`
 - [x] SLA deadlines auto-computed on finding insert (critical=24h, high=72h, medium=30d, low=90d)
-- [x] Backfill SLA for existing findings on migration
 - [x] `FindingStatus` constants (`open | in_review | accepted_risk | fixed | verified`)
-- [x] `SLASummary` model + `GET /api/findings/sla` endpoint
 - [x] `PATCH /api/findings/:id` — update status, assigned_to, false_positive, notes
-- [x] `ListFindings` — status + overdue filters
-- [x] Findings page — SLA summary bar (overdue / due today / on track / no deadline)
-- [x] Findings page — status filter + overdue-only toggle
-- [x] Findings page — status + SLA columns in table
-- [x] Findings page — triage modal (status, assigned, false positive, notes, save)
-- [x] Scan detail page — lifecycle triage section in finding modal
+- [x] Findings page — SLA summary bar, status filter, triage modal
 
----
+### v0.3 — Executive Reports & Trends ✅
 
-## v0.3 — Executive Reports & Trends ✅
-
-- [x] `migrations/004_indexes.sql` — perf indexes on created_at + severity/status
-- [x] `GET /api/metrics/trends?days=N` — findings over time grouped by day + severity
-- [x] `GET /api/metrics/risk` — risk score per target (**legacy implementation used repo as the target**)
-- [x] `GET /api/metrics/sla-compliance` — on-time %, overdue count, total tracked
-- [x] `GET /api/findings/export` — CSV download with all lifecycle fields + auth via fetch+blob
-- [x] Reports page — SLA compliance %, overdue KPI, open/resolved counts
-- [x] Reports page — SVG line chart (findings trend, selectable 7/30/90/365d)
-- [x] Reports page — Status distribution bars
-- [x] Reports page — Risk score per target horizontal bars (**legacy implementation used repo**)
-- [x] Reports page — Export CSV with severity + status filters
-- [x] Add "Reports" nav item to `DashboardLayout.astro`
+- [x] `GET /api/metrics/trends`, `/api/metrics/risk`, `/api/metrics/sla-compliance`
+- [x] Reports page — SVG line chart, status distribution, risk score bars
+- [x] CSV export with filters
 - [x] PDF report generation (browser print stylesheet)
 
----
+### v0.4 — Team & User Management ✅
 
-## v0.4 — Team & User Management ✅
+- [x] Users table with roles (admin/analyst/viewer)
+- [x] Teams + team_members join table
+- [x] Role-based auth middleware
+- [x] Settings page — Users and Teams tabs
 
-- [x] Migration `006_users_teams.sql` — `users` table (id, username, email, password_hash, role: admin/analyst/viewer, last_login)
-- [x] Migration `006_users_teams.sql` — `teams` table + `team_members` join
-- [x] `GET/POST /api/users`, `PATCH/DELETE /api/users/:id` (admin only)
-- [x] Role-based JWT claims (role + user_id in payload)
-- [x] Auth middleware: `RequireRole()` per route (analyst gets 403 on admin routes)
-- [x] `GET/POST /api/teams`, `DELETE /api/teams/:id`, `POST/DELETE /api/teams/:id/members`
-- [x] `GET /api/me` — current user profile
-- [x] Login response now includes `role` + `username`
-- [x] Assignment autocomplete from users list in triage modal (datalist)
-- [x] Settings page — Users tab (create user, change role, delete)
-- [x] Settings page — Teams tab (create team, add/remove members)
+### v0.5 — Policies & Auto-Triage ✅
 
----
+- [x] Policies + suppressions tables
+- [x] Policy engine: conditions + actions on finding insert
+- [x] Settings page — Policies and Suppressions tabs
 
-## Knowledge Center ✅ (fuera de versión — entregado ad-hoc)
+### v0.6 — Notifications & Integrations ✅
 
-- [x] Migration `007_knowledge.sql` — `knowledge_articles` table (slug, title, content_md, tags[], cwe_ids[], rule_ids[], scanner, auto_generated)
-- [x] 5 artículos curados sembrados: G304, G301, CKV2_GHA_1, Wildcard CORS, Missing USER in Dockerfile
-- [x] `GET /api/knowledge` — lista con filtros (q, scanner, tag, cwe_id, rule_id)
-- [x] `GET /api/knowledge/:slug` — artículo individual
-- [x] `GET /api/knowledge/lookup` — lookup rápido por rule_id o cwe_id (para integraciones)
-- [x] `POST /api/knowledge/ai-remediate` — genera guía vía OpenRouter dado un finding_id, cachea resultado
-- [x] CRUD admin: `POST/PUT/DELETE /api/knowledge/:slug`
-- [x] `/dashboard/knowledge` — lista + buscador, visor markdown con prose styles, editor inline (admin), preview toggle
-- [x] Cache-first: si existe artículo para ese rule_id, devuelve el curado sin llamar al LLM
-- [x] Botón "Remediation Guide" en triage modal de findings → abre artículo o genera nuevo en tab
-- [x] Requiere `OPENROUTER_API_KEY` env var para generación IA (falla gracefully si no está seteada)
+- [x] Slack webhook integration
+- [x] GitHub App integration (PR comments with findings)
+- [x] Webhook system with retries
+- [x] Jira integration
+- [x] Email notifications (Brevo/Mailpit with provider abstraction)
 
----
+### v0.7 — Finding Correlation & Credibility ✅
 
-## Vulnerability Inventory ✅ (fuera de versión — entregado ad-hoc)
+- [x] `scan_batch_id` for grouping scanners
+- [x] Cross-scanner correlation (same family, same batch)
+- [x] `confidence_score` + `corroboration_count` on findings
 
-- [x] `GET /api/vulnerabilities` — agrupa findings por CVE/rule_id con conteos de activos escaneados/open/fixed (**legacy implementation used repos**)
-- [x] `GET /api/vulnerabilities/:id/affected` — activos afectados por vuln específica con status + assignees + deadline (**legacy implementation used repos**)
-- [x] `/dashboard/vulns` — tabla expandible por vuln, click → muestra todos los activos afectados (**legacy implementation used repos**)
-- [x] Header KPIs: unique vulns, critical count, max affected targets (**legacy implementation used repos**)
-- [x] Filtros: severity, texto libre (CVE/rule/title), open only toggle
-- [x] CVE badge linkea a NVD, CWE badge linkea a MITRE
-- [x] Repo card: progress bar open/fixed, assignees, SLA deadline, worst status dot
+### v0.8 — First Paying Customers (SMB-ready) ✅
 
----
+- [x] Scan scheduling (cron-based per project)
+- [x] Finding deduplication (SHA256 fingerprint)
+- [x] Scanner packs (`all`, `sast`, `sca`, `secrets`, `iac`, `containers`)
+- [x] In-product onboarding wizard
+- [x] Weekly executive digest email
+- [x] Demo workspace seed script
 
-## v0.5 — Policies & Auto-Triage ✅
+### v0.8.a — Domain Reset: Apps -> Projects ✅
 
-- [x] Migration `009_policies.sql` — `policies` + `suppressions` tables, `findings.suppressed` column
-- [x] Policy engine: evaluate on finding insert (conditions: field/op/value; actions: set_status/assign)
-- [x] Suppression engine: checks rule_id, scanner, file_pattern before insert, sets suppressed=true
-- [x] `GET/POST/PATCH/DELETE /api/policies` (admin only)
-- [x] `GET/POST/DELETE /api/suppressions` (admin only)
-- [x] Settings page — Policies tab (rule builder UI with condition/action builder)
-- [x] Settings page — Suppressions tab
-- [x] `GET /api/findings` — suppressed hidden by default, `?suppressed=true` to show
+- [x] Schema reset: projects with `app_id NULL`, `repos` table dropped
+- [x] Global Projects view with app filters
+- [x] Scans belong to `project_id` directly
+
+### v0.9 — Compliance Readiness Path ✅
+
+- [x] Compliance starter mode (SOC 2 / ISO 27001 readiness)
+- [x] Guided policy packs
+- [x] Audit log + risk acceptance workflow
+- [x] Asset inventory view
 
 ---
 
-## v0.6 — Notifications & Integrations
+## v1.0 Release Candidate — Launch Blockers
 
-- [x] Slack webhook: notify on new critical/high finding, SLA breach
-- [x] GitHub App integration: install app per org/repo, receive PR/webhook context, map scans to PRs, comment on PR with findings summary
-- [x] Webhook system: `POST /api/webhooks` + event delivery with retries
-- [x] Settings page — Notifications tab fully functional (wire to DB, not localStorage)
-- [x] Jira integration: create ticket from finding
-- [x] Email notifications: Brevo en producción, Mailpit en desarrollo local (`docker-compose`), con abstracción de provider para no acoplar el código al vendor
-- [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
+Critical items that must be completed before v1.0 release.
 
----
+### UX Improvements (Phase 2)
 
-## v0.7 — Finding Correlation & Credibility
+| Item | Effort | Priority |
+|------|--------|----------|
+| Scan coverage API + UI | 0.5 day | High |
+| Finding comments thread | 1 day | High |
+| Bulk operations (checkboxes + API) | 1 day | High |
+| @username mentions in comments | 0.5 day | Low |
+| In-app Documentation | 0.5 day | Medium |
 
-- [x] Add `scan_batch_id` to group scanners launched together in a single run request
-- [x] Correlate findings only inside the same `scan_batch_id`
-- [x] Correlate only across scanners in the same family/category (SAST with SAST, secrets with secrets, etc.)
-- [x] Store `finding_correlations` entries for same-family batch corroboration
-- [x] Add base `confidence_score` + `corroboration_count` to findings
-- [x] Credibility only increases on positive corroboration; no penalty when peers do not match
+- [ ] `GET /api/coverage` — scan coverage report (projects without scans in last N days)
+- [ ] Projects page: "Never scanned" / "Last scan: X days ago" badges
+- [ ] Projects filter: "Show only projects without recent scans"
+- [ ] Migration `030_finding_comments.sql` — comments table + triggers
+- [ ] `GET/POST /api/findings/:id/comments` — comments API
+- [ ] Comments thread UI in findings modal
+- [ ] `@username` mentions in comments → email notification
+- [ ] Bulk operations: checkboxes in findings table
+- [ ] `PATCH /api/findings/bulk` — bulk status change, assignment, export
+- [ ] Bulk actions dropdown: change status, assign to user, export selected
+- [ ] **In-app Documentation** — static markdown pages explaining each section (Dashboard, Scans, Findings, Projects, Compliance, etc.), accessible from sidebar "Documentation" link, with screenshots and navigation
+
+### Credibility UI (v0.7 pending)
+
+| Item | Effort | Priority |
+|------|--------|----------|
+| Credibility badges in findings table | 0.5 day | Medium |
+| Credibility filters/sorting | 0.5 day | Medium |
+| Correlation details modal | 0.5 day | Low |
+
 - [ ] Findings page — show credibility score and corroboration count badges
 - [ ] Add filters/sorting for credibility score
-- [ ] Add correlation details endpoint/UI for "which scanners corroborated this"
+- [ ] Correlation details endpoint/UI ("which scanners corroborated this")
 
----
+### AI Notification Summaries (v0.6 pending)
 
-## v0.8 — First Paying Customers (SMB-ready)
+| Item | Effort | Priority |
+|------|--------|----------|
+| AI summary generator for notifications | 1 day | High |
 
-- [x] **Scan scheduling** (#4): cron-based periodic scans per project — migration 028, CRUD API (`/api/schedules`), worker scheduler (60s tick), frontend page
-- [x] **Finding deduplication** (#5): same `rule_id + file_path + line` = same finding — migration 029 adds `project_id` + `fingerprint` (SHA256) to findings, `ON CONFLICT DO NOTHING` in insert
-- [x] **Scanner packs/templates** (#6): defined packs in `scanner.Registry` (`all`, `sast`, `sca`, `secrets`, `iac`, `containers`), `GET /api/scanner-packs`, `CreateScan` refactored to use `ResolvePack()`
-- [x] **Notification defaults** (#7): `GetNotificationSettings` auto-initializes with `alert_critical=true`, `alert_high=true` on first access
-- [x] **In-product onboarding** (#10): enhanced empty states (dashboard, scans, findings), onboarding banner with 3-step quick-start
-- [x] **Onboarding wizard** (#1): `/dashboard/welcome` — 3-step guided flow (create project → set token → run scan), auto-redirect on first visit (0 projects)
-- [x] **Weekly executive digest** (#8): goroutine schedules next Monday 9am, generates email with scan summary + severity breakdown + SLA report + 7-day trend
-- [x] **Demo workspace** (#2): `scripts/seed-demo.sql` — sample project, 4 scans (semgrep, trivy, gitleaks), 9 findings with real CVEs, demonstrates dedup
+- [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
+
+### Onboarding & Growth
+
+| Item | Effort | Priority |
+|------|--------|----------|
+| GitHub-first onboarding flow | 2-3 days | High |
+| Product analytics + feedback | 1 day | Medium |
+| Define packaging/limits | Meeting | Critical |
+| Billing readiness | 2-3 days | Critical (cloud) |
+
 - [ ] **GitHub-first onboarding flow** (token or app-based), optimized for small teams
-- [ ] Finish launch-blocking work from v0.3/v0.6/v0.7 (PDF reports, notifications, credibility UI)
 - [ ] Capture product analytics + feedback prompts
 - [ ] Define packaging/limits for early plans (cloud vs self-hosted)
 - [ ] Billing readiness for cloud plans
 
-### v0.8.a — Domain Reset: Apps -> Projects ✅
-
-- [x] Schema: `projects` with `app_id NULL`, `repo_url`, `provider`, `default_branch`, `github_token_encrypted`, `external_repo_id`; `scans.project_id` FK; `repos` table dropped
-- [x] Apps are optional grouping only (App 1:N Projects, standalone projects allowed)
-- [x] Global Projects view with `all / with app / without app` filters
-- [x] App detail/list view creates and lists projects
-- [x] Removed standalone Repos page; Projects is the primary operational surface
-- [x] Scans belong to `project_id` directly; removed `scans.repo_id`
-- [x] UI copy, empty states, metrics, reports reworded from "repo(s)" to "project(s)"
-
 ---
 
-## v0.9 — Compliance Readiness Path
+## v1.0 Self-Hosted Edition
 
-- [x] Compliance starter mode: show "getting ready for SOC 2 / ISO 27001" instead of enterprise-heavy control management
-- [x] Guided policy packs mapped to common early-stage controls (access control, secrets, vulnerability management, cloud hygiene)
-- [x] Evidence-friendly exports: findings status, SLA handling, ownership, remediation history
-- [x] Audit log (who changed what, when)
-- [x] Risk acceptance / exception workflow with exportable rationale
-- [x] Lightweight asset inventory view for projects, apps, scanners, owners, and last scan coverage
-- [x] Compliance progress dashboard focused on readiness, not certification theater
+### Deployment & Distribution
 
----
-
-## v1.0 — Self-Hosted Edition
+| Item | Effort | Priority |
+|------|--------|----------|
+| Define self-hosted boundary | Meeting | Critical |
+| Docker-compose install | 0.5 day | High |
+| Production deployment guide | 1 day | High |
+| Versioned release artifacts | 0.5 day | High |
+| Upgrade path + release notes | 0.5 day | High |
+| Data export/import | 1 day | Medium |
+| Telemetry opt-in | 1 day | Low |
 
 - [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why
 - [ ] Single-command/docker-compose install path for evaluation environments
-- [ ] Production deployment guide for self-hosted (secrets, persistence, backups, upgrades, TLS, reverse proxy)
+- [ ] Production deployment guide (secrets, persistence, backups, upgrades, TLS, reverse proxy)
 - [ ] Versioned release artifacts for self-hosted deployments
 - [ ] Environment/config model that works cleanly in both cloud and self-hosted modes
-- [ ] License key / entitlement model for paid self-hosted customers
-- [ ] In-product license status / instance info page
 - [ ] Upgrade path and release notes flow for self-hosted operators
-- [ ] Data export / import strategy to support migration between cloud and self-hosted when feasible
-- [ ] Minimal telemetry model for self-hosted (opt-in) so support and product learning do not depend on SaaS-only visibility
+- [ ] Data export / import strategy to support migration between cloud and self-hosted
+- [ ] Minimal telemetry model for self-hosted (opt-in)
+
+### Instance Management ✅
+
+- [x] `GET /api/health` — health check endpoint (DB, Redis, Worker, disk status)
+- [x] `/dashboard/system` — instance status page
+- [x] `GET /api/version` — version endpoint
+- [x] UI: version display + "new version available" indicator
+- [x] `scripts/backup.sh` — backup script
+- [x] `docs/self-hosted-backup.md` — backup/restore documentation
+
+### License System ✅
+
+- [x] `LICENSE_KEY` env var support (optional, validates offline JWT)
+- [x] `GET /api/license` — license status endpoint
+- [x] `/dashboard/settings/license` — license management UI
+- [x] `scripts/generate-license.sh` — free license key generator for beta users
+
+### Operational Documentation
+
+| Item | Effort | Priority |
+|------|--------|----------|
+| Backup/restore docs | ✅ Done | High |
+| Worker scaling guide | 0.5 day | Medium |
+| Scanner runtime requirements | 0.5 day | High |
+| Troubleshooting guide | 1 day | High |
+| Support model definition | Meeting | Medium |
+
 - [ ] Operational docs: backups, restore, worker scaling, scanner runtime requirements, troubleshooting
 - [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
 
 ---
 
-## Backlog / Later / Enterprise
+## Backlog / Post-v1.0 / Enterprise
+
+### Enterprise Features
 
 - [ ] SAML / OIDC SSO
+- [ ] Multi-tenant support (organizations)
+- [ ] Advanced RBAC (custom roles, granular permissions)
+- [ ] Audit log export + SIEM integration
+
+### Scanner Extensions
+
 - [ ] SBOM generation and tracking
 - [ ] Container image scanning target type
 - [ ] DAST target type (URL-based nuclei scans)
-- [ ] Multi-tenant support (organizations)
+- [ ] Custom scanner plugins
+
+### Platform Health
+
+- [ ] Scanner Health Dashboard — scanner failure rates, avg duration, success % table
+- [ ] Queue monitoring dashboard (Asynq metrics)
+- [ ] Performance profiling + optimization
+
+### Workflow Enhancements
+
+- [ ] Finding templates (pre-defined triage workflows)
+- [ ] Automated assignment rules (beyond policies)
+- [ ] SLA customization per project/app
+- [ ] Custom fields on findings
+
+### Reporting & Compliance
+
+- [ ] Scheduled report delivery (email/Slack)
+- [ ] Custom report templates
+- [ ] Compliance evidence collection automation
+- [ ] Vendor risk assessment module
+
+---
+
+## Release Checklist (v1.0)
+
+Before tagging v1.0:
+
+- [ ] All Launch Blockers completed
+- [ ] `make build` passes with version embedding
+- [ ] Docker images built and pushed
+- [ ] Deployment guide reviewed
+- [ ] Backup/restore tested end-to-end
+- [ ] Demo workspace seed works
+- [ ] License generator tested
+- [ ] Changelog written
+- [ ] GitHub release published
+- [ ] Announcement prepared
+
+---
+
+## Notes
+
+- **Repos page**: Legacy, superseded by Projects
+- **Legacy repo references**: Some API endpoints still use "repo" terminology — migrate to "project"
+- **PDF reports**: Browser print stylesheet exists, verify it works correctly
+- **Credibility UI**: Backend done, frontend pending
