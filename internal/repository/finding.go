@@ -271,14 +271,20 @@ func (r *findingRepo) Insert(ctx context.Context, f FindingInsert) (string, erro
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO findings
 			(scan_id, scanner, rule_id, title, description, severity, file_path, line_start, line_end,
-			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash, project_id, fingerprint)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+		ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerprint IS NOT NULL
+		DO NOTHING
 		RETURNING id`,
 		f.ScanID, f.Scanner, f.RuleID, f.Title, f.Description,
 		f.Severity, f.FilePath, f.LineStart, f.LineEnd,
 		f.CodeSnippet, f.Raw, f.SLADeadline, f.CVEID, f.CWEID, f.Suppressed, f.SecretHash,
+		f.ProjectID, f.Fingerprint,
 	).Scan(&id)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
 		return "", fmt.Errorf("insert finding: %w", err)
 	}
 	return id, nil
