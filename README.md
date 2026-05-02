@@ -23,16 +23,17 @@ HenKaiPan is an ASPM platform for security scans, findings, knowledge articles, 
 - **App** = optional business grouping
 - **Project** = primary technical unit that users create, connect, scan, and review
 - **Standalone projects** are allowed (`project.app_id = NULL`)
-- **Repository connections** are managed as reusable records (`repos`) that projects can reference
+- **Repository connections** live directly on projects (`repo_url`, `github_token_encrypted`)
 
 ## Platform Features
 
-1. **Dashboard** — health metrics and recent activity
-2. **Scans** — scanner status, logs, and results
-3. **Findings** — filters, triage, SLA tracking, and exports
+1. **Dashboard** — health metrics, onboarding wizard, and recent activity
+2. **Scans** — scanner status, logs, results, and cron-based scan scheduling
+3. **Findings** — filters, triage, SLA tracking, exports, and cross-scan deduplication
 4. **Vulns** — grouped vulnerability inventory
-5. **Knowledge** — remediation guides and AI-generated articles
-6. **Settings** — integrations, security, policies, users, and teams
+5. **Projects** — connect repos, manage GitHub tokens, track scan history
+6. **Knowledge** — remediation guides and AI-generated articles
+7. **Settings** — integrations, security, policies, notifications, users, teams
 
 ## Tech Stack
 
@@ -138,15 +139,19 @@ flowchart TD
 
 - **Frontend** — Astro 6 + Tailwind v4; UI lives in `frontend/` and uses `frontend/src/lib/api.ts`.
 - **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, and job enqueueing.
-- **Worker** — `cmd/worker/main.go` runs queued scans, validations, summaries, webhooks, and emails.
-- **Scanning** — scanners are registered in `internal/scanner/registry.go` and run in Docker.
+- **Worker** — `cmd/worker/main.go` runs queued scans, validations, summaries, webhooks, emails, and periodic tasks (scan scheduler, digest generator).
+- **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`).
+- **Scheduling** — cron-based periodic scans managed by `internal/tasks/scan_scheduler.go`, configurable from the UI.
+- **Deduplication** — findings deduplicated across scans via SHA256 fingerprints (`scanner:rule_id:file_path:line`) with `ON CONFLICT DO NOTHING`.
+- **Digest** — weekly executive email digest (`internal/tasks/digest.go`) with severity breakdown, SLA report, and 7-day trend.
 - **Data** — PostgreSQL is the source of truth; repositories live under `internal/repository`.
 - **AI & integrations** — OpenRouter / Cloudflare AI, GitHub, Jira, webhooks, and notifications.
+- **Onboarding** — guided wizard at `/dashboard/welcome` with 3-step flow (project → token → first scan) and first-run redirect.
 
 ### Database Schema
 
 - PostgreSQL is the source of truth; schema changes live in `migrations/`.
-- Core entities: users, teams, apps, projects, repos, scans, findings, knowledge articles, policies, suppressions, webhooks, and integrations.
+- Core entities: users, teams, apps, projects, scans, findings, knowledge articles, policies, suppressions, webhooks, scan schedules, and integrations.
 - Sensitive integration secrets are stored encrypted; user passwords remain hashed.
 
 ### Queue Layer
@@ -204,6 +209,7 @@ cmd/           # API and worker entrypoints
 frontend/      # Astro app and browser API client
 internal/      # Auth, handlers, repository, scanner, tasks, integrations
 migrations/    # Database schema and changes
+scripts/       # Demo workspace seed and utility scripts
 presentation/  # Screenshots used in the README
 ```
 
@@ -222,6 +228,14 @@ presentation/  # Screenshots used in the README
 ```bash
 make dev-infra
 ```
+
+### Seed demo workspace (optional)
+
+```bash
+docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql
+```
+
+Creates a sample project, scans (semgrep + trivy + gitleaks), and 9 findings with real CVE IDs for evaluation.
 
 ### Start each service in separate terminals
 
