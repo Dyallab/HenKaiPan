@@ -256,7 +256,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     const el = document.getElementById('findings-table')!;
     if (!findings.length) {
-      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No findings.</p>';
+      el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-slate-700 text-5xl mb-3">biotech</span>
+        <p class="text-slate-400 font-semibold text-lg">No findings yet</p>
+        <p class="text-slate-600 text-sm mt-1">Run a scan to see security findings here.</p>
+        <a href="/dashboard/scans" class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+          <span class="material-symbols-outlined text-sm">security_update_good</span>
+          Run a Scan
+        </a>
+      </div>`;
       return;
     }
 
