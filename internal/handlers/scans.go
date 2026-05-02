@@ -27,8 +27,9 @@ func (h *Handler) ListScans(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Target  string `json:"target"`
-		Scanner string `json:"scanner"`
+		Target    string `json:"target"`
+		Scanner   string `json:"scanner"`
+		ProjectID string `json:"project_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Target == "" {
 		writeError(w, http.StatusBadRequest, "target required")
@@ -39,42 +40,34 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var scannerNames []string
-	if req.Scanner == "all" {
-		scannerNames = scanner.GitScannerNames()
-	} else if req.Scanner == "sast" {
-		scannerNames = []string{"semgrep", "gosec"}
-	} else if req.Scanner == "sca" {
-		scannerNames = []string{"trivy", "grype", "osv-scanner"}
-	} else if req.Scanner == "secrets" {
-		scannerNames = []string{"trufflehog", "gitleaks"}
-	} else if req.Scanner == "iac" {
-		scannerNames = []string{"checkov", "tfsec", "kics"}
-	} else if req.Scanner == "containers" {
-		scannerNames = []string{"trivy-image", "grype-image"}
+	if names, ok := scanner.ResolvePack(req.Scanner); ok {
+		scannerNames = names
+	} else if _, ok := scanner.Get(req.Scanner); !ok {
+		writeError(w, http.StatusBadRequest, "unknown scanner: "+req.Scanner)
+		return
 	} else {
-		if _, ok := scanner.Get(req.Scanner); !ok {
-			writeError(w, http.StatusBadRequest, "unknown scanner: "+req.Scanner)
-			return
-		}
 		scannerNames = []string{req.Scanner}
 	}
 
-	repoID, _ := h.store.Scans.FindRepoIDByTarget(r.Context(), req.Target)
+	var projectID *string
+	if req.ProjectID != "" {
+		projectID = &req.ProjectID
+	}
 	batchID := uuid.NewString()
 
 	var ids []string
 	for _, name := range scannerNames {
-		scanID, err := h.store.Scans.Insert(r.Context(), req.Target, name, batchID, repoID)
+		scanID, err := h.store.Scans.Insert(r.Context(), req.Target, name, batchID, projectID)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "failed to create scan")
 			return
 		}
 
-		repoIDStr := ""
-		if repoID != nil {
-			repoIDStr = *repoID
+		projectIDStr := ""
+		if projectID != nil {
+			projectIDStr = *projectID
 		}
-		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, RepoID: repoIDStr, Target: req.Target, Scanner: name})
+		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, ProjectID: projectIDStr, Target: req.Target, Scanner: name})
 		h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload), asynq.MaxRetry(3), asynq.Timeout(30*time.Minute))
 		ids = append(ids, scanID)
 	}
@@ -90,6 +83,10 @@ func (h *Handler) GetScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, s)
+}
+
+func (h *Handler) ListScannerPacks(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, scanner.Packs)
 }
 
 func (h *Handler) GetScanFindings(w http.ResponseWriter, r *http.Request) {

@@ -2,15 +2,6 @@ package models
 
 import "time"
 
-type Repo struct {
-	ID           string     `json:"id"`
-	Name         string     `json:"name"`
-	URL          string     `json:"url"`
-	GitHubToken  *string    `json:"github_token,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	HasToken     bool       `json:"has_token"`
-}
-
 type ScanStatus = string
 
 const (
@@ -22,7 +13,7 @@ const (
 
 type Scan struct {
 	ID           string     `json:"id"`
-	RepoID       *string    `json:"repo_id,omitempty"`
+	ProjectID    *string    `json:"project_id,omitempty"`
 	Scanner      string     `json:"scanner"`
 	Status       ScanStatus `json:"status"`
 	Target       string     `json:"target"`
@@ -113,15 +104,19 @@ type TrendPoint struct {
 }
 
 type RepoRiskScore struct {
-	RepoID   string `json:"repo_id"`
-	RepoName string `json:"repo_name"`
-	RepoURL  string `json:"repo_url"`
-	Critical int    `json:"critical"`
-	High     int    `json:"high"`
-	Medium   int    `json:"medium"`
-	Low      int    `json:"low"`
-	Info     int    `json:"info"`
-	Score    int    `json:"score"`
+	RepoID     string `json:"repo_id"`
+	RepoName   string `json:"repo_name"`
+	RepoURL    string `json:"repo_url"`
+	ProjectID  string `json:"project_id"`
+	ProjectName string `json:"project_name"`
+	AppID      string `json:"app_id,omitempty"`
+	AppName    string `json:"app_name,omitempty"`
+	Critical   int    `json:"critical"`
+	High       int    `json:"high"`
+	Medium     int    `json:"medium"`
+	Low        int    `json:"low"`
+	Info       int    `json:"info"`
+	Score      int    `json:"score"`
 }
 
 type SLACompliance struct {
@@ -142,14 +137,16 @@ type App struct {
 }
 
 type Project struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Description string    `json:"description,omitempty"`
-	AppID       string    `json:"app_id"`
-	RepoID      *string   `json:"repo_id,omitempty"`
-	RepoName    *string   `json:"repo_name,omitempty"`
-	RepoURL     *string   `json:"repo_url,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Description      string    `json:"description,omitempty"`
+	AppID            *string   `json:"app_id,omitempty"`
+	RepoURL          *string   `json:"repo_url,omitempty"`
+	Provider         string    `json:"provider,omitempty"`
+	DefaultBranch    string    `json:"default_branch,omitempty"`
+	ExternalRepoID   *string   `json:"external_repo_id,omitempty"`
+	HasToken         bool      `json:"has_token"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type TeamMetrics struct {
@@ -287,6 +284,17 @@ type AuditLog struct {
 	IPAddress    string    `json:"ip_address,omitempty"`
 	UserAgent    string    `json:"user_agent,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
+}
+
+type ScanSchedule struct {
+	ID        string     `json:"id"`
+	ProjectID string     `json:"project_id"`
+	Scanner   string     `json:"scanner"`
+	CronExpr  string     `json:"cron_expr"`
+	Enabled   bool       `json:"enabled"`
+	LastRun   *time.Time `json:"last_run,omitempty"`
+	NextRun   *time.Time `json:"next_run,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 type RiskAcceptance struct {
