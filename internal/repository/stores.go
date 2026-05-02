@@ -3,7 +3,7 @@ package repository
 import "github.com/jackc/pgx/v5/pgxpool"
 
 // NewPostgresStores wires all repository implementations against a single pool.
-func NewPostgresStores(db *pgxpool.Pool) Stores {
+func NewPostgresStores(db *pgxpool.Pool, redisAddr string) Stores {
 	return Stores{
 		Findings:       &findingRepo{db},
 		Scans:          &scanRepo{db},
@@ -20,5 +20,6 @@ func NewPostgresStores(db *pgxpool.Pool) Stores {
 		Schedules:      &scheduleRepo{db},
 		Audit:          &auditRepo{db},
 		RiskAcceptance: &riskAcceptanceRepo{db},
+		Health:         NewHealthRepo(db, redisAddr),
 	}
 }

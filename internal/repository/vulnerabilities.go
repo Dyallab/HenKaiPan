@@ -27,7 +27,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 			MIN(f.title)                                         AS title,
 			f.severity,
 			array_agg(DISTINCT f.scanner)                        AS scanners,
-			COUNT(DISTINCT COALESCE(s.repo_id::text, s.target)) AS affected_count,
+			COUNT(DISTINCT COALESCE(s.project_id::text, s.target)) AS affected_count,
 			COUNT(f.id)                                          AS finding_count,
 			COUNT(f.id) FILTER (WHERE f.status NOT IN ('fixed','verified','accepted_risk')) AS open_count,
 			COUNT(f.id) FILTER (WHERE f.status IN ('fixed','verified'))                     AS fixed_count
@@ -39,7 +39,7 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 		GROUP BY COALESCE(f.cve_id, f.rule_id), f.severity
 		ORDER BY
 			` + SeverityOrderSQL + `,
-			COUNT(DISTINCT COALESCE(s.repo_id::text, s.target)) DESC
+			COUNT(DISTINCT COALESCE(s.project_id::text, s.target)) DESC
 		LIMIT $4 OFFSET $5`
 
 	rows, err := r.db.Query(ctx, query,

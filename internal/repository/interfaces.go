@@ -176,6 +176,10 @@ type AppRepository interface {
 	UpdateProjectGitHubToken(ctx context.Context, id, token string) error
 	GetProjectGitHubToken(ctx context.Context, id string) (string, error)
 	DeleteProject(ctx context.Context, id string) error
+	GetCoverageReport(ctx context.Context, days int) (*models.CoverageReport, error)
+	GetFindingComments(ctx context.Context, findingID string) ([]FindingComment, error)
+	CreateFindingComment(ctx context.Context, c CommentCreate) (*FindingComment, error)
+	DeleteFindingComment(ctx context.Context, commentID int64) error
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
@@ -377,15 +381,17 @@ type AgentRepository interface {
 // ── Scan Schedules ────────────────────────────────────────────────────────────
 
 type ScanScheduleCreate struct {
-	ProjectID string
-	Scanner   string
-	CronExpr  string
+	ProjectID   string
+	Scanner     string
+	ScannerType *string
+	CronExpr    string
 }
 
 type ScanScheduleUpdate struct {
-	Scanner  *string
-	CronExpr *string
-	Enabled  *bool
+	Scanner     *string
+	ScannerType *string
+	CronExpr    *string
+	Enabled     *bool
 }
 
 type ScheduleRepository interface {
@@ -485,6 +491,12 @@ type SettingsRepository interface {
 	DeleteJiraIssueLink(ctx context.Context, findingID string) error
 }
 
+type HealthRepository interface {
+	CheckDB(ctx context.Context) error
+	CheckRedis(ctx context.Context) error
+	CheckWorker(ctx context.Context) (bool, error)
+}
+
 type Stores struct {
 	Findings       FindingRepository
 	Scans          ScanRepository
@@ -501,4 +513,5 @@ type Stores struct {
 	Settings       SettingsRepository
 	Audit          AuditRepository
 	RiskAcceptance RiskAcceptanceRepository
+	Health         HealthRepository
 }

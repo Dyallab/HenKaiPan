@@ -221,10 +221,47 @@ func fmtTime(t *time.Time) string {
 }
 
 func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := h.store.Findings.ListUniqueFiles(r.Context())
+	files, err := h.store.Findings.ListUniqueFiles(r.Context());
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list files")
 		return
 	}
 	writeJSON(w, http.StatusOK, files)
+}
+
+func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		FindingIDs   []string `json:"finding_ids"`
+		Status       *string  `json:"status,omitempty"`
+		AssignedTo   *string  `json:"assigned_to,omitempty"`
+		FalsePositive *bool   `json:"false_positive,omitempty"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if len(body.FindingIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "finding_ids required")
+		return
+	}
+
+	updated := 0
+	for _, id := range body.FindingIDs {
+		upd := repository.FindingUpdate{}
+		if body.Status != nil {
+			upd.Status = body.Status
+		}
+		if body.AssignedTo != nil {
+			upd.AssignedTo = body.AssignedTo
+		}
+		if body.FalsePositive != nil {
+			upd.FalsePositive = body.FalsePositive
+		}
+		if _, err := h.store.Findings.Update(r.Context(), id, upd); err == nil {
+			updated++
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"updated": updated})
 }

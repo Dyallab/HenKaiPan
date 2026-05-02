@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"aspm/internal/repository"
@@ -118,4 +119,18 @@ func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Reques
 func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
 	h.store.Apps.DeleteProject(r.Context(), chi.URLParam(r, "projectID"))
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) GetCoverageReport(w http.ResponseWriter, r *http.Request) {
+	days := 0
+	if d := r.URL.Query().Get("days"); d != "" {
+		fmt.Sscanf(d, "%d", &days)
+	}
+
+	report, err := h.store.Apps.GetCoverageReport(r.Context(), days)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to get coverage report")
+		return
+	}
+	writeJSON(w, http.StatusOK, report)
 }
