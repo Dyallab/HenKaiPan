@@ -465,7 +465,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             <h2
                 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5"
             >
-                Risk Score by Repository
+                Risk Score by Project
             </h2>
             <div id="risk-scores">
                 <p class="text-sm text-slate-500">Loading…</p>
@@ -629,7 +629,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         return `
       <div class="flex items-center gap-4">
         <div class="w-40 min-w-[10rem] shrink-0">
-          <p class="text-sm font-bold text-on-background truncate">${rs.repo_name}</p>
+          <p class="text-sm font-bold text-on-background truncate">${rs.project_name || rs.repo_name}</p>
           <p class="text-xs text-slate-500 font-mono truncate max-w-full">${rs.repo_url}</p>
         </div>
         <div class="flex-1 min-w-0">
@@ -718,8 +718,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
           <p class="mt-2 text-sm leading-6 text-on-background">${criticalOpen} critical and ${highOpen} high unresolved findings currently require active ownership and remediation follow-up.</p>
         </article>
         <article class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Highest-risk repository</p>
-          <p class="mt-2 text-sm leading-6 text-on-background">${mostExposed ? `<span class="font-black">${mostExposed.repo_name}</span> leads with a score of <span class="font-black">${mostExposed.score}</span>.` : "Risk scoring becomes available once repositories and findings are present."}</p>
+          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Highest-risk project</p>
+          <p class="mt-2 text-sm leading-6 text-on-background">${mostExposed ? `<span class="font-black">${mostExposed.project_name || mostExposed.repo_name}</span> leads with a score of <span class="font-black">${mostExposed.score}</span>.` : "Risk scoring becomes available once projects and findings are present."}</p>
         </article>
       </div>`;
     }
@@ -749,8 +749,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 ? `Escalate ${criticalOpen.length} critical unresolved findings into an immediate remediation workstream.`
                 : "No critical unresolved findings are open right now; sustain the current containment posture.",
             topRisk
-                ? `Prioritize ${topRisk.repo_name} for focused remediation because it currently drives the highest aggregate risk score.`
-                : "As repositories accumulate findings, add a targeted remediation focus per highest-risk repository.",
+                ? `Prioritize ${topRisk.project_name || topRisk.repo_name} for focused remediation because it currently drives the highest aggregate risk score.`
+                : "As projects accumulate findings, add a targeted remediation focus per highest-risk project.",
         ];
 
         return `<ol class="space-y-3">${actions.map((action, index) => `<li class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/15 text-xs font-black text-sky-300">${index + 1}</span>${action}</li>`).join("")}</ol>`;
@@ -928,7 +928,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         const riskEl = document.getElementById("risk-scores")!;
         if (!risk.length) {
             riskEl.innerHTML =
-                '<p class="text-sm text-slate-500">No repos added yet.</p>';
+                '<p class="text-sm text-slate-500">No projects added yet.</p>';
         } else {
             const maxScore = risk[0].score || 1;
             riskEl.innerHTML = `<div class="space-y-4">${risk.map((rs) => riskBar(rs, maxScore)).join("")}</div>`;

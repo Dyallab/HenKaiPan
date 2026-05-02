@@ -80,12 +80,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
       </div>
       <div>
-        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository</label>
-        <select id="project-repo"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
-          <option value="">— Unassigned —</option>
-        </select>
-        <p class="text-slate-500 text-xs mt-1">Each repo can belong to only one project.</p>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL</label>
+        <input id="project-repo-url" type="text" placeholder="https://github.com/org/repo"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+        <p class="text-slate-500 text-xs mt-1">Git URL for cloning and scanning.</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
+        <input id="project-branch" type="text" placeholder="main" value="main"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
       </div>
     </div>
     <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
@@ -98,11 +101,10 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
 import { api } from '../../lib/api.ts';
-import type { App, TeamMetrics, Repo, Team } from '../../lib/api.ts';
+import type { App, TeamMetrics, Team } from '../../lib/api.ts';
 
 let allApps: App[] = [];
 let allTeams: Team[] = [];
-let allRepos: Repo[] = [];
 let teamMetrics: TeamMetrics[] = [];
 let activeTeamFilter = '';
 let pendingProjectAppId = '';
@@ -224,12 +226,12 @@ function renderApps() {
                 <div>
                   <p class="text-slate-200 text-sm font-medium">${p.name}</p>
                   ${p.repo_url
-                    ? `<a href="${p.repo_url}" target="_blank" class="text-xs text-slate-500 hover:text-sky-400 transition-colors">${p.repo_name || p.repo_url}</a>`
-                    : `<span class="text-xs text-slate-600 italic">No repo assigned</span>`}
+                    ? `<a href="${p.repo_url}" target="_blank" class="text-xs text-slate-500 hover:text-sky-400 transition-colors font-mono">${p.repo_url}</a>`
+                    : `<span class="text-xs text-slate-600 italic">No URL configured</span>`}
                 </div>
               </div>
               <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                ${!p.repo_id ? `<span class="text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded">Unmanaged</span>` : ''}
+                ${p.has_token ? '<span class="material-symbols-outlined text-green-400 text-sm" title="Token configured">key</span>' : ''}
                 <button data-delete-project="${p.id}" data-app-id="${app.id}"
                   class="p-1 text-slate-600 hover:text-red-400 rounded transition-colors">
                   <span class="material-symbols-outlined text-sm">delete</span>
@@ -269,7 +271,7 @@ function renderApps() {
     btn.addEventListener('click', async () => {
       if (!confirm('Delete this project?')) return;
       const el = btn as HTMLElement;
-      await api.deleteProject(el.dataset.appId!, el.dataset.deleteProject!);
+      await api.deleteProject(el.dataset.deleteProject!);
       await loadAll();
     });
   });
@@ -280,27 +282,17 @@ function openCreateProjectModal() {
   document.getElementById('project-modal-app-name')!.textContent = pendingProjectAppName;
   (document.getElementById('project-name') as HTMLInputElement).value = '';
   (document.getElementById('project-desc') as HTMLInputElement).value = '';
+  (document.getElementById('project-repo-url') as HTMLInputElement).value = '';
+  (document.getElementById('project-branch') as HTMLInputElement).value = 'main';
   document.getElementById('project-error')!.classList.add('hidden');
-
-  // Populate available repos (exclude already assigned)
-  const assignedRepoIds = new Set(
-    allApps.flatMap(a => a.projects.map(p => p.repo_id)).filter(Boolean)
-  );
-  const sel = document.getElementById('project-repo') as HTMLSelectElement;
-  sel.innerHTML = '<option value="">— Unassigned —</option>' +
-    allRepos
-      .filter(r => !assignedRepoIds.has(r.id))
-      .map(r => `<option value="${r.id}">${r.name}</option>`)
-      .join('');
 
   modal.classList.remove('hidden');
 }
 
 async function loadAll() {
-  [allApps, allTeams, allRepos, teamMetrics] = await Promise.all([
+  [allApps, allTeams, teamMetrics] = await Promise.all([
     api.getApps().catch(() => [] as App[]),
     api.getTeams().catch(() => [] as import('../../lib/api.ts').Team[]),
-    api.getRepos().catch(() => [] as Repo[]),
     api.getTeamMetrics().catch(() => [] as TeamMetrics[]),
   ]);
 
@@ -346,11 +338,12 @@ document.getElementById('cancel-create-project')!.addEventListener('click', () =
 document.getElementById('submit-create-project')!.addEventListener('click', async () => {
   const name = (document.getElementById('project-name') as HTMLInputElement).value.trim();
   const desc = (document.getElementById('project-desc') as HTMLInputElement).value.trim();
-  const repoId = (document.getElementById('project-repo') as HTMLSelectElement).value || null;
+  const repoUrl = (document.getElementById('project-repo-url') as HTMLInputElement).value.trim();
+  const branch = (document.getElementById('project-branch') as HTMLInputElement).value.trim() || 'main';
   const errEl = document.getElementById('project-error')!;
   if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
   try {
-    await api.createProject(pendingProjectAppId, name, desc, repoId);
+    await api.createProject({ name, description: desc, app_id: pendingProjectAppId, repo_url: repoUrl, default_branch: branch, provider: 'git' });
     document.getElementById('modal-create-project')!.classList.add('hidden');
     await loadAll();
   } catch (e: any) {
