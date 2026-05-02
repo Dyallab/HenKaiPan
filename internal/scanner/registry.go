@@ -305,6 +305,32 @@ func ListInfo() []Info {
 	return out
 }
 
+// Pack defines a pre-configured scanner combo.
+type Pack struct {
+	ID          string   `json:"id"`
+	Label       string   `json:"label"`
+	Description string   `json:"description"`
+	Scanners    []string `json:"scanners"`
+}
+
+var Packs = []Pack{
+	{ID: "all", Label: "All Git Scanners", Description: "Run every available git-based scanner", Scanners: GitScannerNames()},
+	{ID: "sast", Label: "SAST", Description: "Static application security testing", Scanners: []string{"semgrep", "gosec"}},
+	{ID: "sca", Label: "SCA", Description: "Software composition analysis", Scanners: []string{"trivy", "grype", "osv-scanner"}},
+	{ID: "secrets", Label: "Secrets", Description: "Secret detection", Scanners: []string{"trufflehog", "gitleaks"}},
+	{ID: "iac", Label: "IaC", Description: "Infrastructure as Code scanning", Scanners: []string{"checkov", "tfsec", "kics"}},
+	{ID: "containers", Label: "Containers", Description: "Container image scanning", Scanners: []string{"trivy-image", "grype-image"}},
+}
+
+func ResolvePack(id string) ([]string, bool) {
+	for _, p := range Packs {
+		if p.ID == id {
+			return p.Scanners, true
+		}
+	}
+	return nil, false
+}
+
 // GitScannerNames returns all scanners that operate on a cloned git repo.
 func GitScannerNames() []string {
 	var names []string
