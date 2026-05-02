@@ -47,6 +47,8 @@ type FindingInsert struct {
 	CWEID       *string
 	Suppressed  bool
 	SecretHash  string
+	ProjectID   string
+	Fingerprint string
 }
 
 type ExportFilter struct {
@@ -127,22 +129,11 @@ type FindingRepository interface {
 type ScanRepository interface {
 	List(ctx context.Context, page, limit int) ([]models.Scan, int, error)
 	Get(ctx context.Context, id string) (*models.Scan, error)
-	Insert(ctx context.Context, target, scanner, batchID string, repoID *string) (string, error)
-	FindRepoIDByTarget(ctx context.Context, target string) (*string, error)
+	Insert(ctx context.Context, target, scanner, batchID string, projectID *string) (string, error)
 	MarkRunning(ctx context.Context, scanID string) error
 	MarkCompleted(ctx context.Context, scanID, containerLog string, exitErr *string) error
 	MarkFailed(ctx context.Context, scanID, errMsg, containerLog string) error
 	RecoverStuck(ctx context.Context) (int64, error)
-}
-
-// ── Repos ─────────────────────────────────────────────────────────────────────
-
-type RepoRepository interface {
-	List(ctx context.Context) ([]models.Repo, error)
-	Create(ctx context.Context, name, url string) (*models.Repo, error)
-	Delete(ctx context.Context, id string) error
-	UpdateGitHubToken(ctx context.Context, id, token string) error
-	GetGitHubToken(ctx context.Context, id string) (string, error)
 }
 
 // ── Apps + Projects ───────────────────────────────────────────────────────────
@@ -154,15 +145,20 @@ type AppUpdate struct {
 }
 
 type ProjectCreate struct {
-	Name        string
-	Description string
-	RepoID      *string
+	Name          string
+	Description   string
+	RepoURL       string
+	Provider      string
+	DefaultBranch string
 }
 
 type ProjectUpdate struct {
-	Name        *string
-	Description *string
-	RepoID      *string
+	Name           *string
+	Description    *string
+	RepoURL        *string
+	Provider       *string
+	DefaultBranch  *string
+	ExternalRepoID *string
 }
 
 type AppRepository interface {
@@ -172,8 +168,13 @@ type AppRepository interface {
 	Update(ctx context.Context, id string, upd AppUpdate) error
 	Delete(ctx context.Context, id string) error
 	ListProjects(ctx context.Context, appID string) ([]models.Project, error)
+	ListAllProjects(ctx context.Context, appFilter string) ([]models.Project, error)
+	GetProjectByID(ctx context.Context, id string) (*models.Project, error)
 	CreateProject(ctx context.Context, appID string, p ProjectCreate) (*models.Project, error)
+	CreateStandaloneProject(ctx context.Context, p ProjectCreate) (*models.Project, error)
 	UpdateProject(ctx context.Context, id string, upd ProjectUpdate) error
+	UpdateProjectGitHubToken(ctx context.Context, id, token string) error
+	GetProjectGitHubToken(ctx context.Context, id string) (string, error)
 	DeleteProject(ctx context.Context, id string) error
 }
 
@@ -373,6 +374,31 @@ type AgentRepository interface {
 	InsertCorrelations(ctx context.Context, findingID string, correlatedIDs []string, correlationType string) error
 }
 
+// ── Scan Schedules ────────────────────────────────────────────────────────────
+
+type ScanScheduleCreate struct {
+	ProjectID string
+	Scanner   string
+	CronExpr  string
+}
+
+type ScanScheduleUpdate struct {
+	Scanner  *string
+	CronExpr *string
+	Enabled  *bool
+}
+
+type ScheduleRepository interface {
+	ListByProject(ctx context.Context, projectID string) ([]models.ScanSchedule, error)
+	ListEnabled(ctx context.Context) ([]models.ScanSchedule, error)
+	ListDue(ctx context.Context) ([]models.ScanSchedule, error)
+	GetByID(ctx context.Context, id string) (*models.ScanSchedule, error)
+	Create(ctx context.Context, s ScanScheduleCreate) (*models.ScanSchedule, error)
+	Update(ctx context.Context, id string, upd ScanScheduleUpdate) (*models.ScanSchedule, error)
+	Delete(ctx context.Context, id string) error
+	MarkRun(ctx context.Context, id string, nextRun *time.Time) error
+}
+
 // ── Stores ────────────────────────────────────────────────────────────────────
 
 type WebhookCreate struct {
@@ -462,8 +488,8 @@ type SettingsRepository interface {
 type Stores struct {
 	Findings       FindingRepository
 	Scans          ScanRepository
-	Repos          RepoRepository
 	Apps           AppRepository
+	Schedules      ScheduleRepository
 	Users          UserRepository
 	Teams          TeamRepository
 	Metrics        MetricsRepository

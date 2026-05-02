@@ -70,11 +70,6 @@ func main() {
 		r.Get("/api/findings/files", h.GetUniqueFiles)
 		r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
 
-		r.Get("/api/repos", h.ListRepos)
-		r.Post("/api/repos", h.CreateRepo)
-		r.With(auth.RequireRole("admin")).Delete("/api/repos/{id}", h.DeleteRepo)
-		r.With(auth.RequireRole("admin")).Put("/api/repos/{id}/github-token", h.UpdateRepoGitHubToken)
-
 		r.Get("/api/audit-logs", h.ListAuditLogs)
 		r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
 		r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
@@ -94,12 +89,18 @@ func main() {
 		r.Delete("/api/apps/{id}", h.DeleteApp)
 		r.Get("/api/apps/{id}/projects", h.ListProjects)
 		r.Post("/api/apps/{id}/projects", h.CreateProject)
-		r.Patch("/api/apps/{id}/projects/{projectID}", h.UpdateProject)
-		r.Delete("/api/apps/{id}/projects/{projectID}", h.DeleteProject)
+
+		r.Get("/api/projects", h.ListProjects)
+		r.Post("/api/projects", h.CreateProject)
+		r.Get("/api/projects/{projectID}", h.GetProject)
+		r.Patch("/api/projects/{projectID}", h.UpdateProject)
+		r.Put("/api/projects/{projectID}/github-token", h.UpdateProjectGitHubToken)
+		r.Delete("/api/projects/{projectID}", h.DeleteProject)
 
 		r.Get("/api/findings/export", h.ExportFindings)
 
 		r.Get("/api/scanners", h.ListScanners)
+		r.Get("/api/scanner-packs", h.ListScannerPacks)
 
 		r.Get("/api/vulnerabilities", h.ListVulnerabilities)
 		r.Get("/api/vulnerabilities/{vulnID}/affected", h.GetVulnerabilityAffected)
@@ -133,6 +134,12 @@ func main() {
 		r.With(auth.RequireRole("admin")).Get("/api/suppressions", h.ListSuppressions)
 		r.With(auth.RequireRole("admin")).Post("/api/suppressions", h.CreateSuppression)
 		r.With(auth.RequireRole("admin")).Delete("/api/suppressions/{id}", h.DeleteSuppression)
+
+		r.With(auth.RequireRole("admin")).Get("/api/schedules", h.ListSchedules)
+		r.With(auth.RequireRole("admin")).Get("/api/schedules/{scheduleID}", h.GetSchedule)
+		r.With(auth.RequireRole("admin")).Post("/api/schedules", h.CreateSchedule)
+		r.With(auth.RequireRole("admin")).Patch("/api/schedules/{scheduleID}", h.UpdateSchedule)
+		r.With(auth.RequireRole("admin")).Delete("/api/schedules/{scheduleID}", h.DeleteSchedule)
 
 		r.With(auth.RequireRole("admin")).Get("/api/webhooks", h.ListWebhooks)
 		r.With(auth.RequireRole("admin")).Post("/api/webhooks", h.CreateWebhook)

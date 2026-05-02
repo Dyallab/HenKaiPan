@@ -59,9 +59,12 @@ func main() {
 	srv := queue.NewServer(cfg.RedisAddr, 5)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, store.Repos, queueClient, notifications))
+	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, store.Apps, queueClient, notifications))
 	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
 	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(emailSender))
+	mux.HandleFunc(tasks.TypeDigestSend, tasks.HandleDigestSend(store, emailSender, cfg.FrontendURL))
+	tasks.StartScanScheduler(context.Background(), store, queueClient, 60*time.Second)
+	tasks.StartWeeklyDigestScheduler(context.Background(), store, queueClient, notifications)
 	tasks.StartSLABreachMonitor(context.Background(), store.Settings, store.Findings, store.Webhooks, queueClient, notifications, 15*time.Minute)
 
 	// Register AI agent handlers if configured
