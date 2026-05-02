@@ -65,10 +65,10 @@ export const api = {
       `/api/scans?page=${page}&limit=${limit}`,
     ),
 
-  createScan: (target: string, scanner: string) =>
+  createScan: (target: string, scanner: string, project_id?: string) =>
     req<{ ids: string[] }>("/api/scans", {
       method: "POST",
-      body: JSON.stringify({ target, scanner }),
+      body: JSON.stringify({ target, scanner, project_id }),
     }),
 
   getScan: (id: string) => req<Scan>(`/api/scans/${id}`),
@@ -135,23 +135,6 @@ export const api = {
     status = "",
   ) =>
     `http://localhost:8080/api/findings/export?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&status=${status}`,
-
-  getRepos: () => req<Repo[]>("/api/repos"),
-
-  createRepo: (name: string, url: string) =>
-    req<Repo>("/api/repos", {
-      method: "POST",
-      body: JSON.stringify({ name, url }),
-    }),
-
-  deleteRepo: (id: string) =>
-    req<void>(`/api/repos/${id}`, { method: "DELETE" }),
-
-  updateRepoGitHubToken: (id: string, token: string) =>
-    req<void>(`/api/repos/${id}/github-token`, {
-      method: "PUT",
-      body: JSON.stringify({ token }),
-    }),
 
   getMe: () => req<User>("/api/me"),
 
@@ -269,19 +252,52 @@ export const api = {
 
   deleteApp: (id: string) => req<void>(`/api/apps/${id}`, { method: "DELETE" }),
 
+  getProjects: (filter = "") =>
+    req<Project[]>(`/api/projects${filter ? `?filter=${filter}` : ""}`),
+
+  getAppProjects: (appId: string) =>
+    req<Project[]>(`/api/apps/${appId}/projects`),
+
   createProject: (
-    appId: string,
-    name: string,
-    description: string,
-    repoId: string | null,
+    data: {
+      name: string;
+      description?: string;
+      app_id?: string | null;
+      repo_url?: string;
+      provider?: string;
+      default_branch?: string;
+    },
   ) =>
-    req<Project>(`/api/apps/${appId}/projects`, {
+    req<Project>("/api/projects", {
       method: "POST",
-      body: JSON.stringify({ name, description, repo_id: repoId }),
+      body: JSON.stringify(data),
     }),
 
-  deleteProject: (appId: string, projectId: string) =>
-    req<void>(`/api/apps/${appId}/projects/${projectId}`, { method: "DELETE" }),
+  getProject: (id: string) => req<Project>(`/api/projects/${id}`),
+
+  updateProject: (
+    id: string,
+    updates: {
+      name?: string;
+      description?: string;
+      repo_url?: string;
+      provider?: string;
+      default_branch?: string;
+    },
+  ) =>
+    req<void>(`/api/projects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    }),
+
+  updateProjectGitHubToken: (id: string, token: string) =>
+    req<void>(`/api/projects/${id}/github-token`, {
+      method: "PUT",
+      body: JSON.stringify({ token }),
+    }),
+
+  deleteProject: (id: string) =>
+    req<void>(`/api/projects/${id}`, { method: "DELETE" }),
 
   getTeams: () => req<Team[]>("/api/teams"),
 
@@ -407,6 +423,25 @@ export const api = {
     req<JiraIssueLink>(`/api/findings/${id}/jira`, {
       method: "POST",
     }),
+
+  getScannerPacks: () => req<ScannerPack[]>("/api/scanner-packs"),
+
+  getSchedules: (projectID?: string) =>
+    req<ScanSchedule[]>(`/api/schedules${projectID ? `?project_id=${projectID}` : ''}`),
+  getSchedule: (id: string) =>
+    req<ScanSchedule>(`/api/schedules/${id}`),
+  createSchedule: (data: { project_id: string; scanner: string; cron_expr: string }) =>
+    req<ScanSchedule>("/api/schedules", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateSchedule: (id: string, data: { scanner?: string; cron_expr?: string; enabled?: boolean }) =>
+    req<ScanSchedule>(`/api/schedules/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  deleteSchedule: (id: string) =>
+    req<void>(`/api/schedules/${id}`, { method: "DELETE" }),
 };
 
 export interface MetricsSummary {
@@ -556,6 +591,10 @@ export interface RepoRiskScore {
   repo_id: string;
   repo_name: string;
   repo_url: string;
+  project_id: string;
+  project_name: string;
+  app_id?: string;
+  app_name?: string;
   critical: number;
   high: number;
   medium: number;
@@ -569,14 +608,6 @@ export interface SLACompliance {
   on_time: number;
   overdue: number;
   percent: number;
-}
-
-export interface Repo {
-  id: string;
-  name: string;
-  url: string;
-  has_token: boolean;
-  created_at: string;
 }
 
 export interface User {
@@ -636,10 +667,12 @@ export interface Project {
   id: string;
   name: string;
   description?: string;
-  app_id: string;
-  repo_id?: string;
-  repo_name?: string;
+  app_id?: string;
   repo_url?: string;
+  provider?: string;
+  default_branch?: string;
+  external_repo_id?: string;
+  has_token?: boolean;
   created_at: string;
 }
 
@@ -729,6 +762,24 @@ export interface JiraIntegrationUpdate {
   labels?: string[];
   enabled?: boolean;
   token?: string;
+}
+
+export interface ScannerPack {
+  id: string;
+  label: string;
+  description: string;
+  scanners: string[];
+}
+
+export interface ScanSchedule {
+  id: string;
+  project_id: string;
+  scanner: string;
+  cron_expr: string;
+  enabled: boolean;
+  last_run?: string;
+  next_run?: string;
+  created_at: string;
 }
 
 export interface JiraIssueLink {
