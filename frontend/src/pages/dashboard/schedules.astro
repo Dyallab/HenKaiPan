@@ -1,91 +1,181 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from "../../layouts/DashboardLayout.astro";
 ---
+
 <DashboardLayout title="Scan Schedules" active="schedules">
-
-  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 mb-6">
-    <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">New Schedule</h2>
-    <form id="schedule-form" class="flex gap-3 flex-wrap items-end">
-      <div class="relative flex-1 min-w-48">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">folder_open</span>
-        <select id="sched-project" required class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none">
-          <option value="">Select project...</option>
-        </select>
-      </div>
-      <div class="relative flex-1 min-w-48">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
-        <select id="sched-scanner" required class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none">
-          <option value="semgrep">semgrep (SAST)</option>
-          <option value="gosec">gosec (Go SAST)</option>
-          <option value="trivy">trivy (SCA)</option>
-          <option value="trufflehog">trufflehog (Secrets)</option>
-          <option value="gitleaks">gitleaks (Secrets)</option>
-          <option value="checkov">checkov (IaC)</option>
-          <option value="nuclei">nuclei (DAST)</option>
-        </select>
-      </div>
-      <div class="relative min-w-40">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">schedule</span>
-        <input id="sched-cron" type="text" required placeholder="0 9 * * 1" value="0 9 * * 1" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 font-mono" />
-      </div>
-      <button type="submit" id="sched-btn" class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95">
-        <span class="material-symbols-outlined text-lg">add</span>
-        Add Schedule
-      </button>
-    </form>
-    <div id="sched-msg" class="hidden mt-3 text-sm"></div>
-  </div>
-
-  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
-    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
-      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">All Schedules</h2>
-      <button id="refresh-btn" class="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high border border-outline-variant/30 text-slate-400 rounded-lg text-xs font-bold hover:text-sky-400 hover:border-sky-500/50 transition-all active:scale-95" title="Refresh">
-        <span class="material-symbols-outlined text-sm">sync</span>
-        Refresh
-      </button>
+    <div
+        class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 mb-6"
+    >
+        <h2
+            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
+        >
+            New Schedule
+        </h2>
+        <form id="schedule-form" class="flex gap-3 flex-wrap items-end">
+            <div class="relative flex-1 min-w-48">
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"
+                    >folder_open</span
+                >
+                <select
+                    id="sched-project"
+                    required
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                >
+                    <option value="">Select project...</option>
+                </select>
+            </div>
+            <div class="relative flex-1 min-w-48">
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"
+                    >category</span
+                >
+                <select
+                    id="sched-scan-type"
+                    required
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                >
+                    <option value="">Select scanner type...</option>
+                    <option value="sast">SAST (Semgrep, Gosec)</option>
+                    <option value="sca">SCA (Trivy, Grype, OSV)</option>
+                    <option value="secrets"
+                        >Secrets (TruffleHog, Gitleaks)</option
+                    >
+                    <option value="iac">IaC (Checkov, TFSec, KICS)</option>
+                    <option value="containers">Containers (Trivy, Grype)</option
+                    >
+                    <option value="dast">DAST (Nuclei)</option>
+                    <option value="individual">─ Individual Scanners ─</option>
+                    <option value="semgrep">semgrep (SAST)</option>
+                    <option value="gosec">gosec (Go SAST)</option>
+                    <option value="trivy">trivy (SCA)</option>
+                    <option value="grype">grype (SCA)</option>
+                    <option value="osv-scanner">osv-scanner (SCA)</option>
+                    <option value="trufflehog">trufflehog (Secrets)</option>
+                    <option value="gitleaks">gitleaks (Secrets)</option>
+                    <option value="checkov">checkov (IaC)</option>
+                    <option value="tfsec">tfsec (IaC)</option>
+                    <option value="kics">kics (IaC)</option>
+                    <option value="trivy-image">trivy-image (Containers)</option
+                    >
+                    <option value="grype-image">grype-image (Containers)</option
+                    >
+                    <option value="nuclei">nuclei (DAST)</option>
+                </select>
+            </div>
+            <div class="relative min-w-40">
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"
+                    >schedule</span
+                >
+                <select
+                    id="sched-frequency"
+                    required
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                >
+                    <option value="1h">Every hour</option>
+                    <option value="3h">Every 3 hours</option>
+                    <option value="6h">Every 6 hours</option>
+                    <option value="12h">Every 12 hours</option>
+                    <option value="1 día">Daily</option>
+                    <option value="1 semana" selected>Weekly</option>
+                    <option value="1 mes">Monthly</option>
+                    <option value="Custom">Custom (Cron expression)</option>
+                </select>
+            </div>
+            <div
+                id="sched-cron-custom-container"
+                class="relative min-w-40 hidden"
+            >
+                <span
+                    class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"
+                    >edit</span
+                >
+                <input
+                    id="sched-cron-custom"
+                    type="text"
+                    placeholder="0 9 * * 1"
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 font-mono"
+                />
+            </div>
+            <button
+                type="submit"
+                id="sched-btn"
+                class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95"
+            >
+                <span class="material-symbols-outlined text-lg">add</span>
+                Add Schedule
+            </button>
+        </form>
+        <div id="sched-msg" class="hidden mt-3 text-sm"></div>
     </div>
-    <div id="schedules-table">
-      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
-    </div>
-  </div>
 
-  <div class="mt-4 bg-surface-container-low border border-outline-variant/20 rounded-xl p-4">
-    <h3 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Cron Help</h3>
-    <div class="flex gap-4 flex-wrap text-xs text-slate-400">
-      <span><code class="text-sky-400 font-mono">0 9 * * 1</code> — Every Monday 9am</span>
-      <span><code class="text-sky-400 font-mono">0 0 * * *</code> — Every day midnight</span>
-      <span><code class="text-sky-400 font-mono">0 */6 * * *</code> — Every 6 hours</span>
-      <span><code class="text-sky-400 font-mono">0 9 * * 1-5</code> — Weekdays 9am</span>
+    <div
+        class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden"
+    >
+        <div
+            class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between"
+        >
+            <h2
+                class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
+            >
+                All Schedules
+            </h2>
+            <button
+                id="refresh-btn"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high border border-outline-variant/30 text-slate-400 rounded-lg text-xs font-bold hover:text-sky-400 hover:border-sky-500/50 transition-all active:scale-95"
+                title="Refresh"
+            >
+                <span class="material-symbols-outlined text-sm">sync</span>
+                Refresh
+            </button>
+        </div>
+        <div id="schedules-table">
+            <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+        </div>
     </div>
-  </div>
-
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
+    import { api } from "../../lib/api";
+    import {
+        humanFrequencyToCron,
+        cronToHumanFrequency,
+        FREQUENCY_OPTIONS,
+    } from "../../lib/cron";
 
-  async function loadProjects() {
-    const projects = await api.getProjects().catch(() => []);
-    const sel = document.getElementById('sched-project') as HTMLSelectElement;
-    sel.innerHTML = '<option value="">Select project...</option>' +
-      projects.map(p => `<option value="${p.id}">${p.name}${p.repo_url ? ` (${p.repo_url})` : ''}</option>`).join('');
-  }
-
-  async function loadSchedules() {
-    const schedules = await api.getSchedules().catch(() => []);
-    const el = document.getElementById('schedules-table')!;
-    if (!schedules.length) {
-      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No schedules yet. Create one above.</p>';
-      return;
+    async function loadProjects() {
+        const projects = await api.getProjects().catch(() => []);
+        const sel = document.getElementById(
+            "sched-project",
+        ) as HTMLSelectElement;
+        sel.innerHTML =
+            '<option value="">Select project...</option>' +
+            projects
+                .map(
+                    (p) =>
+                        `<option value="${p.id}">${p.name}${p.repo_url ? ` (${p.repo_url})` : ""}</option>`,
+                )
+                .join("");
     }
 
-    el.innerHTML = `
+    async function loadSchedules() {
+        const schedules = await api.getSchedules().catch(() => []);
+        const el = document.getElementById("schedules-table")!;
+        if (!schedules.length) {
+            el.innerHTML =
+                '<p class="px-6 py-4 text-sm text-slate-500">No schedules yet. Create one above.</p>';
+            return;
+        }
+
+        el.innerHTML = `
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-slate-950/50 border-b border-slate-800">
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Project</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner</th>
-            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Cron</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner(s)</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Frequency</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Last Run</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Next Run</th>
@@ -93,85 +183,163 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/50">
-          ${schedules.map(s => `
+          ${schedules
+              .map((s) => {
+                  const typeLabel = s.scanner_type
+                      ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-purple-400 bg-purple-500/10 border-purple-500/20">${s.scanner_type}</span>`
+                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">individual</span>`;
+                  const scannerDisplay = s.scanner_type
+                      ? `<span class="text-xs text-slate-400">All ${s.scanner_type} scanners</span>`
+                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">${s.scanner}</span>`;
+                  const frequencyLabel = cronToHumanFrequency(s.cron_expr);
+                  const frequencyDisplay =
+                      frequencyLabel === "Custom"
+                          ? `<span class="font-mono text-xs text-on-surface-variant">${s.cron_expr}</span>`
+                          : `<span class="text-xs text-slate-300">${frequencyLabel}</span>`;
+                  return `
             <tr class="hover:bg-slate-900/30 transition-colors">
               <td class="px-6 py-3 text-slate-300 text-sm font-medium">${s.project_id}</td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">${s.scanner}</span>
-              </td>
-              <td class="px-6 py-3 font-mono text-sm text-on-surface-variant">${s.cron_expr}</td>
+              <td class="px-6 py-3">${typeLabel}</td>
+              <td class="px-6 py-3">${scannerDisplay}</td>
+              <td class="px-6 py-3">${frequencyDisplay}</td>
               <td class="px-6 py-3">
                 <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" class="sr-only peer toggle-schedule" data-id="${s.id}" ${s.enabled ? 'checked' : ''} />
+                  <input type="checkbox" class="sr-only peer toggle-schedule" data-id="${s.id}" ${s.enabled ? "checked" : ""} />
                   <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
                 </label>
               </td>
-              <td class="px-6 py-3 font-mono text-xs text-slate-500">${s.last_run ? new Date(s.last_run).toLocaleString() : '—'}</td>
-              <td class="px-6 py-3 font-mono text-xs text-slate-500">${s.next_run ? new Date(s.next_run).toLocaleString() : '—'}</td>
+              <td class="px-6 py-3 font-mono text-xs text-slate-500">${s.last_run ? new Date(s.last_run).toLocaleString() : "—"}</td>
+              <td class="px-6 py-3 font-mono text-xs text-slate-500">${s.next_run ? new Date(s.next_run).toLocaleString() : "—"}</td>
               <td class="px-6 py-3 text-right">
                 <button class="delete-schedule text-xs text-red-400 hover:text-red-300 font-bold uppercase tracking-wider transition-colors" data-id="${s.id}">Delete</button>
               </td>
             </tr>
-          `).join('')}
+          `;
+              })
+              .join("")}
         </tbody>
       </table>`;
 
-    el.querySelectorAll('.toggle-schedule').forEach(cb => {
-      cb.addEventListener('change', async () => {
-        const id = (cb as HTMLElement).dataset.id!;
-        const enabled = (cb as HTMLInputElement).checked;
-        try {
-          await api.updateSchedule(id, { enabled });
-        } catch (err: any) {
-          (cb as HTMLInputElement).checked = !enabled;
-        }
-      });
-    });
+        el.querySelectorAll(".toggle-schedule").forEach((cb) => {
+            cb.addEventListener("change", async () => {
+                const id = (cb as HTMLElement).dataset.id!;
+                const enabled = (cb as HTMLInputElement).checked;
+                try {
+                    await api.updateSchedule(id, { enabled });
+                } catch (err: any) {
+                    (cb as HTMLInputElement).checked = !enabled;
+                }
+            });
+        });
 
-    el.querySelectorAll('.delete-schedule').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Delete this schedule?')) return;
-        const id = (btn as HTMLElement).dataset.id!;
-        try {
-          await api.deleteSchedule(id);
-          loadSchedules();
-        } catch (err: any) {
-          alert('Failed to delete: ' + err.message);
-        }
-      });
-    });
-  }
-
-  document.getElementById('schedule-form')!.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const projectId = (document.getElementById('sched-project') as HTMLSelectElement).value;
-    const scanner = (document.getElementById('sched-scanner') as HTMLSelectElement).value;
-    const cronExpr = (document.getElementById('sched-cron') as HTMLInputElement).value.trim();
-    const btn = document.getElementById('sched-btn') as HTMLButtonElement;
-    const msg = document.getElementById('sched-msg')!;
-
-    if (!projectId || !scanner || !cronExpr) return;
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Adding...';
-    msg.className = 'hidden mt-3 text-sm';
-
-    try {
-      await api.createSchedule({ project_id: projectId, scanner, cron_expr: cronExpr });
-      msg.textContent = 'Schedule created.';
-      msg.className = 'mt-3 text-sm text-emerald-400';
-      loadSchedules();
-    } catch (err: any) {
-      msg.textContent = err.message;
-      msg.className = 'mt-3 text-sm text-red-400';
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<span class="material-symbols-outlined text-lg">add</span> Add Schedule';
+        el.querySelectorAll(".delete-schedule").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                if (!confirm("Delete this schedule?")) return;
+                const id = (btn as HTMLElement).dataset.id!;
+                try {
+                    await api.deleteSchedule(id);
+                    loadSchedules();
+                } catch (err: any) {
+                    alert("Failed to delete: " + err.message);
+                }
+            });
+        });
     }
-  });
 
-  document.getElementById('refresh-btn')!.addEventListener('click', loadSchedules);
+    // Toggle custom cron input visibility
+    const frequencySelect = document.getElementById(
+        "sched-frequency",
+    ) as HTMLSelectElement;
+    const customContainer = document.getElementById(
+        "sched-cron-custom-container",
+    )!;
 
-  loadProjects();
-  loadSchedules();
+    frequencySelect.addEventListener("change", () => {
+        if (frequencySelect.value === "Custom") {
+            customContainer.classList.remove("hidden");
+        } else {
+            customContainer.classList.add("hidden");
+        }
+    });
+
+    document
+        .getElementById("schedule-form")!
+        .addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const projectId = (
+                document.getElementById("sched-project") as HTMLSelectElement
+            ).value;
+            const scanType = (
+                document.getElementById("sched-scan-type") as HTMLSelectElement
+            ).value;
+            const frequency = (
+                document.getElementById("sched-frequency") as HTMLSelectElement
+            ).value;
+            const customCron = (
+                document.getElementById("sched-cron-custom") as HTMLInputElement
+            ).value.trim();
+            const btn = document.getElementById(
+                "sched-btn",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("sched-msg")!;
+
+            if (!projectId || !scanType || !frequency) return;
+
+            // Convert frequency to cron expression
+            let cronExpr: string;
+            if (frequency === "Custom") {
+                if (!customCron) {
+                    msg.textContent = "Custom cron expression is required";
+                    msg.className = "mt-3 text-sm text-red-400";
+                    return;
+                }
+                cronExpr = customCron;
+            } else {
+                cronExpr = humanFrequencyToCron(frequency);
+            }
+
+            btn.disabled = true;
+            btn.innerHTML =
+                '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Adding...';
+            msg.className = "hidden mt-3 text-sm";
+
+            try {
+                // Determine if it's a pack type or individual scanner
+                const packTypes = [
+                    "sast",
+                    "sca",
+                    "secrets",
+                    "iac",
+                    "containers",
+                    "dast",
+                ];
+                const isPack = packTypes.includes(scanType);
+
+                await api.createSchedule({
+                    project_id: projectId,
+                    scanner: isPack ? scanType : scanType,
+                    scanner_type: isPack ? scanType : null,
+                    cron_expr: cronExpr,
+                });
+                msg.textContent = isPack
+                    ? `Schedule created for ${scanType} pack.`
+                    : "Schedule created.";
+                msg.className = "mt-3 text-sm text-emerald-400";
+                loadSchedules();
+            } catch (err: any) {
+                msg.textContent = err.message;
+                msg.className = "mt-3 text-sm text-red-400";
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML =
+                    '<span class="material-symbols-outlined text-lg">add</span> Add Schedule';
+            }
+        });
+
+    document
+        .getElementById("refresh-btn")!
+        .addEventListener("click", loadSchedules);
+
+    loadProjects();
+    loadSchedules();
 </script>

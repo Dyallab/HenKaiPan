@@ -113,6 +113,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Findings</p>
         <p class="text-sm text-slate-400 mt-1">Open a dedicated detail view to triage, inspect evidence, and generate remediation.</p>
       </div>
+      <div id="bulk-actions" class="hidden items-center gap-3">
+        <span class="text-xs text-slate-400"><span id="selected-count">0</span> selected</span>
+        <select id="bulk-status" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+          <option value="">Change status...</option>
+          <option value="open">Open</option>
+          <option value="in_review">In Review</option>
+          <option value="accepted_risk">Accepted Risk</option>
+          <option value="fixed">Fixed</option>
+          <option value="verified">Verified</option>
+        </select>
+        <button id="bulk-apply" class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
+          Apply
+        </button>
+        <button id="bulk-clear" class="px-3 py-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">Clear</button>
+      </div>
     </div>
     <div id="findings-table" class="overflow-x-auto">
       <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
@@ -123,6 +138,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <script>
   import { api } from '../../lib/api';
   import type { Finding } from '../../lib/api';
+
+  // Bulk actions state
+  let selectedFindingIds: Set<string> = new Set();
 
   const SEV_STYLES: Record<string, string> = {
     critical: 'text-red-400 bg-red-500/10 border-red-500/20',
@@ -272,6 +290,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-slate-950/50 border-b border-slate-800">
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-12">
+              <input type="checkbox" id="select-all-findings" class="h-4 w-4 rounded border-slate-600 bg-surface-container text-sky-400 focus:ring-0" />
+            </th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
 			<th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
@@ -298,6 +319,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               : '';
 			return `
               <tr class="group hover:bg-slate-900/30 transition-colors ${f.false_positive ? 'opacity-50' : ''}">
+                <td class="px-6 py-4">
+                  <input type="checkbox" data-finding-id="${f.id}" class="finding-checkbox h-4 w-4 rounded border-slate-600 bg-surface-container text-sky-400 focus:ring-0" />
+                </td>
                 <td class="px-6 py-4">
                   <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block">
                     <p class="font-bold text-on-background group-hover:text-sky-300 transition-colors">${f.title}</p>
@@ -331,6 +355,23 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           }).join('')}
         </tbody>
       </table>`;
+
+    // Setup checkbox handlers
+    const selectAllCheckbox = document.getElementById('select-all-findings') as HTMLInputElement;
+    const checkboxes = document.querySelectorAll('.finding-checkbox') as NodeListOf<HTMLInputElement>;
+    
+    selectAllCheckbox?.addEventListener('change', () => {
+      checkboxes.forEach(cb => {
+        (cb as HTMLInputElement).checked = selectAllCheckbox.checked;
+      });
+      updateBulkActions();
+    });
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateBulkActions();
+      });
+    });
   }
 
   async function loadSLA() {
@@ -342,9 +383,68 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       document.getElementById('sla-nodeadline-count')!.textContent = String(s.no_deadline);
       document.getElementById('sla-bar')!.classList.remove('hidden');
     } catch {
-      // optional summary
+      // optional
     }
   }
+
+  function updateBulkActions() {
+    const checkboxes = document.querySelectorAll('.finding-checkbox:checked') as NodeListOf<HTMLInputElement>;
+    const bulkActions = document.getElementById('bulk-actions')!;
+    const selectedCount = document.getElementById('selected-count')!;
+    
+    if (checkboxes.length > 0) {
+      bulkActions.classList.remove('hidden');
+      bulkActions.classList.add('flex');
+      selectedCount.textContent = String(checkboxes.length);
+    } else {
+      bulkActions.classList.add('hidden');
+      bulkActions.classList.remove('flex');
+    }
+  }
+
+  function getSelectedFindingIds(): string[] {
+    const checkboxes = document.querySelectorAll('.finding-checkbox:checked') as NodeListOf<HTMLInputElement>;
+    return Array.from(checkboxes).map(cb => cb.dataset.findingId || '');
+  }
+
+  document.getElementById('bulk-clear')!.addEventListener('click', () => {
+    document.querySelectorAll('.finding-checkbox').forEach(cb => {
+      (cb as HTMLInputElement).checked = false;
+    });
+    const selectAll = document.getElementById('select-all-findings') as HTMLInputElement;
+    if (selectAll) selectAll.checked = false;
+    updateBulkActions();
+  });
+
+  document.getElementById('bulk-apply')!.addEventListener('click', async () => {
+    const statusSelect = document.getElementById('bulk-status') as HTMLSelectElement;
+    const status = statusSelect.value;
+    
+    if (!status) {
+      alert('Please select a status');
+      return;
+    }
+
+    const ids = getSelectedFindingIds();
+    if (!ids.length) {
+      alert('No findings selected');
+      return;
+    }
+
+    try {
+      const result = await api.bulkUpdateFindings(ids, { status });
+      alert(`Updated ${result.updated} findings`);
+      document.querySelectorAll('.finding-checkbox').forEach(cb => {
+        (cb as HTMLInputElement).checked = false;
+      });
+      const selectAll = document.getElementById('select-all-findings') as HTMLInputElement;
+      if (selectAll) selectAll.checked = false;
+      updateBulkActions();
+      loadFindings();
+    } catch (error: any) {
+      alert(error.message ?? 'Failed to update findings');
+    }
+  });
 
   document.getElementById('filter-btn')!.addEventListener('click', loadFindings);
   document.getElementById('filter-overdue')!.addEventListener('change', loadFindings);
