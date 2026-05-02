@@ -9,10 +9,10 @@ const (
 )
 
 type ScanPayload struct {
-	ScanID  string `json:"scan_id"`
-	RepoID  string `json:"repo_id"`
-	Target  string `json:"target"`
-	Scanner string `json:"scanner"`
+	ScanID    string `json:"scan_id"`
+	ProjectID string `json:"project_id"`
+	Target    string `json:"target"`
+	Scanner   string `json:"scanner"`
 }
 
 func MarshalScanPayload(p ScanPayload) ([]byte, error) {

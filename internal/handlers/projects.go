@@ -10,7 +10,19 @@ import (
 )
 
 func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
-	projects, err := h.store.Apps.ListProjects(r.Context(), chi.URLParam(r, "id"))
+	appID := chi.URLParam(r, "id")
+	if appID != "" {
+		projects, err := h.store.Apps.ListProjects(r.Context(), appID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list projects")
+			return
+		}
+		writeJSON(w, http.StatusOK, projects)
+		return
+	}
+
+	filter := r.URL.Query().Get("filter")
+	projects, err := h.store.Apps.ListAllProjects(r.Context(), filter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list projects")
 		return
@@ -18,40 +30,88 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, projects)
 }
 
+func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
+	p, err := h.store.Apps.GetProjectByID(r.Context(), chi.URLParam(r, "projectID"))
+	if err != nil {
+		writeError(w, http.StatusNotFound, "project not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, p)
+}
+
 func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		RepoID      *string `json:"repo_id"`
+		Name          string  `json:"name"`
+		Description   string  `json:"description"`
+		AppID         *string `json:"app_id"`
+		RepoURL       string  `json:"repo_url"`
+		Provider      string  `json:"provider"`
+		DefaultBranch string  `json:"default_branch"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		writeError(w, http.StatusBadRequest, "name required")
 		return
 	}
 
-	p, err := h.store.Apps.CreateProject(r.Context(), chi.URLParam(r, "id"), repository.ProjectCreate{
-		Name: body.Name, Description: body.Description, RepoID: body.RepoID,
-	})
-	if err != nil {
-		writeError(w, http.StatusConflict, err.Error())
-		return
+	pc := repository.ProjectCreate{
+		Name: body.Name, Description: body.Description,
+		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
 	}
-	writeJSON(w, http.StatusCreated, p)
+
+	if body.AppID != nil && *body.AppID != "" {
+		project, err := h.store.Apps.CreateProject(r.Context(), *body.AppID, pc)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, project)
+	} else {
+		project, err := h.store.Apps.CreateStandaloneProject(r.Context(), pc)
+		if err != nil {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusCreated, project)
+	}
 }
 
 func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name        *string `json:"name"`
-		Description *string `json:"description"`
-		RepoID      *string `json:"repo_id"`
+		Name           *string `json:"name"`
+		Description    *string `json:"description"`
+		RepoURL        *string `json:"repo_url"`
+		Provider       *string `json:"provider"`
+		DefaultBranch  *string `json:"default_branch"`
+		ExternalRepoID *string `json:"external_repo_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid body")
 		return
 	}
 	h.store.Apps.UpdateProject(r.Context(), chi.URLParam(r, "projectID"), repository.ProjectUpdate{
-		Name: body.Name, Description: body.Description, RepoID: body.RepoID,
+		Name: body.Name, Description: body.Description,
+		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
+		ExternalRepoID: body.ExternalRepoID,
 	})
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "projectID")
+
+	var req struct {
+		Token string `json:"token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if err := h.store.Apps.UpdateProjectGitHubToken(r.Context(), id, req.Token); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to update token")
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
