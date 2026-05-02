@@ -79,8 +79,8 @@ func (r *vulnRepo) List(ctx context.Context, f VulnFilter) ([]models.VulnSummary
 func (r *vulnRepo) GetAffected(ctx context.Context, vulnID string) ([]models.AffectedRepo, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
-			COALESCE(r.name, split_part(s.target, '/', 5), s.target)  AS repo_name,
-			COALESCE(r.url, s.target)                                   AS repo_url,
+			COALESCE(p.name, split_part(s.target, '/', 5), s.target)  AS repo_name,
+			COALESCE(p.repo_url, s.target)                             AS repo_url,
 			COUNT(f.id)                                                  AS finding_count,
 			COUNT(f.id) FILTER (WHERE f.status NOT IN ('fixed','verified','accepted_risk')) AS open_count,
 			COUNT(f.id) FILTER (WHERE f.status IN ('fixed','verified'))                     AS fixed_count,
@@ -89,9 +89,9 @@ func (r *vulnRepo) GetAffected(ctx context.Context, vulnID string) ([]models.Aff
 			MIN(f.sla_deadline)::text                                    AS nearest_deadline
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id
-		LEFT JOIN repos r ON r.id = s.repo_id
+		LEFT JOIN projects p ON p.id = s.project_id
 		WHERE COALESCE(f.cve_id, f.rule_id) = $1
-		GROUP BY r.name, r.url, s.target
+		GROUP BY p.name, p.repo_url, s.target
 		ORDER BY open_count DESC, repo_name`,
 		vulnID)
 	if err != nil {

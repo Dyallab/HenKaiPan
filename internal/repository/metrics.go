@@ -100,9 +100,11 @@ func (r *metricsRepo) Trends(ctx context.Context, days int) ([]models.TrendPoint
 func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
-			COALESCE(r.id::text, '')                       AS repo_id,
-			COALESCE(r.name, split_part(s.target,'/',5))   AS repo_name,
-			COALESCE(r.url,  s.target)                     AS repo_url,
+			COALESCE(p.id::text, '')                           AS project_id,
+			COALESCE(p.name, split_part(s.target,'/',5))       AS project_name,
+			COALESCE(p.repo_url, s.target)                     AS project_url,
+			COALESCE(p.app_id::text, '')                       AS app_id,
+			COALESCE(a.name, '')                               AS app_name,
 			COUNT(*) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')) AS critical,
 			COUNT(*) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')) AS high,
 			COUNT(*) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')) AS medium,
@@ -113,9 +115,10 @@ func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, e
 			 COUNT(*) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')) * 5   +
 			 COUNT(*) FILTER (WHERE f.severity = 'low'      AND f.status NOT IN ('fixed','verified','accepted_risk')) * 1)  AS score
 		FROM scans s
-		LEFT JOIN repos r ON r.id = s.repo_id OR r.url = s.target
+		LEFT JOIN projects p ON p.id = s.project_id OR p.repo_url = s.target
+		LEFT JOIN apps a ON a.id = p.app_id
 		LEFT JOIN findings f ON f.scan_id = s.id
-		GROUP BY r.id, r.name, r.url, s.target
+		GROUP BY p.id, p.name, p.repo_url, p.app_id, a.name, s.target
 		ORDER BY score DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("risk scores: %w", err)
@@ -125,7 +128,7 @@ func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, e
 	var scores []models.RepoRiskScore
 	for rows.Next() {
 		var rs models.RepoRiskScore
-		rows.Scan(&rs.RepoID, &rs.RepoName, &rs.RepoURL, &rs.Critical, &rs.High, &rs.Medium, &rs.Low, &rs.Info, &rs.Score)
+		rows.Scan(&rs.ProjectID, &rs.ProjectName, &rs.RepoURL, &rs.AppID, &rs.AppName, &rs.Critical, &rs.High, &rs.Medium, &rs.Low, &rs.Info, &rs.Score)
 		scores = append(scores, rs)
 	}
 	if scores == nil {
@@ -141,7 +144,7 @@ func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, er
 			t.name,
 			COUNT(DISTINCT a.id)::int,
 			COUNT(DISTINCT p.id)::int,
-			COUNT(DISTINCT r.id)::int,
+			COUNT(DISTINCT CASE WHEN p.repo_url IS NOT NULL THEN p.id END)::int,
 			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'critical' AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
 			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'high'     AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
 			COALESCE(COUNT(f.id) FILTER (WHERE f.severity = 'medium'   AND f.status NOT IN ('fixed','verified','accepted_risk')), 0)::int,
@@ -164,9 +167,8 @@ func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, er
 			MAX(s.completed_at)
 		FROM teams t
 		LEFT JOIN apps a      ON a.team_id  = t.id
-		LEFT JOIN projects p  ON p.app_id   = a.id
-		LEFT JOIN repos r     ON r.id        = p.repo_id
-		LEFT JOIN scans s     ON s.repo_id   = r.id AND s.status = 'completed'
+		LEFT JOIN projects p  ON p.app_id   = a.id OR (p.app_id IS NULL AND a.id IS NULL)
+		LEFT JOIN scans s     ON s.project_id = p.id AND s.status = 'completed'
 		LEFT JOIN findings f  ON f.scan_id   = s.id
 		GROUP BY t.id, t.name
 		ORDER BY score DESC`)

@@ -21,7 +21,7 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 	offset := (page - 1) * limit
 
 	rows, err := r.db.Query(ctx, `
-		SELECT s.id, s.repo_id, s.scanner, s.status, s.target,
+		SELECT s.id, s.project_id, s.scanner, s.status, s.target,
 		       s.started_at, s.completed_at, s.created_at, s.error,
 		       COUNT(f.id) as finding_count
 		FROM scans s
@@ -37,7 +37,7 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 	var scans []models.Scan
 	for rows.Next() {
 		var s models.Scan
-		if err := rows.Scan(&s.ID, &s.RepoID, &s.Scanner, &s.Status, &s.Target,
+		if err := rows.Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.Status, &s.Target,
 			&s.StartedAt, &s.CompletedAt, &s.CreatedAt, &s.Error, &s.FindingCount); err != nil {
 			continue
 		}
@@ -54,14 +54,14 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 func (r *scanRepo) Get(ctx context.Context, id string) (*models.Scan, error) {
 	var s models.Scan
 	err := r.db.QueryRow(ctx, `
-		SELECT s.id, s.repo_id, s.scanner, s.status, s.target,
+		SELECT s.id, s.project_id, s.scanner, s.status, s.target,
 		       s.started_at, s.completed_at, s.created_at, s.error,
 		       s.container_log, COUNT(f.id)
 		FROM scans s
 		LEFT JOIN findings f ON f.scan_id = s.id
 		WHERE s.id = $1
 		GROUP BY s.id`, id,
-	).Scan(&s.ID, &s.RepoID, &s.Scanner, &s.Status, &s.Target,
+	).Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.Status, &s.Target,
 		&s.StartedAt, &s.CompletedAt, &s.CreatedAt, &s.Error,
 		&s.ContainerLog, &s.FindingCount)
 	if err != nil {
@@ -70,25 +70,16 @@ func (r *scanRepo) Get(ctx context.Context, id string) (*models.Scan, error) {
 	return &s, nil
 }
 
-func (r *scanRepo) Insert(ctx context.Context, target, scanner, batchID string, repoID *string) (string, error) {
+func (r *scanRepo) Insert(ctx context.Context, target, scanner, batchID string, projectID *string) (string, error) {
 	var id string
 	err := r.db.QueryRow(ctx,
-		`INSERT INTO scans (target, scanner, status, scan_batch_id, repo_id) VALUES ($1, $2, 'pending', $3, $4) RETURNING id`,
-		target, scanner, batchID, repoID,
+		`INSERT INTO scans (target, scanner, status, scan_batch_id, project_id) VALUES ($1, $2, 'pending', $3, $4) RETURNING id`,
+		target, scanner, batchID, projectID,
 	).Scan(&id)
 	if err != nil {
 		return "", fmt.Errorf("insert scan: %w", err)
 	}
 	return id, nil
-}
-
-func (r *scanRepo) FindRepoIDByTarget(ctx context.Context, target string) (*string, error) {
-	var id string
-	err := r.db.QueryRow(ctx, `SELECT id FROM repos WHERE url = $1`, target).Scan(&id)
-	if err != nil {
-		return nil, nil // not found is not an error
-	}
-	return &id, nil
 }
 
 func (r *scanRepo) MarkRunning(ctx context.Context, scanID string) error {

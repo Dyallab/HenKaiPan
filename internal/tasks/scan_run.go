@@ -3,11 +3,14 @@ package tasks
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,17 +49,22 @@ type runResult struct {
 	err    error
 }
 
+func computeFingerprint(scanner, ruleID, filePath string, lineStart int) string {
+	h := sha256.Sum256([]byte(scanner + ":" + ruleID + ":" + filePath + ":" + strconv.Itoa(lineStart)))
+	return hex.EncodeToString(h[:])
+}
+
 // HandleScan runs a queued scan job for any configured scanner.
-func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, repos repository.RepoRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
+func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, apps repository.AppRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		p, err := UnmarshalScanPayload(t.Payload())
 		if err != nil {
 			return err
 		}
 
-		log := slog.With("scan_id", p.ScanID, "scanner", p.Scanner, "target", p.Target, "repo_id", p.RepoID)
+		log := slog.With("scan_id", p.ScanID, "scanner", p.Scanner, "target", p.Target, "project_id", p.ProjectID)
 
-		log.Info("scan task received", "payload_repo_id", p.RepoID)
+		log.Info("scan task received")
 
 		sc, ok := scanner.Get(p.Scanner)
 		if !ok {
@@ -73,7 +81,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 		switch sc.TargetType {
 		case scanner.TargetGit:
-			dir, cloneLog, err := cloneRepo(ctx, repos, p.RepoID, p.Target, p.ScanID)
+			dir, cloneLog, err := cloneRepo(ctx, apps, p.ProjectID, p.Target, p.ScanID)
 			if err != nil {
 				scans.MarkFailed(ctx, p.ScanID, err.Error(), cloneLog)
 				enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.failed", err.Error(), time.Now())
@@ -114,6 +122,8 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 			suppressed, _ := policies.IsSuppressed(ctx, sc.Name, f.RuleID, f.FilePath)
 
+			fingerprint := computeFingerprint(sc.Name, f.RuleID, f.FilePath, f.LineStart)
+
 			findingID, err := findings.Insert(ctx, repository.FindingInsert{
 				ScanID: p.ScanID, Scanner: sc.Name, RuleID: f.RuleID,
 				Title: f.Title, Description: f.Description,
@@ -123,9 +133,14 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				SLADeadline: sla, CVEID: cveID, CWEID: cweID,
 				Suppressed: suppressed,
 				SecretHash: f.SecretHash,
+				ProjectID:  p.ProjectID,
+				Fingerprint: fingerprint,
 			})
 			if err != nil {
 				log.Error("insert finding failed", "rule_id", f.RuleID, "err", err)
+				continue
+			}
+			if findingID == "" {
 				continue
 			}
 			inserted++
@@ -137,7 +152,6 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			}
 			if !suppressed {
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)
-				enqueueAgentValidate(ctx, queue, findingID)
 			}
 
 			enqueueFindingNotification(ctx, settings, webhooks, queue, notifications, FindingCreatedPayload{
@@ -171,12 +185,11 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-func cloneRepo(ctx context.Context, repos repository.RepoRepository, repoID, url, scanID string) (dir string, execLog string, err error) {
+func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, url, scanID string) (dir string, execLog string, err error) {
 	dir = filepath.Join(os.TempDir(), "aspm-scan-"+scanID)
 
-	slog.Info("cloneRepo called", "repo_id", repoID, "url", url, "scan_id", scanID)
+	slog.Info("cloneRepo called", "project_id", projectID, "url", url, "scan_id", scanID)
 
-	// Clean up any existing directory from previous failed attempts
 	if _, err := os.Stat(dir); err == nil {
 		slog.Info("removing existing scan directory from previous attempt", "dir", dir)
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
@@ -184,24 +197,22 @@ func cloneRepo(ctx context.Context, repos repository.RepoRepository, repoID, url
 		}
 	}
 
-	// Get GitHub token if available
 	var token string
-	if repoID != "" {
+	if projectID != "" {
 		var err error
-		token, err = repos.GetGitHubToken(ctx, repoID)
+		token, err = apps.GetProjectGitHubToken(ctx, projectID)
 		if err != nil {
-			slog.Warn("failed to get github token", "repo_id", repoID, "err", err)
-		} else {
-			slog.Info("github token retrieved", "repo_id", repoID, "token_len", len(token))
+			slog.Warn("failed to get project github token", "project_id", projectID, "err", err)
+		} else if token != "" {
+			slog.Info("github token retrieved from project", "project_id", projectID, "token_len", len(token))
 		}
-	} else {
-		slog.Warn("no repo_id provided, skipping token lookup")
+	}
+	if token == "" {
+		slog.Warn("no github token available, proceeding without auth")
 	}
 
-	// Build clone URL with token if available
 	cloneURL := url
 	if token != "" {
-		// Inject token into URL: https://github.com/org/repo -> https://<token>@github.com/org/repo
 		if strings.HasPrefix(url, "https://") {
 			cloneURL = "https://" + token + "@" + strings.TrimPrefix(url, "https://")
 			slog.Info("token injected into clone URL", "url_host", "github.com")
@@ -213,7 +224,6 @@ func cloneRepo(ctx context.Context, repos repository.RepoRepository, repoID, url
 	out, cloneErr := cmd.CombinedOutput()
 	execLog = buildSimpleLog("git clone --depth=50 "+cloneURL, out, nil, cloneErr, time.Since(start))
 	if cloneErr != nil {
-		// Clean up partial clone directory before returning error
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
 			slog.Warn("failed to remove partial clone directory", "dir", dir, "err", rmErr)
 		}
