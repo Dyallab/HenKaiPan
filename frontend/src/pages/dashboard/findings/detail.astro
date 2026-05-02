@@ -1,1179 +1,2088 @@
 ---
-import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="Finding Detail" active="findings">
-  <div id="loading" class="text-sm text-slate-500">Loading finding…</div>
+    <div id="loading" class="text-sm text-slate-500">Loading finding…</div>
 
-  <div id="not-found" class="hidden bg-red-500/10 border border-red-500/20 rounded-2xl p-6 space-y-3">
-    <p class="text-sm font-semibold text-red-300">Finding not found.</p>
-    <a href="/dashboard/findings" class="inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200 transition-colors">
-      <span class="material-symbols-outlined text-base">arrow_back</span>
-      Back to findings
-    </a>
-  </div>
-
-  <div id="content" class="hidden space-y-6">
-    <div class="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-[0.22em] font-bold">
-      <a href="/dashboard/findings" class="hover:text-sky-300 transition-colors">Findings</a>
-      <span>/</span>
-      <span id="breadcrumb-id" class="font-mono text-slate-400"></span>
+    <div
+        id="not-found"
+        class="hidden bg-red-500/10 border border-red-500/20 rounded-2xl p-6 space-y-3"
+    >
+        <p class="text-sm font-semibold text-red-300">Finding not found.</p>
+        <a
+            href="/dashboard/findings"
+            class="inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200 transition-colors"
+        >
+            <span class="material-symbols-outlined text-base">arrow_back</span>
+            Back to findings
+        </a>
     </div>
 
-    <section class="bg-surface-container-low border border-outline-variant/20 rounded-3xl p-6 lg:p-7">
-      <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
-        <div class="space-y-4 min-w-0">
-          <div class="flex flex-wrap items-center gap-2">
-            <span id="header-severity" class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"></span>
-            <span id="header-status" class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"></span>
-            <span id="header-sla" class="hidden px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"></span>
-          </div>
-          <div>
-            <h1 id="finding-title" class="text-3xl font-black tracking-tight text-on-background"></h1>
-            <p id="finding-subtitle" class="text-sm text-slate-400 mt-2"></p>
-          </div>
-          <div class="flex flex-wrap gap-2" id="header-tags"></div>
+    <div id="content" class="hidden space-y-6">
+        <div
+            class="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-[0.22em] font-bold"
+        >
+            <a
+                href="/dashboard/findings"
+                class="hover:text-sky-300 transition-colors">Findings</a
+            >
+            <span>/</span>
+            <span id="breadcrumb-id" class="font-mono text-slate-400"></span>
         </div>
 
-        <div class="flex flex-col gap-3 xl:items-end">
-          <div class="flex flex-wrap gap-3 xl:justify-end">
-            <button id="jira-create-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-200 text-sm font-semibold hover:bg-orange-500/15 transition-all disabled:cursor-not-allowed disabled:opacity-70">
-              <span class="material-symbols-outlined text-base">confirmation_number</span>
-              <span id="jira-create-label">Create Jira Ticket</span>
-            </button>
-            <a id="jira-view-link" href="#" target="_blank" rel="noopener" class="hidden items-center gap-2 px-4 py-2 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-200 text-sm font-semibold hover:bg-orange-500/10 transition-all">
-              <span class="material-symbols-outlined text-base">open_in_new</span>
-              <span id="jira-view-label">View Jira Ticket</span>
-            </a>
-            <button id="run-analysis-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/15 transition-all disabled:cursor-not-allowed disabled:opacity-70">
-              <span class="material-symbols-outlined text-base">neurology</span>
-              <span id="run-analysis-label">Validate</span>
-            </button>
-            <button id="kb-remediate-btn" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/15 transition-all">
-              <span class="material-symbols-outlined text-base">auto_awesome</span>
-              <span id="kb-btn-label">AI Remediate</span>
-            </button>
-            <a id="kb-view-link" href="#" target="_blank" class="hidden items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/15 transition-all">
-              <span class="material-symbols-outlined text-base">open_in_new</span>
-              View Guide
-            </a>
-          </div>
-          <div id="analysis-status" class="hidden w-full max-w-md rounded-2xl border px-4 py-3 bg-slate-950/50 backdrop-blur-sm">
-            <div class="flex items-start gap-3">
-              <span id="analysis-status-icon" class="material-symbols-outlined text-lg text-purple-300">neurology</span>
-              <div class="space-y-1 min-w-0">
-                <p id="analysis-status-title" class="text-sm font-semibold text-on-background"></p>
-                <p id="analysis-status-body" class="text-xs text-slate-400 leading-relaxed"></p>
-              </div>
+        <section
+            class="bg-surface-container-low border border-outline-variant/20 rounded-3xl p-6 lg:p-7"
+        >
+            <div
+                class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6"
+            >
+                <div class="space-y-4 min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span
+                            id="header-severity"
+                            class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"
+                        ></span>
+                        <span
+                            id="header-status"
+                            class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"
+                        ></span>
+                        <span
+                            id="header-sla"
+                            class="hidden px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"
+                        ></span>
+                    </div>
+                    <div>
+                        <h1
+                            id="finding-title"
+                            class="text-3xl font-black tracking-tight text-on-background"
+                        >
+                        </h1>
+                        <p
+                            id="finding-subtitle"
+                            class="text-sm text-slate-400 mt-2"
+                        >
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2" id="header-tags"></div>
+                </div>
+
+                <div class="flex flex-col gap-3 xl:items-end">
+                    <div class="flex flex-wrap gap-3 xl:justify-end">
+                        <button
+                            id="jira-create-btn"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-orange-500/20 bg-orange-500/10 text-orange-200 text-sm font-semibold hover:bg-orange-500/15 transition-all disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >confirmation_number</span
+                            >
+                            <span id="jira-create-label"
+                                >Create Jira Ticket</span
+                            >
+                        </button>
+                        <a
+                            id="jira-view-link"
+                            href="#"
+                            target="_blank"
+                            rel="noopener"
+                            class="hidden items-center gap-2 px-4 py-2 rounded-xl border border-orange-500/20 bg-orange-500/5 text-orange-200 text-sm font-semibold hover:bg-orange-500/10 transition-all"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >open_in_new</span
+                            >
+                            <span id="jira-view-label">View Jira Ticket</span>
+                        </a>
+                        <button
+                            id="run-analysis-btn"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/15 transition-all disabled:cursor-not-allowed disabled:opacity-70"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >neurology</span
+                            >
+                            <span id="run-analysis-label">AI Validate</span>
+                        </button>
+                        <button
+                            id="kb-remediate-btn"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/15 transition-all"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >auto_awesome</span
+                            >
+                            <span id="kb-btn-label">AI Remediate</span>
+                        </button>
+                        <a
+                            id="kb-view-link"
+                            href="#"
+                            target="_blank"
+                            class="hidden items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/15 transition-all"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >open_in_new</span
+                            >
+                            View Guide
+                        </a>
+                    </div>
+                    <div
+                        id="analysis-status"
+                        class="hidden w-full max-w-md rounded-2xl border px-4 py-3 bg-slate-950/50 backdrop-blur-sm"
+                    >
+                        <div class="flex items-start gap-3">
+                            <span
+                                id="analysis-status-icon"
+                                class="material-symbols-outlined text-lg text-purple-300"
+                                >neurology</span
+                            >
+                            <div class="space-y-1 min-w-0">
+                                <p
+                                    id="analysis-status-title"
+                                    class="text-sm font-semibold text-on-background"
+                                >
+                                </p>
+                                <p
+                                    id="analysis-status-body"
+                                    class="text-xs text-slate-400 leading-relaxed"
+                                >
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="jira-status" class="hidden text-xs text-slate-500">
+                    </p>
+                </div>
             </div>
-          </div>
-          <p id="jira-status" class="hidden text-xs text-slate-500"></p>
-        </div>
-      </div>
-    </section>
+        </section>
 
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-2 flex flex-wrap gap-2">
-      <button data-tab-trigger="overview" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80">Overview</button>
-      <button data-tab-trigger="evidence" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Evidence</button>
-      <button data-tab-trigger="remediation" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Remediation</button>
-      <button data-tab-trigger="risk" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Risk Acceptance</button>
-      <button data-tab-trigger="activity" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">Activity</button>
+        <div
+            class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-2 flex flex-wrap gap-2"
+        >
+            <button
+                data-tab-trigger="overview"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80"
+                >Overview</button
+            >
+            <button
+                data-tab-trigger="evidence"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
+                >Evidence</button
+            >
+            <button
+                data-tab-trigger="remediation"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
+                >Remediation</button
+            >
+            <button
+                data-tab-trigger="risk"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
+                >Risk Acceptance</button
+            >
+            <button
+                data-tab-trigger="activity"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
+                >Activity</button
+            >
+        </div>
+
+        <div
+            class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start"
+        >
+            <div class="space-y-6 min-w-0">
+                <section data-tab-panel="overview" class="tab-panel space-y-6">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div
+                            class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5"
+                        >
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500 mb-2"
+                            >
+                                Summary
+                            </p>
+                            <p
+                                id="summary-description"
+                                class="text-sm text-on-surface-variant leading-relaxed"
+                            >
+                            </p>
+                            <p
+                                id="summary-meta"
+                                class="text-[11px] text-slate-500 mt-3"
+                            >
+                            </p>
+                        </div>
+                        <div
+                            class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5"
+                        >
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500 mb-2"
+                            >
+                                AI Validation
+                            </p>
+                            <div class="space-y-3 text-sm">
+                                <div
+                                    class="flex items-start justify-between gap-3"
+                                >
+                                    <div>
+                                        <p class="text-slate-500">
+                                            AI validator confidence
+                                        </p>
+                                        <p class="text-xs text-slate-600 mt-1">
+                                            Model-estimated false-positive
+                                            signal.
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span
+                                            id="overview-ai-confidence"
+                                            class="font-mono text-on-background block"
+                                        ></span>
+                                        <span
+                                            id="overview-ai-state"
+                                            class="text-[11px] text-slate-500 block mt-1"
+                                        ></span>
+                                    </div>
+                                </div>
+                                <div
+                                    class="flex items-center justify-between gap-3"
+                                >
+                                    <span class="text-slate-500">Rule</span>
+                                    <span
+                                        id="overview-rule"
+                                        class="font-mono text-on-background text-right break-all"
+                                    ></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Affected Resource
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-slate-500 mb-1">Location</p>
+                                <p
+                                    id="resource-location"
+                                    class="font-mono text-on-background break-all"
+                                >
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-1">Scan</p>
+                                <a
+                                    id="resource-scan-link"
+                                    href="#"
+                                    class="inline-flex items-center gap-2 text-sky-300 hover:text-sky-200 transition-colors"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >travel_explore</span
+                                    >
+                                    <span
+                                        id="resource-scan-id"
+                                        class="font-mono"></span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="analysis-card"
+                        class="hidden bg-surface-container-low border border-purple-500/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p
+                                    class="text-[10px] font-bold uppercase tracking-[0.24em] text-purple-300/80"
+                                >
+                                    AI Validator Analysis
+                                </p>
+                                <p class="text-sm text-slate-400 mt-1">
+                                    Separate model-based assessment for
+                                    false-positive risk.
+                                </p>
+                            </div>
+                            <span
+                                id="analysis-pill"
+                                class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"
+                            ></span>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-4 text-sm">
+                            <div
+                                class="rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4"
+                            >
+                                <p class="text-slate-500 mb-1">
+                                    AI validator confidence
+                                </p>
+                                <p
+                                    id="analysis-confidence"
+                                    class="text-2xl font-black text-on-background"
+                                >
+                                </p>
+                            </div>
+                            <div
+                                class="rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4"
+                            >
+                                <p class="text-slate-500 mb-1">Updated</p>
+                                <p
+                                    id="analysis-updated"
+                                    class="text-on-background"
+                                >
+                                </p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-slate-500 text-sm mb-2">Reasoning</p>
+                            <p
+                                id="analysis-reasoning"
+                                class="text-sm text-on-surface-variant leading-relaxed"
+                            >
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    data-tab-panel="evidence"
+                    class="tab-panel hidden space-y-6"
+                >
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Technical Details
+                        </p>
+                        <div class="grid md:grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <p class="text-slate-500 mb-1">Scanner</p>
+                                <p
+                                    id="evidence-scanner"
+                                    class="font-mono text-on-background"
+                                >
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-1">Line Range</p>
+                                <p
+                                    id="evidence-line-range"
+                                    class="font-mono text-on-background"
+                                >
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-1">CVE</p>
+                                <div id="evidence-cve"></div>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-1">CWE</p>
+                                <div id="evidence-cwe"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="snippet-card"
+                        class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Evidence Snippet
+                        </p>
+                        <pre
+                            id="evidence-snippet"
+                            class="bg-slate-950/70 border border-outline-variant/20 rounded-xl p-4 text-xs text-slate-300 overflow-auto whitespace-pre-wrap">
+                        </pre>
+                    </div>
+
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <div class="flex items-center justify-between gap-3">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                            >
+                                Correlated Findings
+                            </p>
+                            <span
+                                id="correlation-count"
+                                class="text-xs text-slate-500"></span>
+                        </div>
+                        <div
+                            id="correlation-context"
+                            class="hidden rounded-xl border border-blue-500/20 bg-blue-500/5 p-4"
+                        >
+                            <p class="text-sm text-blue-200">
+                                <span class="font-semibold"
+                                    >Correlation by secret value:</span
+                                >
+                                This finding was corroborated by multiple scanners
+                                detecting the exact same secret value.
+                            </p>
+                        </div>
+                        <div id="correlation-list" class="space-y-3">
+                            <p class="text-sm text-slate-500">
+                                Loading correlation context…
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    data-tab-panel="remediation"
+                    class="tab-panel hidden space-y-6"
+                >
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Recommended Action
+                        </p>
+                        <div
+                            class="space-y-3 text-sm text-on-surface-variant leading-relaxed"
+                        >
+                            <p>
+                                Start by validating whether this finding is
+                                exploitable in the affected asset and compare it
+                                against the corroborating scanners below.
+                            </p>
+                            <p>
+                                Use the ownership and triage controls in the
+                                sidebar to assign an owner, document context,
+                                and move status as evidence is reviewed.
+                            </p>
+                            <p>
+                                If you need a deeper fix path, generate an AI
+                                remediation guide to create a reusable knowledge
+                                article linked to this finding.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            References
+                        </p>
+                        <div class="flex flex-wrap gap-2" id="reference-list">
+                        </div>
+                    </div>
+                </section>
+
+                <section
+                    data-tab-panel="activity"
+                    class="tab-panel hidden space-y-6"
+                >
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Comments
+                        </p>
+                        <div
+                            id="comments-list"
+                            class="space-y-3 max-h-96 overflow-y-auto"
+                        >
+                        </div>
+                        <div class="pt-3 border-t border-outline-variant/20">
+                            <textarea
+                                id="comment-input"
+                                rows="2"
+                                placeholder="Add a comment... Use @username to mention team members"
+                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                            ></textarea>
+                            <div class="flex items-center justify-between mt-2">
+                                <p class="text-[10px] text-slate-500">
+                                    Markdown supported. @mentions will send
+                                    email notifications.
+                                </p>
+                                <button
+                                    id="comment-submit"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-sm"
+                                        >add_comment</span
+                                    >
+                                    Post Comment
+                                </button>
+                            </div>
+                            <p id="comment-msg" class="text-xs hidden mt-2"></p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Timeline
+                        </p>
+                        <div id="activity-timeline" class="space-y-3"></div>
+                    </div>
+                </section>
+
+                <section data-tab-panel="risk" class="tab-panel hidden">
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6 space-y-4"
+                    >
+                        <div class="flex items-center justify-between">
+                            <p
+                                class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                            >
+                                Risk Acceptance Status
+                            </p>
+                            <span
+                                id="risk-status-badge"
+                                class="hidden px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider"
+                            ></span>
+                        </div>
+
+                        <div
+                            id="risk-acceptance-form"
+                            class="space-y-4 max-w-2xl"
+                        >
+                            <p class="text-sm text-slate-400">
+                                Formally accept this security risk with an
+                                expiration date for re-review.
+                            </p>
+                            <div>
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                    >Rationale *</label
+                                >
+                                <textarea
+                                    id="risk-rationale"
+                                    rows="4"
+                                    placeholder="Why is this risk being accepted? What compensating controls exist?"
+                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                    >Expires At *</label
+                                >
+                                <input
+                                    id="risk-expires-at"
+                                    type="date"
+                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                                />
+                                <p class="text-[10px] text-slate-500 mt-1">
+                                    Risk acceptance must be re-reviewed after
+                                    this date
+                                </p>
+                            </div>
+                            <p id="risk-create-msg" class="text-xs hidden"></p>
+                            <button
+                                id="risk-create-btn"
+                                class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-slate-950 text-sm font-bold hover:bg-amber-400 transition-all active:scale-[0.99]"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-base"
+                                    >gavel</span
+                                >
+                                Submit Risk Acceptance
+                            </button>
+                        </div>
+
+                        <div id="risk-active" class="hidden max-w-2xl">
+                            <div
+                                class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5"
+                            >
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="material-symbols-outlined text-lg text-amber-400"
+                                        >gavel</span
+                                    >
+                                    <div class="space-y-1 min-w-0">
+                                        <p
+                                            class="text-sm font-semibold text-on-background"
+                                        >
+                                            Risk Accepted
+                                        </p>
+                                        <p
+                                            id="risk-rationale-display"
+                                            class="text-xs text-slate-400 leading-relaxed"
+                                        >
+                                        </p>
+                                        <p
+                                            id="risk-expires-display"
+                                            class="text-[10px] text-slate-500 mt-2 font-mono"
+                                        >
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                id="risk-review-notes"
+                                class="hidden mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
+                            >
+                                <p
+                                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1"
+                                >
+                                    Approval Notes
+                                </p>
+                                <p
+                                    id="risk-approval-notes-text"
+                                    class="text-xs text-slate-400"
+                                >
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            id="risk-pending"
+                            class="hidden max-w-2xl space-y-4"
+                        >
+                            <div
+                                class="rounded-xl border border-slate-500/20 bg-slate-500/5 p-5"
+                            >
+                                <div class="flex items-center gap-3">
+                                    <span
+                                        class="material-symbols-outlined text-lg text-slate-400"
+                                        >schedule</span
+                                    >
+                                    <div>
+                                        <p
+                                            class="text-sm font-semibold text-on-background"
+                                        >
+                                            Pending Approval
+                                        </p>
+                                        <p class="text-xs text-slate-400">
+                                            Waiting for admin approval
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Admin Approval Form -->
+                            <div
+                                id="risk-approval-form"
+                                class="hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4"
+                            >
+                                <p class="text-sm text-slate-400">
+                                    Review and approve or reject this risk
+                                    acceptance request.
+                                </p>
+                                <div>
+                                    <label
+                                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                        >Review Notes</label
+                                    >
+                                    <textarea
+                                        id="risk-review-notes-input"
+                                        rows="3"
+                                        placeholder="Add notes for the requester (optional for rejection, required for approval)"
+                                        class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-600 resize-none"
+                                    ></textarea>
+                                </div>
+                                <p
+                                    id="risk-approval-msg"
+                                    class="text-xs hidden"
+                                >
+                                </p>
+                                <div class="flex gap-3">
+                                    <button
+                                        id="risk-approve-btn"
+                                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-slate-950 text-sm font-bold hover:bg-emerald-400 transition-all active:scale-[0.99]"
+                                    >
+                                        <span
+                                            class="material-symbols-outlined text-base"
+                                            >check_circle</span
+                                        >
+                                        Approve
+                                    </button>
+                                    <button
+                                        id="risk-reject-btn"
+                                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-slate-950 text-sm font-bold hover:bg-red-400 transition-all active:scale-[0.99]"
+                                    >
+                                        <span
+                                            class="material-symbols-outlined text-base"
+                                            >cancel</span
+                                        >
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="risk-rejected" class="hidden max-w-2xl">
+                            <div
+                                class="rounded-xl border border-red-500/20 bg-red-500/5 p-5"
+                            >
+                                <div class="flex items-start gap-3">
+                                    <span
+                                        class="material-symbols-outlined text-lg text-red-400"
+                                        >cancel</span
+                                    >
+                                    <div class="space-y-1 min-w-0">
+                                        <p
+                                            class="text-sm font-semibold text-on-background"
+                                        >
+                                            Risk Acceptance Rejected
+                                        </p>
+                                        <p
+                                            id="risk-rejected-notes"
+                                            class="text-xs text-slate-400 leading-relaxed"
+                                        >
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="space-y-6 xl:sticky xl:top-6">
+                <div
+                    class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                >
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                    >
+                        Summary
+                    </p>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-slate-500">Severity</span><span
+                                id="side-severity"
+                                class="text-on-background"></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-slate-500">Status</span><span
+                                id="side-status"
+                                class="text-on-background"></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-slate-500">Scanner</span><span
+                                id="side-scanner"
+                                class="font-mono text-on-background"></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-slate-500">First seen</span><span
+                                id="side-created"
+                                class="text-on-background text-right"></span>
+                        </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-slate-500">SLA</span><span
+                                id="side-sla"
+                                class="text-on-background text-right"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
+                >
+                    <p
+                        class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                    >
+                        Triage
+                    </p>
+                    <div>
+                        <label
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                            >Status</label
+                        >
+                        <select
+                            id="triage-status"
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                        >
+                            <option value="open">Open</option>
+                            <option value="in_review">In Review</option>
+                            <option value="accepted_risk">Accepted Risk</option>
+                            <option value="fixed">Fixed</option>
+                            <option value="verified">Verified</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                            >Assigned To</label
+                        >
+                        <input
+                            id="triage-assigned"
+                            list="users-datalist"
+                            type="text"
+                            placeholder="username or email"
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600"
+                        />
+                        <datalist id="users-datalist"></datalist>
+                    </div>
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input
+                            id="triage-fp"
+                            type="checkbox"
+                            class="mt-1 rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer"
+                        />
+                        <div>
+                            <p class="text-sm text-on-background font-medium">
+                                False Positive
+                            </p>
+                            <p class="text-xs text-slate-500 mt-1">
+                                Exclude the finding from operational triage
+                                while preserving evidence.
+                            </p>
+                        </div>
+                    </label>
+                    <div>
+                        <label
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                            >Notes</label
+                        >
+                        <textarea
+                            id="triage-notes"
+                            rows="5"
+                            placeholder="Add triage context, mitigation notes, or acceptance rationale..."
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                        ></textarea>
+                    </div>
+                    <p id="triage-save-msg" class="text-xs hidden"></p>
+                    <button
+                        id="triage-save"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sky-500 text-slate-950 text-sm font-bold hover:bg-sky-400 transition-all active:scale-[0.99]"
+                    >
+                        <span class="material-symbols-outlined text-base"
+                            >save</span
+                        >
+                        Save Triage
+                    </button>
+                </div>
+            </aside>
+        </div>
     </div>
-
-    <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
-      <div class="space-y-6 min-w-0">
-        <section data-tab-panel="overview" class="tab-panel space-y-6">
-          <div class="grid md:grid-cols-2 gap-4">
-            <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5">
-              <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500 mb-2">Summary</p>
-              <p id="summary-description" class="text-sm text-on-surface-variant leading-relaxed"></p>
-              <p id="summary-meta" class="text-[11px] text-slate-500 mt-3"></p>
-            </div>
-			<div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5">
-			  <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500 mb-2">AI Validation</p>
-			  <div class="space-y-3 text-sm">
-				<div class="flex items-start justify-between gap-3">
-				  <div>
-					<p class="text-slate-500">AI validator confidence</p>
-					<p class="text-xs text-slate-600 mt-1">Model-estimated false-positive signal.</p>
-                  </div>
-                  <div class="text-right">
-                    <span id="overview-ai-confidence" class="font-mono text-on-background block"></span>
-                    <span id="overview-ai-state" class="text-[11px] text-slate-500 block mt-1"></span>
-                  </div>
-                </div>
-				<div class="flex items-center justify-between gap-3">
-				  <span class="text-slate-500">Rule</span>
-				  <span id="overview-rule" class="font-mono text-on-background text-right break-all"></span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Affected Resource</p>
-            <div class="grid md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p class="text-slate-500 mb-1">Location</p>
-                <p id="resource-location" class="font-mono text-on-background break-all"></p>
-              </div>
-              <div>
-                <p class="text-slate-500 mb-1">Scan</p>
-                <a id="resource-scan-link" href="#" class="inline-flex items-center gap-2 text-sky-300 hover:text-sky-200 transition-colors">
-                  <span class="material-symbols-outlined text-sm">travel_explore</span>
-                  <span id="resource-scan-id" class="font-mono"></span>
-                </a>
-              </div>
-            </div>
-          </div>
-
-          <div id="analysis-card" class="hidden bg-surface-container-low border border-purple-500/20 rounded-2xl p-5 space-y-4">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-purple-300/80">AI Validator Analysis</p>
-			  <p class="text-sm text-slate-400 mt-1">Separate model-based assessment for false-positive risk.</p>
-              </div>
-              <span id="analysis-pill" class="px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border"></span>
-            </div>
-            <div class="grid md:grid-cols-2 gap-4 text-sm">
-              <div class="rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4">
-                <p class="text-slate-500 mb-1">AI validator confidence</p>
-                <p id="analysis-confidence" class="text-2xl font-black text-on-background"></p>
-              </div>
-              <div class="rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4">
-                <p class="text-slate-500 mb-1">Updated</p>
-                <p id="analysis-updated" class="text-on-background"></p>
-              </div>
-            </div>
-            <div>
-              <p class="text-slate-500 text-sm mb-2">Reasoning</p>
-              <p id="analysis-reasoning" class="text-sm text-on-surface-variant leading-relaxed"></p>
-            </div>
-          </div>
-        </section>
-
-        <section data-tab-panel="evidence" class="tab-panel hidden space-y-6">
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Technical Details</p>
-            <div class="grid md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <p class="text-slate-500 mb-1">Scanner</p>
-                <p id="evidence-scanner" class="font-mono text-on-background"></p>
-              </div>
-              <div>
-                <p class="text-slate-500 mb-1">Line Range</p>
-                <p id="evidence-line-range" class="font-mono text-on-background"></p>
-              </div>
-              <div>
-                <p class="text-slate-500 mb-1">CVE</p>
-                <div id="evidence-cve"></div>
-              </div>
-              <div>
-                <p class="text-slate-500 mb-1">CWE</p>
-                <div id="evidence-cwe"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="snippet-card" class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Evidence Snippet</p>
-            <pre id="evidence-snippet" class="bg-slate-950/70 border border-outline-variant/20 rounded-xl p-4 text-xs text-slate-300 overflow-auto whitespace-pre-wrap"></pre>
-          </div>
-
-		  <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-			<div class="flex items-center justify-between gap-3">
-			  <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Correlated Findings</p>
-			  <span id="correlation-count" class="text-xs text-slate-500"></span>
-			</div>
-            <div id="correlation-context" class="hidden rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
-              <p class="text-sm text-blue-200">
-                <span class="font-semibold">Correlation by secret value:</span>
-                This finding was corroborated by multiple scanners detecting the exact same secret value.
-              </p>
-            </div>
-            <div id="correlation-list" class="space-y-3">
-              <p class="text-sm text-slate-500">Loading correlation context…</p>
-            </div>
-          </div>
-        </section>
-
-        <section data-tab-panel="remediation" class="tab-panel hidden space-y-6">
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Recommended Action</p>
-            <div class="space-y-3 text-sm text-on-surface-variant leading-relaxed">
-              <p>Start by validating whether this finding is exploitable in the affected asset and compare it against the corroborating scanners below.</p>
-              <p>Use the ownership and triage controls in the sidebar to assign an owner, document context, and move status as evidence is reviewed.</p>
-              <p>If you need a deeper fix path, generate an AI remediation guide to create a reusable knowledge article linked to this finding.</p>
-            </div>
-          </div>
-
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">References</p>
-            <div class="flex flex-wrap gap-2" id="reference-list"></div>
-          </div>
-        </section>
-
-        <section data-tab-panel="activity" class="tab-panel hidden space-y-6">
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Timeline</p>
-            <div id="activity-timeline" class="space-y-3"></div>
-          </div>
-        </section>
-
-        <section data-tab-panel="risk" class="tab-panel hidden">
-          <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6 space-y-4">
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Risk Acceptance Status</p>
-              <span id="risk-status-badge" class="hidden px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider"></span>
-            </div>
-            
-            <div id="risk-acceptance-form" class="space-y-4 max-w-2xl">
-              <p class="text-sm text-slate-400">Formally accept this security risk with an expiration date for re-review.</p>
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Rationale *</label>
-                <textarea id="risk-rationale" rows="4" placeholder="Why is this risk being accepted? What compensating controls exist?" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
-              </div>
-              <div>
-                <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Expires At *</label>
-                <input id="risk-expires-at" type="date" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all" />
-                <p class="text-[10px] text-slate-500 mt-1">Risk acceptance must be re-reviewed after this date</p>
-              </div>
-              <p id="risk-create-msg" class="text-xs hidden"></p>
-              <button id="risk-create-btn" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-slate-950 text-sm font-bold hover:bg-amber-400 transition-all active:scale-[0.99]">
-                <span class="material-symbols-outlined text-base">gavel</span>
-                Submit Risk Acceptance
-              </button>
-            </div>
-
-            <div id="risk-active" class="hidden max-w-2xl">
-              <div class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
-                <div class="flex items-start gap-3">
-                  <span class="material-symbols-outlined text-lg text-amber-400">gavel</span>
-                  <div class="space-y-1 min-w-0">
-                    <p class="text-sm font-semibold text-on-background">Risk Accepted</p>
-                    <p id="risk-rationale-display" class="text-xs text-slate-400 leading-relaxed"></p>
-                    <p id="risk-expires-display" class="text-[10px] text-slate-500 mt-2 font-mono"></p>
-                  </div>
-                </div>
-              </div>
-              <div id="risk-review-notes" class="hidden mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
-                <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Approval Notes</p>
-                <p id="risk-approval-notes-text" class="text-xs text-slate-400"></p>
-              </div>
-            </div>
-
-            <div id="risk-pending" class="hidden max-w-2xl space-y-4">
-              <div class="rounded-xl border border-slate-500/20 bg-slate-500/5 p-5">
-                <div class="flex items-center gap-3">
-                  <span class="material-symbols-outlined text-lg text-slate-400">schedule</span>
-                  <div>
-                    <p class="text-sm font-semibold text-on-background">Pending Approval</p>
-                    <p class="text-xs text-slate-400">Waiting for admin approval</p>
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Admin Approval Form -->
-              <div id="risk-approval-form" class="hidden rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 space-y-4">
-                <p class="text-sm text-slate-400">Review and approve or reject this risk acceptance request.</p>
-                <div>
-                  <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Review Notes</label>
-                  <textarea id="risk-review-notes-input" rows="3" placeholder="Add notes for the requester (optional for rejection, required for approval)" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
-                </div>
-                <p id="risk-approval-msg" class="text-xs hidden"></p>
-                <div class="flex gap-3">
-                  <button id="risk-approve-btn" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-slate-950 text-sm font-bold hover:bg-emerald-400 transition-all active:scale-[0.99]">
-                    <span class="material-symbols-outlined text-base">check_circle</span>
-                    Approve
-                  </button>
-                  <button id="risk-reject-btn" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-slate-950 text-sm font-bold hover:bg-red-400 transition-all active:scale-[0.99]">
-                    <span class="material-symbols-outlined text-base">cancel</span>
-                    Reject
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            <div id="risk-rejected" class="hidden max-w-2xl">
-              <div class="rounded-xl border border-red-500/20 bg-red-500/5 p-5">
-                <div class="flex items-start gap-3">
-                  <span class="material-symbols-outlined text-lg text-red-400">cancel</span>
-                  <div class="space-y-1 min-w-0">
-                    <p class="text-sm font-semibold text-on-background">Risk Acceptance Rejected</p>
-                    <p id="risk-rejected-notes" class="text-xs text-slate-400 leading-relaxed"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
-
-      <aside class="space-y-6 xl:sticky xl:top-6">
-        <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Summary</p>
-          <div class="space-y-3 text-sm">
-            <div class="flex items-center justify-between gap-3"><span class="text-slate-500">Severity</span><span id="side-severity" class="text-on-background"></span></div>
-            <div class="flex items-center justify-between gap-3"><span class="text-slate-500">Status</span><span id="side-status" class="text-on-background"></span></div>
-            <div class="flex items-center justify-between gap-3"><span class="text-slate-500">Scanner</span><span id="side-scanner" class="font-mono text-on-background"></span></div>
-            <div class="flex items-center justify-between gap-3"><span class="text-slate-500">First seen</span><span id="side-created" class="text-on-background text-right"></span></div>
-            <div class="flex items-center justify-between gap-3"><span class="text-slate-500">SLA</span><span id="side-sla" class="text-on-background text-right"></span></div>
-          </div>
-        </div>
-
-        <div class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Triage</p>
-          <div>
-            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Status</label>
-            <select id="triage-status" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all">
-              <option value="open">Open</option>
-              <option value="in_review">In Review</option>
-              <option value="accepted_risk">Accepted Risk</option>
-              <option value="fixed">Fixed</option>
-              <option value="verified">Verified</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Assigned To</label>
-            <input id="triage-assigned" list="users-datalist" type="text" placeholder="username or email" class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600" />
-            <datalist id="users-datalist"></datalist>
-          </div>
-          <label class="flex items-start gap-3 cursor-pointer">
-            <input id="triage-fp" type="checkbox" class="mt-1 rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer" />
-            <div>
-              <p class="text-sm text-on-background font-medium">False Positive</p>
-              <p class="text-xs text-slate-500 mt-1">Exclude the finding from operational triage while preserving evidence.</p>
-            </div>
-          </label>
-          <div>
-            <label class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block">Notes</label>
-            <textarea id="triage-notes" rows="5" placeholder="Add triage context, mitigation notes, or acceptance rationale..." class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"></textarea>
-          </div>
-          <p id="triage-save-msg" class="text-xs hidden"></p>
-          <button id="triage-save" class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sky-500 text-slate-950 text-sm font-bold hover:bg-sky-400 transition-all active:scale-[0.99]">
-            <span class="material-symbols-outlined text-base">save</span>
-            Save Triage
-          </button>
-        </div>
-      </aside>
-    </div>
-  </div>
 </DashboardLayout>
 
 <script>
-  import { api } from '../../../lib/api';
-  import type { AgentAnalysis, Finding, JiraIssueLink } from '../../../lib/api';
+    import { api } from "../../../lib/api";
+    import type {
+        AgentAnalysis,
+        Finding,
+        JiraIssueLink,
+    } from "../../../lib/api";
 
-  const findingId = new URLSearchParams(window.location.search).get('id');
+    const findingId = new URLSearchParams(window.location.search).get("id");
 
-  if (!findingId) {
-    window.location.href = '/dashboard/findings';
-  }
-
-  const SEV_STYLES: Record<string, string> = {
-    critical: 'text-red-400 bg-red-500/10 border-red-500/20',
-    high: 'text-orange-400 bg-orange-500/10 border-orange-500/20',
-    medium: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    low: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
-    info: 'text-slate-400 bg-slate-500/10 border-slate-500/20',
-  };
-
-  const STATUS_STYLES: Record<string, string> = {
-    open: 'text-slate-300 bg-slate-500/10 border-slate-500/20',
-    in_review: 'text-sky-400 bg-sky-500/10 border-sky-500/20',
-    accepted_risk: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    fixed: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-    verified: 'text-teal-400 bg-teal-500/10 border-teal-500/20',
-  };
-
-  const STATUS_LABELS: Record<string, string> = {
-    open: 'Open',
-    in_review: 'In Review',
-    accepted_risk: 'Accepted Risk',
-    fixed: 'Fixed',
-    verified: 'Verified',
-  };
-
-  const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
-    semgrep:    { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
-    gosec:      { label: 'SAST',    color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
-    trivy:      { label: 'SCA',     color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    grype:      { label: 'SCA',     color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    'osv-scanner': { label: 'SCA',  color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
-    trufflehog: { label: 'Secrets', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-    gitleaks:   { label: 'Secrets', color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-    checkov:    { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-    tfsec:      { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-    kics:       { label: 'IaC',     color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-    'trivy-image': { label: 'Container', color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
-    'grype-image': { label: 'Container', color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
-    nuclei:     { label: 'DAST',    color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
-  };
-
-  function scannerType(scanner: string) {
-    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
-  }
-
-  function formatDate(value?: string | null, withTime = false) {
-    if (!value) return '—';
-    const date = new Date(value);
-    return withTime ? date.toLocaleString() : date.toLocaleDateString();
-  }
-
-  function locationLabel(f: Finding) {
-    if (!f.file_path) return 'Repository-level finding';
-    const suffix = f.line_start > 0 ? `:${f.line_start}${f.line_end > f.line_start ? `-${f.line_end}` : ''}` : '';
-    return `${f.file_path}${suffix}`;
-  }
-
-  function setBadge(el: HTMLElement, text: string, cls: string) {
-    el.textContent = text;
-    el.className = el.className.split(' ').filter((name) => !name.startsWith('text-') && !name.startsWith('bg-') && !name.startsWith('border-')).join(' ');
-    el.className = `${el.className} ${cls}`.trim();
-  }
-
-  function renderReference(id: string | undefined, href: string, tone: string) {
-    if (!id) return '';
-    return `<a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${tone} text-sm font-semibold hover:brightness-110 transition-all">${id}<span class="material-symbols-outlined text-sm">open_in_new</span></a>`;
-  }
-
-  function renderTimelineRow(label: string, value: string) {
-    return `<div class="flex items-start justify-between gap-4 rounded-xl border border-outline-variant/20 bg-slate-950/40 px-4 py-3"><p class="text-sm text-slate-500">${label}</p><p class="text-sm text-on-background text-right">${value}</p></div>`;
-  }
-
-  function renderCorrelations(findings: Finding[]) {
-    const list = document.getElementById('correlation-list')!;
-    const contextEl = document.getElementById('correlation-context')!;
-    document.getElementById('correlation-count')!.textContent = `${findings.length} corroborated`;
-    
-    // Show correlation context banner if there are corroborations from different scanners
-    const uniqueScanners = new Set(findings.map(f => f.scanner));
-    const hasMultiScannerCorroboration = uniqueScanners.size > 1;
-    
-    if (hasMultiScannerCorroboration) {
-      contextEl.classList.remove('hidden');
-    } else {
-      contextEl.classList.add('hidden');
-    }
-    
-    if (!findings.length) {
-      list.innerHTML = '<p class="text-sm text-slate-500">No corroborating findings were stored for this issue yet.</p>';
-      return;
+    if (!findingId) {
+        window.location.href = "/dashboard/findings";
     }
 
-		list.innerHTML = findings.map((finding) => {
-		  const severity = SEV_STYLES[finding.severity] ?? SEV_STYLES.info;
-		  const scanner = scannerType(finding.scanner);
-      const isSameScanner = findings.filter(f => f.scanner === finding.scanner).length > 1;
-		  return `
+    const SEV_STYLES: Record<string, string> = {
+        critical: "text-red-400 bg-red-500/10 border-red-500/20",
+        high: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+        medium: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        low: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+        info: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+    };
+
+    const STATUS_STYLES: Record<string, string> = {
+        open: "text-slate-300 bg-slate-500/10 border-slate-500/20",
+        in_review: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+        accepted_risk: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        fixed: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        verified: "text-teal-400 bg-teal-500/10 border-teal-500/20",
+    };
+
+    const STATUS_LABELS: Record<string, string> = {
+        open: "Open",
+        in_review: "In Review",
+        accepted_risk: "Accepted Risk",
+        fixed: "Fixed",
+        verified: "Verified",
+    };
+
+    const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
+        semgrep: {
+            label: "SAST",
+            color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+        },
+        gosec: {
+            label: "SAST",
+            color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+        },
+        trivy: {
+            label: "SCA",
+            color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+        },
+        grype: {
+            label: "SCA",
+            color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+        },
+        "osv-scanner": {
+            label: "SCA",
+            color: "text-purple-400 bg-purple-500/10 border-purple-500/20",
+        },
+        trufflehog: {
+            label: "Secrets",
+            color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        },
+        gitleaks: {
+            label: "Secrets",
+            color: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+        },
+        checkov: {
+            label: "IaC",
+            color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        },
+        tfsec: {
+            label: "IaC",
+            color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        },
+        kics: {
+            label: "IaC",
+            color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        },
+        "trivy-image": {
+            label: "Container",
+            color: "text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20",
+        },
+        "grype-image": {
+            label: "Container",
+            color: "text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20",
+        },
+        nuclei: {
+            label: "DAST",
+            color: "text-orange-400 bg-orange-500/10 border-orange-500/20",
+        },
+    };
+
+    function scannerType(scanner: string) {
+        return (
+            SCANNER_TYPE[scanner] ?? {
+                label: scanner.toUpperCase(),
+                color: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+            }
+        );
+    }
+
+    function formatDate(value?: string | null, withTime = false) {
+        if (!value) return "—";
+        const date = new Date(value);
+        return withTime ? date.toLocaleString() : date.toLocaleDateString();
+    }
+
+    function locationLabel(f: Finding) {
+        if (!f.file_path) return "Repository-level finding";
+        const suffix =
+            f.line_start > 0
+                ? `:${f.line_start}${f.line_end > f.line_start ? `-${f.line_end}` : ""}`
+                : "";
+        return `${f.file_path}${suffix}`;
+    }
+
+    function setBadge(el: HTMLElement, text: string, cls: string) {
+        el.textContent = text;
+        el.className = el.className
+            .split(" ")
+            .filter(
+                (name) =>
+                    !name.startsWith("text-") &&
+                    !name.startsWith("bg-") &&
+                    !name.startsWith("border-"),
+            )
+            .join(" ");
+        el.className = `${el.className} ${cls}`.trim();
+    }
+
+    function renderReference(
+        id: string | undefined,
+        href: string,
+        tone: string,
+    ) {
+        if (!id) return "";
+        return `<a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border ${tone} text-sm font-semibold hover:brightness-110 transition-all">${id}<span class="material-symbols-outlined text-sm">open_in_new</span></a>`;
+    }
+
+    function renderTimelineRow(label: string, value: string) {
+        return `<div class="flex items-start justify-between gap-4 rounded-xl border border-outline-variant/20 bg-slate-950/40 px-4 py-3"><p class="text-sm text-slate-500">${label}</p><p class="text-sm text-on-background text-right">${value}</p></div>`;
+    }
+
+    function renderCorrelations(findings: Finding[]) {
+        const list = document.getElementById("correlation-list")!;
+        const contextEl = document.getElementById("correlation-context")!;
+        document.getElementById("correlation-count")!.textContent =
+            `${findings.length} corroborated`;
+
+        // Show correlation context banner if there are corroborations from different scanners
+        const uniqueScanners = new Set(findings.map((f) => f.scanner));
+        const hasMultiScannerCorroboration = uniqueScanners.size > 1;
+
+        if (hasMultiScannerCorroboration) {
+            contextEl.classList.remove("hidden");
+        } else {
+            contextEl.classList.add("hidden");
+        }
+
+        if (!findings.length) {
+            list.innerHTML =
+                '<p class="text-sm text-slate-500">No corroborating findings were stored for this issue yet.</p>';
+            return;
+        }
+
+        list.innerHTML = findings
+            .map((finding) => {
+                const severity =
+                    SEV_STYLES[finding.severity] ?? SEV_STYLES.info;
+                const scanner = scannerType(finding.scanner);
+                const isSameScanner =
+                    findings.filter((f) => f.scanner === finding.scanner)
+                        .length > 1;
+                return `
 			<a href="/dashboard/findings/detail?id=${encodeURIComponent(finding.id)}" class="block rounded-2xl border border-outline-variant/20 bg-slate-950/40 px-4 py-4 hover:border-sky-500/20 hover:bg-slate-950/60 transition-all">
 			  <div class="flex flex-wrap items-center gap-2">
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${severity}">${finding.severity}</span>
-                ${isSameScanner ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-slate-500/20 bg-slate-500/10 text-slate-400">Same scanner</span>' : ''}
+                ${isSameScanner ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-slate-500/20 bg-slate-500/10 text-slate-400">Same scanner</span>' : ""}
 			  </div>
 			  <p class="text-sm font-semibold text-on-background mt-3">${finding.title}</p>
 			  <p class="text-xs text-slate-500 mt-1">${locationLabel(finding)}</p>
               <p class="text-[10px] text-slate-600 mt-1 font-mono">${finding.scanner}</p>
         </a>`;
-    }).join('');
-  }
-
-  function renderAnalysis(analysis?: AgentAnalysis | null) {
-    const card = document.getElementById('analysis-card')!;
-    const overviewConfidence = document.getElementById('overview-ai-confidence')!;
-    const overviewState = document.getElementById('overview-ai-state')!;
-    if (!analysis) {
-      card.classList.add('hidden');
-      overviewConfidence.textContent = '—';
-      overviewState.textContent = analysisPolling ? 'Validation queued. Waiting for result…' : 'Not analyzed yet';
-      return;
+            })
+            .join("");
     }
 
-    latestAnalysisUpdatedAt = analysis.updated_at;
-
-    const tones: Record<string, string> = {
-      low: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20',
-      medium: 'text-amber-300 bg-amber-500/10 border-amber-500/20',
-      high: 'text-red-300 bg-red-500/10 border-red-500/20',
-    };
-
-    card.classList.remove('hidden');
-    overviewConfidence.textContent = analysis.confidence.toFixed(2);
-    overviewState.textContent = `${analysis.fp_likelihood} false-positive risk`;
-    const pill = document.getElementById('analysis-pill')!;
-    pill.textContent = `${analysis.fp_likelihood} FP risk`;
-    pill.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${tones[analysis.fp_likelihood] ?? tones.medium}`;
-    document.getElementById('analysis-confidence')!.textContent = analysis.confidence.toFixed(2);
-    document.getElementById('analysis-updated')!.textContent = formatDate(analysis.updated_at, true);
-    document.getElementById('analysis-reasoning')!.textContent = analysis.reasoning || 'No reasoning stored.';
-  }
-
-  async function loadAnalysis() {
-    try {
-      const analysis = await api.getFindingAnalysis(findingId!);
-      renderAnalysis(analysis);
-      return analysis;
-    } catch {
-      renderAnalysis(null);
-      return null;
-    }
-  }
-
-  async function pollForAnalysis(startedAt = Date.now()) {
-    if (!currentFinding || !analysisPolling) return;
-
-    try {
-      const analysis = await api.getFindingAnalysis(currentFinding.id);
-      renderAnalysis(analysis);
-
-      const hasFreshAnalysis = !analysisBaselineUpdatedAt || analysis.updated_at !== analysisBaselineUpdatedAt;
-      if (hasFreshAnalysis) {
-        analysisPolling = false;
-        clearAnalysisPollTimer();
-        setAnalysisButton('idle');
-        setAnalysisStatus('success', 'Validation finished', `Model analysis updated ${formatDate(analysis.updated_at, true)}.`);
-        return;
-      }
-    } catch {
-      // Still waiting for the worker to store analysis.
-      // Check timeout even on errors to prevent infinite loops
-      if (Date.now() - startedAt >= ANALYSIS_POLL_TIMEOUT_MS) {
-        analysisPolling = false;
-        clearAnalysisPollTimer();
-        setAnalysisButton('idle');
-        setAnalysisStatus('queued', 'Validation still running', 'The backend accepted the job, but the result is not stored yet. Keep this page open or retry later.');
-        return;
-      }
-    }
-
-    if (Date.now() - startedAt >= ANALYSIS_POLL_TIMEOUT_MS) {
-      analysisPolling = false;
-      clearAnalysisPollTimer();
-      setAnalysisButton('idle');
-      setAnalysisStatus('queued', 'Validation still running', 'The backend accepted the job, but the result is not stored yet. Keep this page open or retry later.');
-      return;
-    }
-
-    setAnalysisButton('running');
-    setAnalysisStatus('running', 'Validation in progress', 'The worker accepted the request and the frontend is checking for the updated validator output.');
-    scheduleAnalysisPoll(startedAt);
-  }
-
-  function setupTabs() {
-    const triggers = Array.from(document.querySelectorAll<HTMLElement>('[data-tab-trigger]'));
-    const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-tab-panel]'));
-
-    function activate(tab: string) {
-      triggers.forEach((trigger) => {
-        const active = trigger.dataset.tabTrigger === tab;
-        trigger.className = active
-          ? 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80'
-          : 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors';
-      });
-      panels.forEach((panel) => panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab));
-    }
-
-    triggers.forEach((trigger) => trigger.addEventListener('click', () => activate(trigger.dataset.tabTrigger!)));
-    activate('overview');
-  }
-
-  let currentFinding: Finding | null = null;
-  let currentJiraIssue: JiraIssueLink | null = null;
-  let currentUserRole: 'admin' | 'analyst' | 'viewer' | null = null;
-  let latestAnalysisUpdatedAt: string | null = null;
-  let analysisPolling = false;
-  let analysisPollTimer: number | null = null;
-  let analysisBaselineUpdatedAt: string | null = null;
-  let summaryPollTimer: number | null = null;
-  let summaryPollStartedAt: number | null = null;
-
-  const ANALYSIS_POLL_INTERVAL_MS = 3000;
-  const ANALYSIS_POLL_TIMEOUT_MS = 60000;
-  const SUMMARY_POLL_INTERVAL_MS = 3000;
-  const SUMMARY_POLL_TIMEOUT_MS = 60000;
-
-  function setAnalysisButton(state: 'idle' | 'queued' | 'running' | 'error') {
-    const btn = document.getElementById('run-analysis-btn') as HTMLButtonElement;
-    const label = document.getElementById('run-analysis-label')!;
-    const icon = btn.querySelector('.material-symbols-outlined')!;
-
-    if (state === 'idle') {
-      btn.disabled = false;
-      label.textContent = 'Validate';
-      icon.textContent = 'neurology';
-      return;
-    }
-
-    if (state === 'error') {
-      btn.disabled = false;
-      label.textContent = 'Retry';
-      icon.textContent = 'error';
-      return;
-    }
-
-    btn.disabled = true;
-    label.textContent = state === 'queued' ? 'Queued' : 'Running…';
-    icon.textContent = state === 'queued' ? 'schedule' : 'progress_activity';
-  }
-
-  function setAnalysisStatus(state: 'hidden' | 'queued' | 'running' | 'success' | 'error', title = '', body = '') {
-    const panel = document.getElementById('analysis-status')!;
-    const icon = document.getElementById('analysis-status-icon')!;
-    const titleEl = document.getElementById('analysis-status-title')!;
-    const bodyEl = document.getElementById('analysis-status-body')!;
-
-    if (state === 'hidden') {
-      panel.classList.add('hidden');
-      return;
-    }
-
-    const tones: Record<'queued' | 'running' | 'success' | 'error', string> = {
-      queued: 'border-purple-500/20 bg-purple-500/10',
-      running: 'border-sky-500/20 bg-sky-500/10',
-      success: 'border-emerald-500/20 bg-emerald-500/10',
-      error: 'border-red-500/20 bg-red-500/10',
-    };
-
-    const icons: Record<'queued' | 'running' | 'success' | 'error', string> = {
-      queued: 'schedule',
-      running: 'progress_activity',
-      success: 'task_alt',
-      error: 'error',
-    };
-
-    panel.className = `w-full max-w-md rounded-2xl border px-4 py-3 backdrop-blur-sm ${tones[state]}`;
-    icon.textContent = icons[state];
-    icon.className = `material-symbols-outlined text-lg ${state === 'success' ? 'text-emerald-300' : state === 'error' ? 'text-red-300' : state === 'running' ? 'text-sky-300 animate-pulse' : 'text-purple-300'}`;
-    titleEl.textContent = title;
-    bodyEl.textContent = body;
-  }
-
-  function clearAnalysisPollTimer() {
-    if (analysisPollTimer !== null) {
-      window.clearTimeout(analysisPollTimer);
-      analysisPollTimer = null;
-    }
-  }
-
-  function scheduleAnalysisPoll(startedAt: number) {
-    clearAnalysisPollTimer();
-    analysisPollTimer = window.setTimeout(() => {
-      void pollForAnalysis(startedAt);
-    }, ANALYSIS_POLL_INTERVAL_MS);
-  }
-
-  function clearSummaryPollTimer() {
-    if (summaryPollTimer !== null) {
-      window.clearTimeout(summaryPollTimer);
-      summaryPollTimer = null;
-    }
-  }
-
-  function applyJiraIssue(link: JiraIssueLink | null) {
-    currentJiraIssue = link;
-    const createBtn = document.getElementById('jira-create-btn') as HTMLButtonElement;
-    const createLabel = document.getElementById('jira-create-label')!;
-    const viewLink = document.getElementById('jira-view-link') as HTMLAnchorElement;
-    const viewLabel = document.getElementById('jira-view-label')!;
-    const status = document.getElementById('jira-status')!;
-
-    if (!link) {
-      createBtn.disabled = currentUserRole === 'viewer';
-      createLabel.textContent = 'Create Jira Ticket';
-      viewLink.classList.add('hidden');
-      viewLink.classList.remove('inline-flex');
-      if (currentUserRole === 'viewer') {
-        status.textContent = 'Viewer accounts cannot create Jira tickets.';
-        status.className = 'text-xs text-slate-500';
-        status.classList.remove('hidden');
-      } else {
-        status.classList.add('hidden');
-      }
-      return;
-    }
-
-    createBtn.disabled = true;
-    const isPending = !link.issue_key || !link.issue_url || link.status === 'pending';
-    createLabel.textContent = isPending ? 'Ticket Pending' : 'Ticket Created';
-    if (link.issue_url && link.issue_key) {
-      viewLink.href = link.issue_url;
-      viewLabel.textContent = link.issue_key;
-      viewLink.classList.remove('hidden');
-      viewLink.classList.add('inline-flex');
-    } else {
-      viewLink.classList.add('hidden');
-      viewLink.classList.remove('inline-flex');
-    }
-    status.textContent = `${isPending ? 'Jira ticket request is still being processed' : 'Linked'} on ${formatDate(link.created_at, true)}${link.status ? ` · ${link.status}` : ''}`;
-    status.className = 'text-xs text-orange-200';
-    status.classList.remove('hidden');
-  }
-
-  async function loadJiraIssue() {
-    try {
-      const link = await api.getFindingJiraIssue(findingId!);
-      applyJiraIssue(link);
-    } catch {
-      applyJiraIssue(null);
-    }
-  }
-
-  function renderSummary(finding: Finding) {
-    const descriptionEl = document.getElementById('summary-description')!;
-    const metaEl = document.getElementById('summary-meta')!;
-
-    if (finding.description) {
-      descriptionEl.textContent = finding.description;
-      metaEl.textContent = 'Scanner-provided summary.';
-      return;
-    }
-    if (finding.ai_summary) {
-      descriptionEl.textContent = finding.ai_summary;
-      metaEl.textContent = 'AI-generated reusable summary for repeated findings.';
-      return;
-    }
-    if (finding.summary_state === 'pending') {
-      descriptionEl.textContent = 'Generating AI summary…';
-      metaEl.textContent = 'A lightweight agent is generating a reusable description for this finding signature.';
-      return;
-    }
-    if (finding.summary_state === 'failed') {
-      descriptionEl.textContent = 'Summary unavailable right now.';
-      metaEl.textContent = 'The AI summary job failed for now. Reopen this finding later to retry.';
-      return;
-    }
-
-    descriptionEl.textContent = 'Summary not available yet.';
-    metaEl.textContent = 'This finding has no scanner description yet.';
-  }
-
-  function maybePollSummary() {
-    if (!currentFinding || currentFinding.description || currentFinding.ai_summary || currentFinding.summary_state !== 'pending') {
-      clearSummaryPollTimer();
-      summaryPollStartedAt = null;
-      return;
-    }
-
-    if (summaryPollStartedAt === null) {
-      summaryPollStartedAt = Date.now();
-    }
-
-    clearSummaryPollTimer();
-    summaryPollTimer = window.setTimeout(async () => {
-      if (!currentFinding) return;
-      try {
-        const fresh = await api.getFinding(currentFinding.id);
-        applyFinding(fresh);
-      } catch {
-        // keep current pending state if refresh fails
-        // Also check timeout on errors to prevent infinite loops
-        if (summaryPollStartedAt !== null && Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS) {
-          clearSummaryPollTimer();
-          summaryPollStartedAt = null;
-          return;
+    function renderAnalysis(analysis?: AgentAnalysis | null) {
+        const card = document.getElementById("analysis-card")!;
+        const overviewConfidence = document.getElementById(
+            "overview-ai-confidence",
+        )!;
+        const overviewState = document.getElementById("overview-ai-state")!;
+        if (!analysis) {
+            card.classList.add("hidden");
+            overviewConfidence.textContent = "—";
+            overviewState.textContent = analysisPolling
+                ? "Validation queued. Waiting for result…"
+                : "Not analyzed yet";
+            return;
         }
-      }
 
-      if (!currentFinding || currentFinding.description || currentFinding.ai_summary || currentFinding.summary_state !== 'pending') {
+        latestAnalysisUpdatedAt = analysis.updated_at;
+
+        const tones: Record<string, string> = {
+            low: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20",
+            medium: "text-amber-300 bg-amber-500/10 border-amber-500/20",
+            high: "text-red-300 bg-red-500/10 border-red-500/20",
+        };
+
+        card.classList.remove("hidden");
+        overviewConfidence.textContent = analysis.confidence.toFixed(2);
+        overviewState.textContent = `${analysis.fp_likelihood} false-positive risk`;
+        const pill = document.getElementById("analysis-pill")!;
+        pill.textContent = `${analysis.fp_likelihood} FP risk`;
+        pill.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${tones[analysis.fp_likelihood] ?? tones.medium}`;
+        document.getElementById("analysis-confidence")!.textContent =
+            analysis.confidence.toFixed(2);
+        document.getElementById("analysis-updated")!.textContent = formatDate(
+            analysis.updated_at,
+            true,
+        );
+        document.getElementById("analysis-reasoning")!.textContent =
+            analysis.reasoning || "No reasoning stored.";
+    }
+
+    async function loadAnalysis() {
+        try {
+            const analysis = await api.getFindingAnalysis(findingId!);
+            renderAnalysis(analysis);
+            return analysis;
+        } catch {
+            renderAnalysis(null);
+            return null;
+        }
+    }
+
+    async function pollForAnalysis(startedAt = Date.now()) {
+        if (!currentFinding || !analysisPolling) return;
+
+        try {
+            const analysis = await api.getFindingAnalysis(currentFinding.id);
+            renderAnalysis(analysis);
+
+            const hasFreshAnalysis =
+                !analysisBaselineUpdatedAt ||
+                analysis.updated_at !== analysisBaselineUpdatedAt;
+            if (hasFreshAnalysis) {
+                analysisPolling = false;
+                clearAnalysisPollTimer();
+                setAnalysisButton("idle");
+                setAnalysisStatus(
+                    "success",
+                    "Validation finished",
+                    `Model analysis updated ${formatDate(analysis.updated_at, true)}.`,
+                );
+                return;
+            }
+        } catch {
+            // Still waiting for the worker to store analysis.
+            // Check timeout even on errors to prevent infinite loops
+            if (Date.now() - startedAt >= ANALYSIS_POLL_TIMEOUT_MS) {
+                analysisPolling = false;
+                clearAnalysisPollTimer();
+                setAnalysisButton("idle");
+                setAnalysisStatus(
+                    "queued",
+                    "Validation still running",
+                    "The backend accepted the job, but the result is not stored yet. Keep this page open or retry later.",
+                );
+                return;
+            }
+        }
+
+        if (Date.now() - startedAt >= ANALYSIS_POLL_TIMEOUT_MS) {
+            analysisPolling = false;
+            clearAnalysisPollTimer();
+            setAnalysisButton("idle");
+            setAnalysisStatus(
+                "queued",
+                "Validation still running",
+                "The backend accepted the job, but the result is not stored yet. Keep this page open or retry later.",
+            );
+            return;
+        }
+
+        setAnalysisButton("running");
+        setAnalysisStatus(
+            "running",
+            "Validation in progress",
+            "The worker accepted the request and the frontend is checking for the updated validator output.",
+        );
+        scheduleAnalysisPoll(startedAt);
+    }
+
+    function setupTabs() {
+        const triggers = Array.from(
+            document.querySelectorAll<HTMLElement>("[data-tab-trigger]"),
+        );
+        const panels = Array.from(
+            document.querySelectorAll<HTMLElement>("[data-tab-panel]"),
+        );
+
+        function activate(tab: string) {
+            triggers.forEach((trigger) => {
+                const active = trigger.dataset.tabTrigger === tab;
+                trigger.className = active
+                    ? "tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80"
+                    : "tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors";
+            });
+            panels.forEach((panel) =>
+                panel.classList.toggle(
+                    "hidden",
+                    panel.dataset.tabPanel !== tab,
+                ),
+            );
+        }
+
+        triggers.forEach((trigger) =>
+            trigger.addEventListener("click", () =>
+                activate(trigger.dataset.tabTrigger!),
+            ),
+        );
+        activate("overview");
+    }
+
+    let currentFinding: Finding | null = null;
+    let currentJiraIssue: JiraIssueLink | null = null;
+    let currentUserRole: "admin" | "analyst" | "viewer" | null = null;
+    let latestAnalysisUpdatedAt: string | null = null;
+    let analysisPolling = false;
+    let analysisPollTimer: number | null = null;
+    let analysisBaselineUpdatedAt: string | null = null;
+    let summaryPollTimer: number | null = null;
+    let summaryPollStartedAt: number | null = null;
+
+    const ANALYSIS_POLL_INTERVAL_MS = 3000;
+    const ANALYSIS_POLL_TIMEOUT_MS = 60000;
+    const SUMMARY_POLL_INTERVAL_MS = 3000;
+    const SUMMARY_POLL_TIMEOUT_MS = 60000;
+
+    function setAnalysisButton(state: "idle" | "queued" | "running" | "error") {
+        const btn = document.getElementById(
+            "run-analysis-btn",
+        ) as HTMLButtonElement;
+        const label = document.getElementById("run-analysis-label")!;
+        const icon = btn.querySelector(".material-symbols-outlined")!;
+
+        if (state === "idle") {
+            btn.disabled = false;
+            label.textContent = "AI Validate";
+            icon.textContent = "neurology";
+            return;
+        }
+
+        if (state === "error") {
+            btn.disabled = false;
+            label.textContent = "Retry";
+            icon.textContent = "error";
+            return;
+        }
+
+        btn.disabled = true;
+        label.textContent = state === "queued" ? "Queued" : "Running…";
+        icon.textContent =
+            state === "queued" ? "schedule" : "progress_activity";
+    }
+
+    function setAnalysisStatus(
+        state: "hidden" | "queued" | "running" | "success" | "error",
+        title = "",
+        body = "",
+    ) {
+        const panel = document.getElementById("analysis-status")!;
+        const icon = document.getElementById("analysis-status-icon")!;
+        const titleEl = document.getElementById("analysis-status-title")!;
+        const bodyEl = document.getElementById("analysis-status-body")!;
+
+        if (state === "hidden") {
+            panel.classList.add("hidden");
+            return;
+        }
+
+        const tones: Record<
+            "queued" | "running" | "success" | "error",
+            string
+        > = {
+            queued: "border-purple-500/20 bg-purple-500/10",
+            running: "border-sky-500/20 bg-sky-500/10",
+            success: "border-emerald-500/20 bg-emerald-500/10",
+            error: "border-red-500/20 bg-red-500/10",
+        };
+
+        const icons: Record<
+            "queued" | "running" | "success" | "error",
+            string
+        > = {
+            queued: "schedule",
+            running: "progress_activity",
+            success: "task_alt",
+            error: "error",
+        };
+
+        panel.className = `w-full max-w-md rounded-2xl border px-4 py-3 backdrop-blur-sm ${tones[state]}`;
+        icon.textContent = icons[state];
+        icon.className = `material-symbols-outlined text-lg ${state === "success" ? "text-emerald-300" : state === "error" ? "text-red-300" : state === "running" ? "text-sky-300 animate-pulse" : "text-purple-300"}`;
+        titleEl.textContent = title;
+        bodyEl.textContent = body;
+    }
+
+    function clearAnalysisPollTimer() {
+        if (analysisPollTimer !== null) {
+            window.clearTimeout(analysisPollTimer);
+            analysisPollTimer = null;
+        }
+    }
+
+    function scheduleAnalysisPoll(startedAt: number) {
+        clearAnalysisPollTimer();
+        analysisPollTimer = window.setTimeout(() => {
+            void pollForAnalysis(startedAt);
+        }, ANALYSIS_POLL_INTERVAL_MS);
+    }
+
+    function clearSummaryPollTimer() {
+        if (summaryPollTimer !== null) {
+            window.clearTimeout(summaryPollTimer);
+            summaryPollTimer = null;
+        }
+    }
+
+    function applyJiraIssue(link: JiraIssueLink | null) {
+        currentJiraIssue = link;
+        const createBtn = document.getElementById(
+            "jira-create-btn",
+        ) as HTMLButtonElement;
+        const createLabel = document.getElementById("jira-create-label")!;
+        const viewLink = document.getElementById(
+            "jira-view-link",
+        ) as HTMLAnchorElement;
+        const viewLabel = document.getElementById("jira-view-label")!;
+        const status = document.getElementById("jira-status")!;
+
+        if (!link) {
+            createBtn.disabled = currentUserRole === "viewer";
+            createLabel.textContent = "Create Jira Ticket";
+            viewLink.classList.add("hidden");
+            viewLink.classList.remove("inline-flex");
+            if (currentUserRole === "viewer") {
+                status.textContent =
+                    "Viewer accounts cannot create Jira tickets.";
+                status.className = "text-xs text-slate-500";
+                status.classList.remove("hidden");
+            } else {
+                status.classList.add("hidden");
+            }
+            return;
+        }
+
+        createBtn.disabled = true;
+        const isPending =
+            !link.issue_key || !link.issue_url || link.status === "pending";
+        createLabel.textContent = isPending
+            ? "Ticket Pending"
+            : "Ticket Created";
+        if (link.issue_url && link.issue_key) {
+            viewLink.href = link.issue_url;
+            viewLabel.textContent = link.issue_key;
+            viewLink.classList.remove("hidden");
+            viewLink.classList.add("inline-flex");
+        } else {
+            viewLink.classList.add("hidden");
+            viewLink.classList.remove("inline-flex");
+        }
+        status.textContent = `${isPending ? "Jira ticket request is still being processed" : "Linked"} on ${formatDate(link.created_at, true)}${link.status ? ` · ${link.status}` : ""}`;
+        status.className = "text-xs text-orange-200";
+        status.classList.remove("hidden");
+    }
+
+    async function loadJiraIssue() {
+        try {
+            const link = await api.getFindingJiraIssue(findingId!);
+            applyJiraIssue(link);
+        } catch {
+            applyJiraIssue(null);
+        }
+    }
+
+    function renderSummary(finding: Finding) {
+        const descriptionEl = document.getElementById("summary-description")!;
+        const metaEl = document.getElementById("summary-meta")!;
+
+        if (finding.description) {
+            descriptionEl.textContent = finding.description;
+            metaEl.textContent = "Scanner-provided summary.";
+            return;
+        }
+        if (finding.ai_summary) {
+            descriptionEl.textContent = finding.ai_summary;
+            metaEl.textContent =
+                "AI-generated reusable summary for repeated findings.";
+            return;
+        }
+        if (finding.summary_state === "pending") {
+            descriptionEl.textContent = "Generating AI summary…";
+            metaEl.textContent =
+                "A lightweight agent is generating a reusable description for this finding signature.";
+            return;
+        }
+        if (finding.summary_state === "failed") {
+            descriptionEl.textContent = "Summary unavailable right now.";
+            metaEl.textContent =
+                "The AI summary job failed for now. Reopen this finding later to retry.";
+            return;
+        }
+
+        descriptionEl.textContent = "Summary not available yet.";
+        metaEl.textContent = "This finding has no scanner description yet.";
+    }
+
+    function maybePollSummary() {
+        if (
+            !currentFinding ||
+            currentFinding.description ||
+            currentFinding.ai_summary ||
+            currentFinding.summary_state !== "pending"
+        ) {
+            clearSummaryPollTimer();
+            summaryPollStartedAt = null;
+            return;
+        }
+
+        if (summaryPollStartedAt === null) {
+            summaryPollStartedAt = Date.now();
+        }
+
         clearSummaryPollTimer();
-        summaryPollStartedAt = null;
-        return;
-      }
-      if (summaryPollStartedAt !== null && Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS) {
-        clearSummaryPollTimer();
-        summaryPollStartedAt = null;
-        return;
-      }
-      maybePollSummary();
-    }, SUMMARY_POLL_INTERVAL_MS);
-  }
+        summaryPollTimer = window.setTimeout(async () => {
+            if (!currentFinding) return;
+            try {
+                const fresh = await api.getFinding(currentFinding.id);
+                applyFinding(fresh);
+            } catch {
+                // keep current pending state if refresh fails
+                // Also check timeout on errors to prevent infinite loops
+                if (
+                    summaryPollStartedAt !== null &&
+                    Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS
+                ) {
+                    clearSummaryPollTimer();
+                    summaryPollStartedAt = null;
+                    return;
+                }
+            }
 
-  function applyFinding(finding: Finding) {
-    currentFinding = finding;
-    const severityClass = SEV_STYLES[finding.severity] ?? SEV_STYLES.info;
-    const statusClass = STATUS_STYLES[finding.status] ?? STATUS_STYLES.open;
-    const scanner = scannerType(finding.scanner);
-
-    if (!analysisPolling) {
-      setAnalysisButton('idle');
-      setAnalysisStatus('hidden');
+            if (
+                !currentFinding ||
+                currentFinding.description ||
+                currentFinding.ai_summary ||
+                currentFinding.summary_state !== "pending"
+            ) {
+                clearSummaryPollTimer();
+                summaryPollStartedAt = null;
+                return;
+            }
+            if (
+                summaryPollStartedAt !== null &&
+                Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS
+            ) {
+                clearSummaryPollTimer();
+                summaryPollStartedAt = null;
+                return;
+            }
+            maybePollSummary();
+        }, SUMMARY_POLL_INTERVAL_MS);
     }
 
-    document.title = `${finding.title} — HenKaiPan`;
-    document.getElementById('breadcrumb-id')!.textContent = finding.id.slice(0, 8);
-    document.getElementById('finding-title')!.textContent = finding.title;
-    document.getElementById('finding-subtitle')!.textContent = `${locationLabel(finding)} · ${finding.scanner} · ${scanner.label}`;
+    function applyFinding(finding: Finding) {
+        currentFinding = finding;
+        const severityClass = SEV_STYLES[finding.severity] ?? SEV_STYLES.info;
+        const statusClass = STATUS_STYLES[finding.status] ?? STATUS_STYLES.open;
+        const scanner = scannerType(finding.scanner);
 
-    const headerSeverity = document.getElementById('header-severity')!;
-    headerSeverity.textContent = finding.severity;
-    headerSeverity.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${severityClass}`;
-    const headerStatus = document.getElementById('header-status')!;
-    headerStatus.textContent = STATUS_LABELS[finding.status] ?? finding.status;
-    headerStatus.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${statusClass}`;
+        if (!analysisPolling) {
+            setAnalysisButton("idle");
+            setAnalysisStatus("hidden");
+        }
 
-    const slaEl = document.getElementById('header-sla')!;
-    if (finding.sla_deadline) {
-      slaEl.classList.remove('hidden');
-      slaEl.textContent = `SLA ${formatDate(finding.sla_deadline)}`;
-      slaEl.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${finding.status === 'fixed' || finding.status === 'verified' ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20' : 'text-amber-300 bg-amber-500/10 border-amber-500/20'}`;
-    } else {
-      slaEl.classList.add('hidden');
+        document.title = `${finding.title} — HenKaiPan`;
+        document.getElementById("breadcrumb-id")!.textContent =
+            finding.id.slice(0, 8);
+        document.getElementById("finding-title")!.textContent = finding.title;
+        document.getElementById("finding-subtitle")!.textContent =
+            `${locationLabel(finding)} · ${finding.scanner} · ${scanner.label}`;
+
+        const headerSeverity = document.getElementById("header-severity")!;
+        headerSeverity.textContent = finding.severity;
+        headerSeverity.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${severityClass}`;
+        const headerStatus = document.getElementById("header-status")!;
+        headerStatus.textContent =
+            STATUS_LABELS[finding.status] ?? finding.status;
+        headerStatus.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${statusClass}`;
+
+        const slaEl = document.getElementById("header-sla")!;
+        if (finding.sla_deadline) {
+            slaEl.classList.remove("hidden");
+            slaEl.textContent = `SLA ${formatDate(finding.sla_deadline)}`;
+            slaEl.className = `px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-[0.2em] border ${finding.status === "fixed" || finding.status === "verified" ? "text-emerald-300 bg-emerald-500/10 border-emerald-500/20" : "text-amber-300 bg-amber-500/10 border-amber-500/20"}`;
+        } else {
+            slaEl.classList.add("hidden");
+        }
+
+        const tags = document.getElementById("header-tags")!;
+        tags.innerHTML = `<span class="px-3 py-2 rounded-xl border ${scanner.color} text-sm font-semibold">${scanner.label}</span>${finding.suppressed ? '<span class="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-sm font-semibold">Suppressed</span>' : ""}`;
+
+        renderSummary(finding);
+        document.getElementById("overview-ai-confidence")!.textContent = "—";
+        document.getElementById("overview-ai-state")!.textContent =
+            "Loading validator analysis…";
+        document.getElementById("overview-rule")!.textContent =
+            finding.rule_id || "—";
+        document.getElementById("resource-location")!.textContent =
+            locationLabel(finding);
+        document.getElementById("resource-scan-id")!.textContent =
+            finding.scan_id;
+        (
+            document.getElementById("resource-scan-link") as HTMLAnchorElement
+        ).href =
+            `/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}`;
+
+        document.getElementById("evidence-scanner")!.textContent =
+            finding.scanner;
+        document.getElementById("evidence-line-range")!.textContent =
+            finding.line_start > 0
+                ? `${finding.line_start} - ${finding.line_end || finding.line_start}`
+                : "—";
+        document.getElementById("evidence-cve")!.innerHTML = finding.cve_id
+            ? renderReference(
+                  finding.cve_id,
+                  `https://nvd.nist.gov/vuln/detail/${finding.cve_id}`,
+                  "border-red-500/20 bg-red-500/10 text-red-300",
+              )
+            : '<span class="text-sm text-slate-500">Not available</span>';
+        document.getElementById("evidence-cwe")!.innerHTML = finding.cwe_id
+            ? renderReference(
+                  finding.cwe_id,
+                  `https://cwe.mitre.org/data/definitions/${finding.cwe_id.match(/\d+/)?.[0] ?? ""}.html`,
+                  "border-purple-500/20 bg-purple-500/10 text-purple-300",
+              )
+            : '<span class="text-sm text-slate-500">Not available</span>';
+
+        const snippetCard = document.getElementById("snippet-card")!;
+        if (finding.code_snippet) {
+            snippetCard.classList.remove("hidden");
+            document.getElementById("evidence-snippet")!.textContent =
+                finding.code_snippet;
+        } else {
+            snippetCard.classList.add("hidden");
+        }
+
+        const references = document.getElementById("reference-list")!;
+        references.innerHTML = [
+            finding.cve_id
+                ? renderReference(
+                      finding.cve_id,
+                      `https://nvd.nist.gov/vuln/detail/${finding.cve_id}`,
+                      "border-red-500/20 bg-red-500/10 text-red-300",
+                  )
+                : "",
+            finding.cwe_id
+                ? renderReference(
+                      finding.cwe_id,
+                      `https://cwe.mitre.org/data/definitions/${finding.cwe_id.match(/\d+/)?.[0] ?? ""}.html`,
+                      "border-purple-500/20 bg-purple-500/10 text-purple-300",
+                  )
+                : "",
+            `<a href="/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:brightness-110 transition-all">Scan Detail<span class="material-symbols-outlined text-sm">open_in_new</span></a>`,
+        ]
+            .filter(Boolean)
+            .join("");
+
+        document.getElementById("activity-timeline")!.innerHTML = [
+            renderTimelineRow("Created", formatDate(finding.created_at, true)),
+            renderTimelineRow(
+                "Status",
+                STATUS_LABELS[finding.status] ?? finding.status,
+            ),
+            renderTimelineRow(
+                "Resolved",
+                formatDate(finding.resolved_at, true),
+            ),
+            renderTimelineRow("Owner", finding.assigned_to || "Unassigned"),
+            renderTimelineRow("Notes", finding.notes || "No triage notes yet."),
+        ].join("");
+
+        document.getElementById("side-severity")!.textContent =
+            finding.severity;
+        document.getElementById("side-status")!.textContent =
+            STATUS_LABELS[finding.status] ?? finding.status;
+        document.getElementById("side-scanner")!.textContent = finding.scanner;
+        document.getElementById("side-created")!.textContent = formatDate(
+            finding.created_at,
+            true,
+        );
+        document.getElementById("side-sla")!.textContent = finding.sla_deadline
+            ? formatDate(finding.sla_deadline, true)
+            : "No deadline";
+
+        (document.getElementById("triage-status") as HTMLSelectElement).value =
+            finding.status ?? "open";
+        (document.getElementById("triage-assigned") as HTMLInputElement).value =
+            finding.assigned_to ?? "";
+        (document.getElementById("triage-fp") as HTMLInputElement).checked =
+            finding.false_positive ?? false;
+        (document.getElementById("triage-notes") as HTMLTextAreaElement).value =
+            finding.notes ?? "";
+
+        const viewLink = document.getElementById(
+            "kb-view-link",
+        ) as HTMLAnchorElement;
+        if (finding.remediation_slug) {
+            viewLink.href = `/dashboard/knowledge?slug=${encodeURIComponent(finding.remediation_slug)}`;
+            viewLink.classList.remove("hidden");
+            viewLink.classList.add("inline-flex");
+        } else {
+            viewLink.classList.add("hidden");
+            viewLink.classList.remove("inline-flex");
+        }
+
+        maybePollSummary();
     }
 
-    const tags = document.getElementById('header-tags')!;
-    tags.innerHTML = `<span class="px-3 py-2 rounded-xl border ${scanner.color} text-sm font-semibold">${scanner.label}</span>${finding.suppressed ? '<span class="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-sm font-semibold">Suppressed</span>' : ''}`;
-
-    renderSummary(finding);
-		document.getElementById('overview-ai-confidence')!.textContent = '—';
-		document.getElementById('overview-ai-state')!.textContent = 'Loading validator analysis…';
-		document.getElementById('overview-rule')!.textContent = finding.rule_id || '—';
-    document.getElementById('resource-location')!.textContent = locationLabel(finding);
-    document.getElementById('resource-scan-id')!.textContent = finding.scan_id;
-    (document.getElementById('resource-scan-link') as HTMLAnchorElement).href = `/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}`;
-
-    document.getElementById('evidence-scanner')!.textContent = finding.scanner;
-    document.getElementById('evidence-line-range')!.textContent = finding.line_start > 0 ? `${finding.line_start} - ${finding.line_end || finding.line_start}` : '—';
-    document.getElementById('evidence-cve')!.innerHTML = finding.cve_id
-      ? renderReference(finding.cve_id, `https://nvd.nist.gov/vuln/detail/${finding.cve_id}`, 'border-red-500/20 bg-red-500/10 text-red-300')
-      : '<span class="text-sm text-slate-500">Not available</span>';
-    document.getElementById('evidence-cwe')!.innerHTML = finding.cwe_id
-      ? renderReference(finding.cwe_id, `https://cwe.mitre.org/data/definitions/${finding.cwe_id.match(/\d+/)?.[0] ?? ''}.html`, 'border-purple-500/20 bg-purple-500/10 text-purple-300')
-      : '<span class="text-sm text-slate-500">Not available</span>';
-
-    const snippetCard = document.getElementById('snippet-card')!;
-    if (finding.code_snippet) {
-      snippetCard.classList.remove('hidden');
-      document.getElementById('evidence-snippet')!.textContent = finding.code_snippet;
-    } else {
-      snippetCard.classList.add('hidden');
+    async function loadCorrelations() {
+        try {
+            const result = await api.getFindingCorrelations(findingId!);
+            renderCorrelations(result.findings ?? []);
+        } catch (error: any) {
+            document.getElementById("correlation-list")!.innerHTML =
+                `<p class="text-sm text-red-400">${error.message ?? "Failed to load corroborating findings."}</p>`;
+        }
     }
 
-    const references = document.getElementById('reference-list')!;
-    references.innerHTML = [
-      finding.cve_id ? renderReference(finding.cve_id, `https://nvd.nist.gov/vuln/detail/${finding.cve_id}`, 'border-red-500/20 bg-red-500/10 text-red-300') : '',
-      finding.cwe_id ? renderReference(finding.cwe_id, `https://cwe.mitre.org/data/definitions/${finding.cwe_id.match(/\d+/)?.[0] ?? ''}.html`, 'border-purple-500/20 bg-purple-500/10 text-purple-300') : '',
-      `<a href="/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:brightness-110 transition-all">Scan Detail<span class="material-symbols-outlined text-sm">open_in_new</span></a>`
-    ].filter(Boolean).join('');
-
-    document.getElementById('activity-timeline')!.innerHTML = [
-      renderTimelineRow('Created', formatDate(finding.created_at, true)),
-      renderTimelineRow('Status', STATUS_LABELS[finding.status] ?? finding.status),
-      renderTimelineRow('Resolved', formatDate(finding.resolved_at, true)),
-      renderTimelineRow('Owner', finding.assigned_to || 'Unassigned'),
-      renderTimelineRow('Notes', finding.notes || 'No triage notes yet.'),
-    ].join('');
-
-    document.getElementById('side-severity')!.textContent = finding.severity;
-    document.getElementById('side-status')!.textContent = STATUS_LABELS[finding.status] ?? finding.status;
-    document.getElementById('side-scanner')!.textContent = finding.scanner;
-    document.getElementById('side-created')!.textContent = formatDate(finding.created_at, true);
-    document.getElementById('side-sla')!.textContent = finding.sla_deadline ? formatDate(finding.sla_deadline, true) : 'No deadline';
-
-    (document.getElementById('triage-status') as HTMLSelectElement).value = finding.status ?? 'open';
-    (document.getElementById('triage-assigned') as HTMLInputElement).value = finding.assigned_to ?? '';
-    (document.getElementById('triage-fp') as HTMLInputElement).checked = finding.false_positive ?? false;
-    (document.getElementById('triage-notes') as HTMLTextAreaElement).value = finding.notes ?? '';
-
-    const viewLink = document.getElementById('kb-view-link') as HTMLAnchorElement;
-    if (finding.remediation_slug) {
-      viewLink.href = `/dashboard/knowledge?slug=${encodeURIComponent(finding.remediation_slug)}`;
-      viewLink.classList.remove('hidden');
-      viewLink.classList.add('inline-flex');
-    } else {
-      viewLink.classList.add('hidden');
-      viewLink.classList.remove('inline-flex');
+    async function load() {
+        try {
+            const finding = await api.getFinding(findingId!);
+            document.getElementById("loading")!.classList.add("hidden");
+            document.getElementById("content")!.classList.remove("hidden");
+            applyFinding(finding);
+            await Promise.all([
+                loadCorrelations(),
+                loadAnalysis(),
+                loadJiraIssue(),
+                loadRiskAcceptance(),
+            ]);
+        } catch {
+            document.getElementById("loading")!.classList.add("hidden");
+            document.getElementById("not-found")!.classList.remove("hidden");
+        }
     }
 
-    maybePollSummary();
-  }
-
-  async function loadCorrelations() {
-    try {
-      const result = await api.getFindingCorrelations(findingId!);
-      renderCorrelations(result.findings ?? []);
-    } catch (error: any) {
-      document.getElementById('correlation-list')!.innerHTML = `<p class="text-sm text-red-400">${error.message ?? 'Failed to load corroborating findings.'}</p>`;
+    async function loadRiskAcceptance() {
+        try {
+            const ra = await api.getRiskAcceptanceByFinding(findingId!);
+            renderRiskAcceptance(ra);
+        } catch {
+            // No risk acceptance exists - show form
+            document
+                .getElementById("risk-acceptance-form")!
+                .classList.remove("hidden");
+            document.getElementById("risk-active")!.classList.add("hidden");
+            document.getElementById("risk-pending")!.classList.add("hidden");
+            document.getElementById("risk-rejected")!.classList.add("hidden");
+            document
+                .getElementById("risk-approval-form")!
+                .classList.add("hidden");
+            document
+                .getElementById("risk-status-badge")!
+                .classList.add("hidden");
+        }
     }
-  }
 
-  async function load() {
-    try {
-      const finding = await api.getFinding(findingId!);
-      document.getElementById('loading')!.classList.add('hidden');
-      document.getElementById('content')!.classList.remove('hidden');
-      applyFinding(finding);
-      await Promise.all([loadCorrelations(), loadAnalysis(), loadJiraIssue(), loadRiskAcceptance()]);
-    } catch {
-      document.getElementById('loading')!.classList.add('hidden');
-      document.getElementById('not-found')!.classList.remove('hidden');
+    function renderRiskAcceptance(ra: any) {
+        const form = document.getElementById("risk-acceptance-form")!;
+        const active = document.getElementById("risk-active")!;
+        const pending = document.getElementById("risk-pending")!;
+        const rejected = document.getElementById("risk-rejected")!;
+        const approvalForm = document.getElementById("risk-approval-form")!;
+        const badge = document.getElementById("risk-status-badge")!;
+
+        form.classList.add("hidden");
+        active.classList.add("hidden");
+        pending.classList.add("hidden");
+        rejected.classList.add("hidden");
+        approvalForm.classList.add("hidden");
+
+        if (ra.status === "pending") {
+            pending.classList.remove("hidden");
+            badge.className =
+                "px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-slate-400 bg-slate-500/10 border-slate-500/20";
+            badge.textContent = "Pending";
+
+            // Show approval form only for admin users
+            if (currentUserRole === "admin") {
+                approvalForm.classList.remove("hidden");
+            }
+        } else if (ra.status === "approved") {
+            active.classList.remove("hidden");
+            badge.className =
+                "px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+            badge.textContent = "Accepted";
+
+            document.getElementById("risk-rationale-display")!.textContent =
+                ra.rationale;
+            document.getElementById("risk-expires-display")!.textContent =
+                `Expires: ${new Date(ra.expires_at).toLocaleDateString()}`;
+
+            if (ra.review_notes) {
+                document
+                    .getElementById("risk-review-notes")!
+                    .classList.remove("hidden");
+                document.getElementById(
+                    "risk-approval-notes-text",
+                )!.textContent = ra.review_notes;
+            } else {
+                document
+                    .getElementById("risk-review-notes")!
+                    .classList.add("hidden");
+            }
+        } else if (ra.status === "rejected") {
+            rejected.classList.remove("hidden");
+            badge.className =
+                "px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-red-400 bg-red-500/10 border-red-500/20";
+            badge.textContent = "Rejected";
+
+            document.getElementById("risk-rejected-notes")!.textContent =
+                ra.review_notes || "No review notes provided";
+        }
     }
-  }
 
-  async function loadRiskAcceptance() {
-    try {
-      const ra = await api.getRiskAcceptanceByFinding(findingId!);
-      renderRiskAcceptance(ra);
-    } catch {
-      // No risk acceptance exists - show form
-      document.getElementById('risk-acceptance-form')!.classList.remove('hidden');
-      document.getElementById('risk-active')!.classList.add('hidden');
-      document.getElementById('risk-pending')!.classList.add('hidden');
-      document.getElementById('risk-rejected')!.classList.add('hidden');
-      document.getElementById('risk-approval-form')!.classList.add('hidden');
-      document.getElementById('risk-status-badge')!.classList.add('hidden');
+    // Risk acceptance form handler
+    document
+        .getElementById("risk-create-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "risk-create-btn",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("risk-create-msg")!;
+            const rationale = (
+                document.getElementById("risk-rationale") as HTMLTextAreaElement
+            ).value.trim();
+            const expiresAt = (
+                document.getElementById("risk-expires-at") as HTMLInputElement
+            ).value;
+
+            if (!rationale || !expiresAt) {
+                msg.textContent = "Rationale and expiration date are required.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+                return;
+            }
+
+            btn.disabled = true;
+            msg.classList.add("hidden");
+
+            try {
+                await api.createRiskAcceptance({
+                    finding_id: currentFinding.id,
+                    rationale: rationale,
+                    expires_at: new Date(expiresAt).toISOString(),
+                });
+                msg.textContent = "Risk acceptance submitted for approval";
+                msg.className = "text-xs text-emerald-400";
+                msg.classList.remove("hidden");
+
+                // Reload risk acceptance status
+                await loadRiskAcceptance();
+            } catch (error: any) {
+                msg.textContent =
+                    error.message ?? "Failed to submit risk acceptance.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+                btn.disabled = false;
+            }
+        });
+
+    // Risk acceptance approval/rejection handlers
+    document
+        .getElementById("risk-approve-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "risk-approve-btn",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("risk-approval-msg")!;
+            const reviewNotes = (
+                document.getElementById(
+                    "risk-review-notes-input",
+                ) as HTMLTextAreaElement
+            ).value.trim();
+
+            btn.disabled = true;
+            msg.classList.add("hidden");
+
+            try {
+                const ra = await api.getRiskAcceptanceByFinding(
+                    currentFinding.id,
+                );
+                await api.approveRiskAcceptance(
+                    ra.id,
+                    reviewNotes || "Approved",
+                );
+                msg.textContent = "Risk acceptance approved";
+                msg.className = "text-xs text-emerald-400";
+                msg.classList.remove("hidden");
+                await loadRiskAcceptance();
+            } catch (error: any) {
+                msg.textContent =
+                    error.message ?? "Failed to approve risk acceptance.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+                btn.disabled = false;
+            }
+        });
+
+    document
+        .getElementById("risk-reject-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "risk-reject-btn",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("risk-approval-msg")!;
+            const reviewNotes = (
+                document.getElementById(
+                    "risk-review-notes-input",
+                ) as HTMLTextAreaElement
+            ).value.trim();
+
+            if (!reviewNotes) {
+                msg.textContent = "Review notes are required for rejection.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+                return;
+            }
+
+            btn.disabled = true;
+            msg.classList.add("hidden");
+
+            try {
+                const ra = await api.getRiskAcceptanceByFinding(
+                    currentFinding.id,
+                );
+                await api.rejectRiskAcceptance(ra.id, reviewNotes);
+                msg.textContent = "Risk acceptance rejected";
+                msg.className = "text-xs text-emerald-400";
+                msg.classList.remove("hidden");
+                await loadRiskAcceptance();
+            } catch (error: any) {
+                msg.textContent =
+                    error.message ?? "Failed to reject risk acceptance.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+                btn.disabled = false;
+            }
+        });
+
+    document
+        .getElementById("triage-save")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "triage-save",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("triage-save-msg")!;
+            btn.disabled = true;
+            msg.classList.add("hidden");
+            try {
+                const updated = await api.updateFinding(currentFinding.id, {
+                    status: (
+                        document.getElementById(
+                            "triage-status",
+                        ) as HTMLSelectElement
+                    ).value,
+                    assigned_to:
+                        (
+                            document.getElementById(
+                                "triage-assigned",
+                            ) as HTMLInputElement
+                        ).value.trim() || undefined,
+                    false_positive: (
+                        document.getElementById("triage-fp") as HTMLInputElement
+                    ).checked,
+                    notes:
+                        (
+                            document.getElementById(
+                                "triage-notes",
+                            ) as HTMLTextAreaElement
+                        ).value.trim() || undefined,
+                });
+                applyFinding(updated);
+                msg.textContent = "Triage saved";
+                msg.className = "text-xs text-emerald-400";
+                msg.classList.remove("hidden");
+            } catch (error: any) {
+                msg.textContent = error.message ?? "Failed to save triage.";
+                msg.className = "text-xs text-red-400";
+                msg.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+    document
+        .getElementById("kb-remediate-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "kb-remediate-btn",
+            ) as HTMLButtonElement;
+            const label = document.getElementById("kb-btn-label")!;
+            btn.disabled = true;
+            label.textContent = "Generating…";
+            const win = window.open(
+                'data:text/html,<html><head><title>Generating…</title></head><body style="background:%230f172a;color:%2394a3b8;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;gap:12px"><p style="margin:0;font-size:14px">Generating remediation guide…</p></body></html>',
+                "_blank",
+            );
+            try {
+                const { article } = await api.aiRemediate(currentFinding.id);
+                const url = `/dashboard/knowledge?slug=${encodeURIComponent(article.slug)}`;
+                if (win) win.location.href = url;
+                const viewLink = document.getElementById(
+                    "kb-view-link",
+                ) as HTMLAnchorElement;
+                viewLink.href = url;
+                viewLink.classList.remove("hidden");
+                viewLink.classList.add("inline-flex");
+            } catch (error: any) {
+                if (win) win.close();
+                label.textContent = error.message?.includes("API_KEY")
+                    ? "API key not set"
+                    : "Failed — retry";
+                setTimeout(() => {
+                    label.textContent = "AI Remediate";
+                    btn.disabled = false;
+                }, 3000);
+                return;
+            }
+            label.textContent = "AI Remediate";
+            btn.disabled = false;
+        });
+
+    document
+        .getElementById("jira-create-btn")!
+        .addEventListener("click", async () => {
+            if (
+                !currentFinding ||
+                currentJiraIssue ||
+                currentUserRole === "viewer"
+            )
+                return;
+            const btn = document.getElementById(
+                "jira-create-btn",
+            ) as HTMLButtonElement;
+            const label = document.getElementById("jira-create-label")!;
+            const status = document.getElementById("jira-status")!;
+            btn.disabled = true;
+            label.textContent = "Creating…";
+            status.classList.add("hidden");
+
+            try {
+                const link = await api.createFindingJiraIssue(
+                    currentFinding.id,
+                );
+                applyJiraIssue(link);
+            } catch (error: any) {
+                btn.disabled = false;
+                label.textContent = "Create Jira Ticket";
+                status.textContent =
+                    error.message ?? "Failed to create Jira ticket.";
+                status.className = "text-xs text-red-400";
+                status.classList.remove("hidden");
+            }
+        });
+
+    document
+        .getElementById("run-analysis-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const startedAt = Date.now();
+            analysisPolling = true;
+            analysisBaselineUpdatedAt = latestAnalysisUpdatedAt;
+            clearAnalysisPollTimer();
+            setAnalysisButton("queued");
+            setAnalysisStatus(
+                "queued",
+                "Validation queued",
+                "The request was sent to the backend. Waiting for the worker to persist the validator result.",
+            );
+            try {
+                await api.analyzeFinding(currentFinding.id);
+                void pollForAnalysis(startedAt);
+            } catch {
+                analysisPolling = false;
+                clearAnalysisPollTimer();
+                setAnalysisButton("error");
+                setAnalysisStatus(
+                    "error",
+                    "Validation failed to queue",
+                    "The backend rejected the request before it reached the worker. Check API/worker health and retry.",
+                );
+                return;
+            }
+        });
+
+    api.getUsers()
+        .then((users) => {
+            const datalist = document.getElementById("users-datalist")!;
+            datalist.innerHTML = users
+                .map(
+                    (user) =>
+                        `<option value="${user.username}">${user.username} — ${user.email}</option>`,
+                )
+                .join("");
+        })
+        .catch(() => {});
+
+    api.getMe().then((me) => {
+        currentUserRole = me.role;
+        // Re-render risk acceptance to show/hide admin approval form
+        if (findingId) {
+            api.getRiskAcceptanceByFinding(findingId)
+                .then(renderRiskAcceptance)
+                .catch(() => {});
+        }
+        applyJiraIssue(currentJiraIssue);
+    });
+
+    // Comments functions
+    async function loadComments() {
+        if (!findingId) return;
+        const comments = await api
+            .getFindingComments(findingId)
+            .catch(() => []);
+        renderComments(comments);
     }
-  }
 
-  function renderRiskAcceptance(ra: any) {
-    const form = document.getElementById('risk-acceptance-form')!;
-    const active = document.getElementById('risk-active')!;
-    const pending = document.getElementById('risk-pending')!;
-    const rejected = document.getElementById('risk-rejected')!;
-    const approvalForm = document.getElementById('risk-approval-form')!;
-    const badge = document.getElementById('risk-status-badge')!;
-    
-    form.classList.add('hidden');
-    active.classList.add('hidden');
-    pending.classList.add('hidden');
-    rejected.classList.add('hidden');
-    approvalForm.classList.add('hidden');
-    
-    if (ra.status === 'pending') {
-      pending.classList.remove('hidden');
-      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-slate-400 bg-slate-500/10 border-slate-500/20';
-      badge.textContent = 'Pending';
-      
-      // Show approval form only for admin users
-      if (currentUserRole === 'admin') {
-        approvalForm.classList.remove('hidden');
-      }
-    } else if (ra.status === 'approved') {
-      active.classList.remove('hidden');
-      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-      badge.textContent = 'Accepted';
-      
-      document.getElementById('risk-rationale-display')!.textContent = ra.rationale;
-      document.getElementById('risk-expires-display')!.textContent = `Expires: ${new Date(ra.expires_at).toLocaleDateString()}`;
-      
-      if (ra.review_notes) {
-        document.getElementById('risk-review-notes')!.classList.remove('hidden');
-        document.getElementById('risk-approval-notes-text')!.textContent = ra.review_notes;
-      } else {
-        document.getElementById('risk-review-notes')!.classList.add('hidden');
-      }
-    } else if (ra.status === 'rejected') {
-      rejected.classList.remove('hidden');
-      badge.className = 'px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider text-red-400 bg-red-500/10 border-red-500/20';
-      badge.textContent = 'Rejected';
-      
-      document.getElementById('risk-rejected-notes')!.textContent = ra.review_notes || 'No review notes provided';
+    function renderComments(comments: any[]) {
+        const container = document.getElementById("comments-list")!;
+        if (!comments.length) {
+            container.innerHTML =
+                '<p class="text-sm text-slate-500 text-center py-4">No comments yet. Be the first to comment!</p>';
+            return;
+        }
+        container.innerHTML = comments
+            .map(
+                (c) => `
+      <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="material-symbols-outlined text-slate-500 text-sm">account_circle</span>
+              <span class="text-xs font-bold text-slate-300">${c.username}</span>
+              <span class="text-[10px] text-slate-500">${new Date(c.created_at).toLocaleString()}</span>
+            </div>
+            <p class="text-sm text-on-background whitespace-pre-wrap">${escapeHtml(c.content)}</p>
+          </div>
+        </div>
+      </div>
+    `,
+            )
+            .join("");
     }
-  }
 
-  // Risk acceptance form handler
-  document.getElementById('risk-create-btn')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const btn = document.getElementById('risk-create-btn') as HTMLButtonElement;
-    const msg = document.getElementById('risk-create-msg')!;
-    const rationale = (document.getElementById('risk-rationale') as HTMLTextAreaElement).value.trim();
-    const expiresAt = (document.getElementById('risk-expires-at') as HTMLInputElement).value;
-    
-    if (!rationale || !expiresAt) {
-      msg.textContent = 'Rationale and expiration date are required.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-      return;
+    function escapeHtml(text: string): string {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
     }
-    
-    btn.disabled = true;
-    msg.classList.add('hidden');
-    
-    try {
-      await api.createRiskAcceptance({
-        finding_id: currentFinding.id,
-        rationale: rationale,
-        expires_at: new Date(expiresAt).toISOString(),
-      });
-      msg.textContent = 'Risk acceptance submitted for approval';
-      msg.className = 'text-xs text-emerald-400';
-      msg.classList.remove('hidden');
-      
-      // Reload risk acceptance status
-      await loadRiskAcceptance();
-    } catch (error: any) {
-      msg.textContent = error.message ?? 'Failed to submit risk acceptance.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-      btn.disabled = false;
-    }
-  });
 
-  // Risk acceptance approval/rejection handlers
-  document.getElementById('risk-approve-btn')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const btn = document.getElementById('risk-approve-btn') as HTMLButtonElement;
-    const msg = document.getElementById('risk-approval-msg')!;
-    const reviewNotes = (document.getElementById('risk-review-notes-input') as HTMLTextAreaElement).value.trim();
-    
-    btn.disabled = true;
-    msg.classList.add('hidden');
-    
-    try {
-      const ra = await api.getRiskAcceptanceByFinding(currentFinding.id);
-      await api.approveRiskAcceptance(ra.id, reviewNotes || 'Approved');
-      msg.textContent = 'Risk acceptance approved';
-      msg.className = 'text-xs text-emerald-400';
-      msg.classList.remove('hidden');
-      await loadRiskAcceptance();
-    } catch (error: any) {
-      msg.textContent = error.message ?? 'Failed to approve risk acceptance.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-      btn.disabled = false;
-    }
-  });
+    document
+        .getElementById("comment-submit")!
+        .addEventListener("click", async () => {
+            const input = document.getElementById(
+                "comment-input",
+            ) as HTMLTextAreaElement;
+            const content = input.value.trim();
+            const msg = document.getElementById("comment-msg")!;
 
-  document.getElementById('risk-reject-btn')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const btn = document.getElementById('risk-reject-btn') as HTMLButtonElement;
-    const msg = document.getElementById('risk-approval-msg')!;
-    const reviewNotes = (document.getElementById('risk-review-notes-input') as HTMLTextAreaElement).value.trim();
-    
-    if (!reviewNotes) {
-      msg.textContent = 'Review notes are required for rejection.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-      return;
-    }
-    
-    btn.disabled = true;
-    msg.classList.add('hidden');
-    
-    try {
-      const ra = await api.getRiskAcceptanceByFinding(currentFinding.id);
-      await api.rejectRiskAcceptance(ra.id, reviewNotes);
-      msg.textContent = 'Risk acceptance rejected';
-      msg.className = 'text-xs text-emerald-400';
-      msg.classList.remove('hidden');
-      await loadRiskAcceptance();
-    } catch (error: any) {
-      msg.textContent = error.message ?? 'Failed to reject risk acceptance.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-      btn.disabled = false;
-    }
-  });
+            if (!content) {
+                msg.textContent = "Comment cannot be empty";
+                msg.className = "text-xs text-red-400 mt-2 block";
+                return;
+            }
 
-  document.getElementById('triage-save')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const btn = document.getElementById('triage-save') as HTMLButtonElement;
-    const msg = document.getElementById('triage-save-msg')!;
-    btn.disabled = true;
-    msg.classList.add('hidden');
-    try {
-      const updated = await api.updateFinding(currentFinding.id, {
-        status: (document.getElementById('triage-status') as HTMLSelectElement).value,
-        assigned_to: (document.getElementById('triage-assigned') as HTMLInputElement).value.trim() || undefined,
-        false_positive: (document.getElementById('triage-fp') as HTMLInputElement).checked,
-        notes: (document.getElementById('triage-notes') as HTMLTextAreaElement).value.trim() || undefined,
-      });
-      applyFinding(updated);
-      msg.textContent = 'Triage saved';
-      msg.className = 'text-xs text-emerald-400';
-      msg.classList.remove('hidden');
-    } catch (error: any) {
-      msg.textContent = error.message ?? 'Failed to save triage.';
-      msg.className = 'text-xs text-red-400';
-      msg.classList.remove('hidden');
-    } finally {
-      btn.disabled = false;
-    }
-  });
+            try {
+                await api.createFindingComment(findingId!, content);
+                input.value = "";
+                msg.textContent = "Comment posted!";
+                msg.className = "text-xs text-emerald-400 mt-2 block";
+                loadComments();
+                setTimeout(() => msg.classList.add("hidden"), 2000);
+            } catch (error: any) {
+                msg.textContent = error.message ?? "Failed to post comment";
+                msg.className = "text-xs text-red-400 mt-2 block";
+            }
+        });
 
-  document.getElementById('kb-remediate-btn')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const btn = document.getElementById('kb-remediate-btn') as HTMLButtonElement;
-    const label = document.getElementById('kb-btn-label')!;
-    btn.disabled = true;
-    label.textContent = 'Generating…';
-    const win = window.open('data:text/html,<html><head><title>Generating…</title></head><body style="background:%230f172a;color:%2394a3b8;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;gap:12px"><p style="margin:0;font-size:14px">Generating remediation guide…</p></body></html>', '_blank');
-    try {
-      const { article } = await api.aiRemediate(currentFinding.id);
-      const url = `/dashboard/knowledge?slug=${encodeURIComponent(article.slug)}`;
-      if (win) win.location.href = url;
-      const viewLink = document.getElementById('kb-view-link') as HTMLAnchorElement;
-      viewLink.href = url;
-      viewLink.classList.remove('hidden');
-      viewLink.classList.add('inline-flex');
-    } catch (error: any) {
-      if (win) win.close();
-      label.textContent = error.message?.includes('API_KEY') ? 'API key not set' : 'Failed — retry';
-      setTimeout(() => {
-        label.textContent = 'AI Remediate';
-        btn.disabled = false;
-      }, 3000);
-      return;
-    }
-    label.textContent = 'AI Remediate';
-    btn.disabled = false;
-  });
+    // Load comments when activity tab is clicked
+    document
+        .querySelector('[data-tab-trigger="activity"]')!
+        .addEventListener("click", () => {
+            loadComments();
+        });
 
-  document.getElementById('jira-create-btn')!.addEventListener('click', async () => {
-    if (!currentFinding || currentJiraIssue || currentUserRole === 'viewer') return;
-    const btn = document.getElementById('jira-create-btn') as HTMLButtonElement;
-    const label = document.getElementById('jira-create-label')!;
-    const status = document.getElementById('jira-status')!;
-    btn.disabled = true;
-    label.textContent = 'Creating…';
-    status.classList.add('hidden');
-
-    try {
-      const link = await api.createFindingJiraIssue(currentFinding.id);
-      applyJiraIssue(link);
-    } catch (error: any) {
-      btn.disabled = false;
-      label.textContent = 'Create Jira Ticket';
-      status.textContent = error.message ?? 'Failed to create Jira ticket.';
-      status.className = 'text-xs text-red-400';
-      status.classList.remove('hidden');
-    }
-  });
-
-  document.getElementById('run-analysis-btn')!.addEventListener('click', async () => {
-    if (!currentFinding) return;
-    const startedAt = Date.now();
-    analysisPolling = true;
-    analysisBaselineUpdatedAt = latestAnalysisUpdatedAt;
-    clearAnalysisPollTimer();
-    setAnalysisButton('queued');
-    setAnalysisStatus('queued', 'Validation queued', 'The request was sent to the backend. Waiting for the worker to persist the validator result.');
-    try {
-      await api.analyzeFinding(currentFinding.id);
-      void pollForAnalysis(startedAt);
-    } catch {
-      analysisPolling = false;
-      clearAnalysisPollTimer();
-      setAnalysisButton('error');
-      setAnalysisStatus('error', 'Validation failed to queue', 'The backend rejected the request before it reached the worker. Check API/worker health and retry.');
-      return;
-    }
-  });
-
-  api.getUsers().then((users) => {
-    const datalist = document.getElementById('users-datalist')!;
-    datalist.innerHTML = users.map((user) => `<option value="${user.username}">${user.username} — ${user.email}</option>`).join('');
-  }).catch(() => {});
-
-  api.getMe().then((me) => {
-    currentUserRole = me.role;
-    // Re-render risk acceptance to show/hide admin approval form
-    if (findingId) {
-      api.getRiskAcceptanceByFinding(findingId).then(renderRiskAcceptance).catch(() => {});
-    }
-    applyJiraIssue(currentJiraIssue);
-  }).catch(() => {});
-
-  setupTabs();
-  load();
+    setupTabs();
+    load();
 </script>

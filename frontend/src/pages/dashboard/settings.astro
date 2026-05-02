@@ -42,6 +42,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             label: "Suppressions",
                             icon: "do_not_disturb_on",
                         },
+                        { id: "license", label: "License", icon: "badge" },
                     ].map((s) => (
                         <button
                             data-section={s.id}
@@ -1241,6 +1242,64 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                 </div>
             </section>
+
+            <!-- License -->
+            <section
+                id="section-license"
+                class="settings-section hidden space-y-6"
+            >
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-xl font-bold text-on-background">License</h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Manage your self-hosted license key.
+                    </p>
+                </div>
+
+                <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
+                    <div class="flex items-start gap-4">
+                        <div id="license-status-icon" class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-slate-500 text-2xl">badge</span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 id="license-status" class="font-bold text-on-background">Loading...</h3>
+                            <p id="license-message" class="text-sm text-slate-400 mt-1"></p>
+                            <div id="license-details" class="mt-4 grid grid-cols-2 gap-4 text-sm hidden">
+                                <div>
+                                    <p class="text-xs text-slate-500">Email</p>
+                                    <p id="license-email" class="text-slate-300"></p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-500">Expires</p>
+                                    <p id="license-expires" class="text-slate-300"></p>
+                                </div>
+                            </div>
+                            <div id="license-features" class="mt-4 flex flex-wrap gap-2 hidden">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-800">
+                        <h4 class="font-bold text-on-background mb-3">Update License Key</h4>
+                        <div class="flex gap-3">
+                            <input
+                                id="license-key-input"
+                                type="text"
+                                placeholder="HENKAI-XXXX-XXXX-XXXX-XXXX"
+                                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            />
+                            <button
+                                id="save-license-btn"
+                                class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            >
+                                Save
+                            </button>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-2">
+                            Set the LICENSE_KEY environment variable and restart the API to apply changes.
+                        </p>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 </DashboardLayout>
@@ -2432,8 +2491,56 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         );
     }
 
+    async function loadLicense() {
+        const statusIcon = document.getElementById('license-status-icon');
+        const status = document.getElementById('license-status');
+        const message = document.getElementById('license-message');
+        const details = document.getElementById('license-details');
+        const features = document.getElementById('license-features');
+
+        try {
+            const data = await api.get('/api/license');
+
+            if (data.valid) {
+                statusIcon.className = 'w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = '<span class="material-symbols-outlined text-emerald-500 text-2xl">check_circle</span>';
+                status.textContent = 'License Active';
+                status.className = 'font-bold text-emerald-400';
+                message.textContent = 'Your self-hosted license is valid and active.';
+
+                document.getElementById('license-email').textContent = data.email;
+                document.getElementById('license-expires').textContent = new Date(data.expiry).toLocaleDateString();
+                details.classList.remove('hidden');
+
+                if (data.features && data.features.length > 0) {
+                    features.innerHTML = data.features.map(f =>
+                        `<span class="text-[10px] font-bold uppercase tracking-wider rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-emerald-400">${f}</span>`
+                    ).join('');
+                    features.classList.remove('hidden');
+                }
+            } else if (data.status === 'expired') {
+                statusIcon.className = 'w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = '<span class="material-symbols-outlined text-amber-500 text-2xl">error</span>';
+                status.textContent = 'License Expired';
+                status.className = 'font-bold text-amber-400';
+                message.textContent = data.message;
+            } else {
+                statusIcon.className = 'w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0';
+                statusIcon.innerHTML = '<span class="material-symbols-outlined text-slate-500 text-2xl">badge</span>';
+                status.textContent = data.status === 'inactive' ? 'No License' : 'Invalid License';
+                status.className = 'font-bold text-slate-300';
+                message.textContent = data.message || 'No license key configured. Set LICENSE_KEY environment variable.';
+            }
+        } catch (e: any) {
+            status.textContent = 'Failed to load';
+            status.className = 'font-bold text-rose-400';
+            message.textContent = e.message;
+        }
+    }
+
     loadNotificationSettings();
     loadJiraIntegration();
+    loadLicense();
 
     // Load webhooks after DOM is ready
     if (document.readyState === "loading") {

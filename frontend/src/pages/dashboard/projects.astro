@@ -21,6 +21,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <button data-filter="" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950">All</button>
   <button data-filter="with_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">With App</button>
   <button data-filter="without_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">Standalone</button>
+  <div class="flex-1"></div>
+  <button id="coverage-filter" class="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20">
+    <span class="material-symbols-outlined text-sm align-middle mr-1">warning</span>
+    Needs Coverage
+  </button>
 </div>
 
 <!-- Projects list -->
@@ -122,23 +127,73 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <script>
 import { api } from '../../lib/api.ts';
-import type { Project } from '../../lib/api.ts';
+import type { Project, ProjectCoverage, CoverageReport } from '../../lib/api.ts';
 
 let allProjects: Project[] = [];
+let coverageData: Map<string, ProjectCoverage> = new Map();
 let currentFilter = '';
+let showCoverageOnly = false;
 let currentProjectId: string | null = null;
 
+async function loadCoverage() {
+  const report = await api.getCoverageReport().catch(() => null);
+  if (report) {
+    coverageData = new Map(report.projects.map(p => [p.project_id, p]));
+  }
+}
+
 async function loadProjects() {
+  await loadCoverage();
   allProjects = await api.getProjects(currentFilter).catch(() => []);
   renderProjects();
+}
+
+function getCoverageBadge(coverage?: ProjectCoverage) {
+  if (!coverage) return '';
+  if (coverage.never_scanned) {
+    return '<span class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">warning</span>Never Scanned</span>';
+  }
+  if (coverage.days_since_scan !== undefined) {
+    if (coverage.days_since_scan > 30) {
+      return `<span class="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span>${coverage.days_since_scan}d ago</span>`;
+    }
+    if (coverage.days_since_scan > 7) {
+      return `<span class="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span>${coverage.days_since_scan}d ago</span>`;
+    }
+    return '<span class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span>Recent</span>';
+  }
+  return '';
+}
+
+function shouldShowProject(p: Project) {
+  if (showCoverageOnly) {
+    const coverage = coverageData.get(p.id);
+    return coverage && (coverage.never_scanned || (coverage.days_since_scan !== undefined && coverage.days_since_scan > 7));
+  }
+  return true;
 }
 
 function renderProjects() {
   const container = document.getElementById('projects-list')!;
   const emptyState = document.getElementById('empty-state')!;
 
-  if (!allProjects.length) {
+  const filteredProjects = allProjects.filter(shouldShowProject);
+
+  if (!filteredProjects.length) {
     container.innerHTML = '';
+    if (showCoverageOnly) {
+      emptyState.innerHTML = `
+        <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">check_circle</span>
+        <p class="text-slate-400 font-semibold text-lg">All projects covered!</p>
+        <p class="text-slate-600 text-sm mt-1">No projects need coverage attention.</p>
+      `;
+    } else {
+      emptyState.innerHTML = `
+        <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">folder_open</span>
+        <p class="text-slate-400 font-semibold text-lg">No projects yet</p>
+        <p class="text-slate-600 text-sm mt-1">Create your first project to start scanning.</p>
+      `;
+    }
     emptyState.classList.remove('hidden');
     emptyState.classList.add('flex');
     return;
@@ -147,14 +202,17 @@ function renderProjects() {
   emptyState.classList.remove('flex');
 
   container.innerHTML = `<div class="divide-y divide-slate-800/50">
-    ${allProjects.map(p => `
+    ${filteredProjects.map(p => {
+      const coverage = coverageData.get(p.id);
+      return `
       <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
         <div class="min-w-0">
-          <div class="flex items-center gap-2 mb-1">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span class="material-symbols-outlined text-slate-500 text-base">folder_open</span>
             <p class="text-sm font-bold text-white">${p.name}</p>
             ${p.has_token ? '<span class="material-symbols-outlined text-green-400 text-base" title="GitHub token configured">key</span>' : ''}
             ${!p.app_id ? '<span class="text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded font-bold">Standalone</span>' : ''}
+            ${getCoverageBadge(coverage)}
           </div>
           <p class="text-xs text-slate-500 font-mono truncate max-w-md">${p.repo_url || 'No URL configured'}</p>
         </div>
@@ -186,7 +244,7 @@ function renderProjects() {
           <p class="text-xs text-slate-600 font-mono">${new Date(p.created_at).toLocaleDateString()}</p>
         </div>
       </div>
-    `).join('')}
+    `}).join('')}
   </div>`;
 
   // Configure token buttons
@@ -241,8 +299,25 @@ document.querySelectorAll('.filter-tab').forEach(btn => {
       b.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white`;
     });
     btn.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950`;
+    showCoverageOnly = false;
+    document.getElementById('coverage-filter')!.className = 'px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20';
     loadProjects();
   });
+});
+
+// Coverage filter button
+document.getElementById('coverage-filter')!.addEventListener('click', () => {
+  showCoverageOnly = !showCoverageOnly;
+  const btn = document.getElementById('coverage-filter')!;
+  if (showCoverageOnly) {
+    btn.className = 'px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-red-500/20 text-red-400 border border-red-500/30';
+    document.querySelectorAll('.filter-tab').forEach(b => {
+      b.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white`;
+    });
+  } else {
+    btn.className = 'px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20';
+  }
+  renderProjects();
 });
 
 // Modal close

@@ -1,0 +1,356 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Documentation" active="documentation">
+
+  <div class="flex gap-6 h-full min-h-0">
+
+    <!-- Left: Navigation -->
+    <aside class="w-64 shrink-0 flex flex-col gap-4 overflow-y-auto pr-1">
+      <div class="flex items-center justify-between">
+        <h1 class="text-lg font-black text-on-background">Documentation</h1>
+      </div>
+
+      <!-- Search -->
+      <div class="relative">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
+        <input id="doc-search" type="text" placeholder="Search topics…"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600" />
+      </div>
+
+      <!-- Navigation -->
+      <nav id="doc-nav" class="space-y-1 flex-1">
+        <div class="text-xs text-slate-500 animate-pulse px-1">Loading navigation…</div>
+      </nav>
+    </aside>
+
+    <!-- Right: Content -->
+    <main class="flex-1 min-w-0 flex flex-col gap-0 overflow-y-auto">
+      <article id="doc-content" class="prose prose-invert prose-sm max-w-none px-2">
+        <!-- Content loaded dynamically -->
+      </article>
+    </main>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  // Documentation pages configuration
+  const docPages = [
+    { id: 'introduction', label: 'Introduction', icon: 'welcome', file: '01-introduction.md' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'dashboard', file: '02-dashboard.md' },
+    { id: 'findings', label: 'Findings', icon: 'biotech', file: '03-findings.md' },
+    { id: 'scans', label: 'Scans', icon: 'security_update_good', file: '04-scans.md' },
+    { id: 'projects', label: 'Projects', icon: 'folder_open', file: '05-projects.md' },
+    { id: 'compliance', label: 'Compliance', icon: 'verified_user', file: '06-compliance.md' },
+    { id: 'settings', label: 'Settings', icon: 'settings', file: '07-settings.md' },
+    { id: 'knowledge', label: 'Knowledge Base', icon: 'menu_book', file: '08-knowledge.md' },
+    { id: 'reports', label: 'Reports', icon: 'bar_chart', file: '09-reports.md' },
+    { id: 'system', label: 'System Status', icon: 'monitoring', file: '10-system.md' },
+  ];
+
+  let currentPage: string | null = null;
+
+  // Render navigation
+  function renderNav(filter = '') {
+    const nav = document.getElementById('doc-nav')!;
+    const filtered = docPages.filter(p => 
+      p.label.toLowerCase().includes(filter.toLowerCase()) ||
+      p.id.toLowerCase().includes(filter.toLowerCase())
+    );
+
+    if (!filtered.length) {
+      nav.innerHTML = '<p class="text-xs text-slate-500 px-1">No topics found.</p>';
+      return;
+    }
+
+    nav.innerHTML = filtered.map(p => {
+      const isActive = p.id === currentPage;
+      return `
+        <button data-page="${p.id}"
+          class="nav-btn w-full text-left px-3 py-2.5 rounded-lg border transition-all flex items-center gap-2.5 ${
+            isActive
+              ? 'bg-sky-500/10 border-sky-500/30 text-sky-400'
+              : 'bg-surface-container border-outline-variant/20 text-on-background hover:border-sky-500/20 hover:bg-slate-900/50'
+          }">
+          <span class="material-symbols-outlined text-sm shrink-0 ${isActive ? 'text-sky-400' : 'text-slate-500'}">${p.icon}</span>
+          <span class="text-sm font-medium truncate">${p.label}</span>
+        </button>`;
+    }).join('');
+
+    nav.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => loadPage(btn.dataset.page!));
+    });
+  }
+
+  // Load and render markdown
+  async function loadPage(pageId: string) {
+    currentPage = pageId;
+    renderNav((document.getElementById('doc-search') as HTMLInputElement).value);
+    
+    const page = docPages.find(p => p.id === pageId);
+    if (!page) return;
+
+    const contentEl = document.getElementById('doc-content')!;
+    contentEl.innerHTML = '<div class="flex items-center justify-center h-64"><span class="text-slate-500 animate-pulse">Loading…</span></div>';
+
+    try {
+      const response = await fetch(`/docs/user-guide/${page.file}`);
+      if (!response.ok) throw new Error('Failed to load');
+      const markdown = await response.text();
+      
+      // Render using marked (proper markdown parser)
+      const html = await renderMarkdown(markdown);
+      contentEl.innerHTML = html;
+
+      // Process internal links
+      contentEl.querySelectorAll<HTMLAnchorElement>('a[href^="/dashboard/documentation"]').forEach(link => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const url = new URL(link.href);
+          const targetPage = url.searchParams.get('page');
+          if (targetPage) loadPage(targetPage);
+        });
+      });
+
+      // Process image paths
+      contentEl.querySelectorAll<HTMLImageElement>('img[src^="/presentation"]').forEach(img => {
+        img.src = img.src; // Already correct, but ensure it loads
+        img.classList.add('rounded-lg', 'border', 'border-slate-800', 'my-4', 'max-w-full');
+      });
+
+      // Update URL without reload
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('page', pageId);
+      window.history.pushState({ page: pageId }, '', newUrl);
+
+      // Scroll to top
+      contentEl.scrollTop = 0;
+    } catch (err) {
+      contentEl.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-64 text-slate-500">
+          <span class="material-symbols-outlined text-5xl mb-4">description</span>
+          <p class="text-sm">Failed to load documentation.</p>
+        </div>`;
+    }
+  }
+
+  // Markdown renderer using marked v18 (proper parsing, not fragile regex)
+  let markedConfigured = false;
+
+  async function renderMarkdown(md: string): Promise<string> {
+    const { marked } = await import('marked');
+
+    // Configure marked only once
+    if (!markedConfigured) {
+      markedConfigured = true;
+
+      marked.setOptions({
+        breaks: false,
+        gfm: true,
+      });
+
+      marked.use({
+        renderer: {
+        // Headings with custom styling
+        heading({ tokens, depth }: { tokens: any[]; depth: number }) {
+          const text = this.parser.parseInline(tokens);
+          const styles: Record<number, string> = {
+            1: 'text-xl font-black text-on-background mt-0 mb-4',
+            2: 'text-lg font-bold text-on-background mt-8 mb-3 border-b border-slate-800 pb-2',
+            3: 'text-base font-bold text-on-background mt-6 mb-2',
+          };
+          const cls = styles[depth] || 'text-base font-bold text-on-background mt-4 mb-2';
+          return `<h${depth} class="${cls}">${text}</h${depth}>`;
+        },
+
+        // Paragraphs
+        paragraph({ tokens }: { tokens: any[] }) {
+          const text = this.parser.parseInline(tokens);
+          return `<p class="text-slate-300 leading-relaxed mb-4">${text}</p>`;
+        },
+
+        // Links with custom click handling
+        link({ href, title, tokens }: { href: string; title?: string; tokens: any[] }) {
+          const text = this.parser.parseInline(tokens);
+          const titleAttr = title ? ` title="${title}"` : '';
+          if (href.startsWith('/dashboard/documentation')) {
+            return `<a href="${href}"${titleAttr} class="text-sky-400 hover:underline cursor-pointer">${text}</a>`;
+          }
+          return `<a href="${href}"${titleAttr} class="text-sky-400 hover:underline" target="_blank" rel="noopener">${text}</a>`;
+        },
+
+        // Images with styling
+        image({ href, title, text }: { href: string; title?: string; text?: string }) {
+          const titleAttr = title ? ` title="${title}"` : '';
+          return `<img src="${href}" alt="${text || ''}"${titleAttr} class="rounded-lg border border-slate-800 my-4 max-w-full" />`;
+        },
+
+        // Code blocks
+        code({ text, lang }: { text: string; lang?: string; escaped?: boolean }) {
+          const language = lang || 'text';
+          return `<pre class="bg-slate-950 border border-slate-800 rounded-xl p-4 overflow-x-auto"><code class="language-${language}">${text}</code></pre>`;
+        },
+
+        // Inline code
+        codespan({ text }: { text: string }) {
+          return `<code class="text-sky-300 bg-slate-900 px-1.5 py-0.5 rounded text-xs font-mono">${text}</code>`;
+        },
+
+        // Lists — token.items is ListItem[], call listitem for each
+        list(token: any) {
+          const tag = token.ordered ? 'ol' : 'ul';
+          const cls = token.ordered
+            ? 'list-decimal list-inside my-4 space-y-1'
+            : 'list-disc list-inside my-4 space-y-1';
+          const body = token.items.map((item: any) => this.listitem(item)).join('\n');
+          return `<${tag} class="${cls}">\n${body}\n</${tag}>`;
+        },
+
+        // ListItem — item.tokens contains child tokens (paragraph, list, etc.)
+        listitem(item: any) {
+          const text = item.loose
+            ? this.parser.parse(item.tokens)
+            : this.parser.parseInline(item.tokens);
+          return `<li class="my-1 text-slate-300">${text}</li>`;
+        },
+
+        // Tables — token.header is TableCell[], token.rows is TableCell[][]
+        table(token: any) {
+          const headerCells = token.header.map((cell: any) => this.tablecell(cell)).join('');
+          const headerRow = `<tr>${headerCells}</tr>`;
+          const bodyRows = token.rows.map((row: any) => {
+            const cells = row.map((cell: any) => this.tablecell(cell)).join('');
+            return `<tr>${cells}</tr>`;
+          }).join('\n');
+          return `<table class="w-full my-4 border-collapse"><thead>${headerRow}</thead><tbody>\n${bodyRows}\n</tbody></table>`;
+        },
+
+        tablerow({ text }: { text: string }) {
+          return `<tr>${text}</tr>`;
+        },
+
+        tablecell(token: { text: string; header: boolean }) {
+          if (token.header) {
+            return `<th class="border border-slate-800 px-3 py-2 text-left font-semibold text-sm bg-slate-800/50 text-slate-200">${token.text}</th>`;
+          }
+          return `<td class="border border-slate-800 px-3 py-2 text-sm text-slate-300">${token.text}</td>`;
+        },
+
+        // Horizontal rule
+        hr() {
+          return '<hr class="border-slate-800 my-6" />';
+        },
+
+        // Blockquote
+        blockquote({ tokens }: { tokens: any[] }) {
+          const body = this.parser.parse(tokens);
+          return `<blockquote class="border-l-4 border-sky-500 pl-4 my-4 text-slate-400">${body}</blockquote>`;
+        },
+
+        // Strong and em
+        strong({ tokens }: { tokens: any[] }) {
+          const text = this.parser.parseInline(tokens);
+          return `<strong class="font-semibold text-on-background">${text}</strong>`;
+        },
+
+        em({ tokens }: { tokens: any[] }) {
+          const text = this.parser.parseInline(tokens);
+          return `<em class="italic text-slate-300">${text}</em>`;
+        },
+      },
+    });
+    }
+
+    return await marked.parse(md);
+  }
+
+  // Search
+  let debounce: ReturnType<typeof setTimeout>;
+  document.getElementById('doc-search')!.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      const query = (document.getElementById('doc-search') as HTMLInputElement).value;
+      renderNav(query);
+    }, 300);
+  });
+
+  // Load page from URL or default
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPage = urlParams.get('page') || 'introduction';
+  loadPage(initialPage);
+</script>
+
+<style>
+  /* Custom prose overrides for documentation */
+  #doc-content {
+    padding: 2rem;
+  }
+  #doc-content h1 {
+    font-size: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  #doc-content h2 {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+  }
+  #doc-content h3 {
+    font-size: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  #doc-content p {
+    color: rgb(203, 213, 225);
+    line-height: 1.75;
+    margin-bottom: 1rem;
+  }
+  #doc-content ul, #doc-content ol {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+  #doc-content li {
+    margin: 0.5rem 0;
+  }
+  #doc-content table {
+    width: 100%;
+    margin: 1.5rem 0;
+    border-collapse: collapse;
+  }
+  #doc-content th {
+    background: rgb(30, 41, 59);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  #doc-content td {
+    padding: 0.75rem 1rem;
+    border: 1px solid rgb(51, 65, 85);
+    font-size: 0.875rem;
+  }
+  #doc-content pre {
+    margin: 1.5rem 0;
+  }
+  #doc-content code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  #doc-content img {
+    max-width: 100%;
+    height: auto;
+  }
+  #doc-content a {
+    color: rgb(14, 165, 233);
+    text-decoration: none;
+  }
+  #doc-content a:hover {
+    text-decoration: underline;
+  }
+  #doc-content blockquote {
+    border-left: 4px solid rgb(14, 165, 233);
+    padding-left: 1rem;
+    margin: 1.5rem 0;
+    color: rgb(148, 163, 184);
+  }
+</style>

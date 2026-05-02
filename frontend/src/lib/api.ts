@@ -50,6 +50,7 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  get: <T>(path: string) => req<T>(path, { method: "GET" }),
   login: (username: string, password: string) =>
     req<{ role: string; username: string }>("/api/auth/login", {
       method: "POST",
@@ -299,6 +300,31 @@ export const api = {
   deleteProject: (id: string) =>
     req<void>(`/api/projects/${id}`, { method: "DELETE" }),
 
+  getCoverageReport: (days?: number) =>
+    req<CoverageReport>(`/api/coverage${days ? `?days=${days}` : ""}`),
+
+  getFindingComments: (findingId: string) =>
+    req<FindingComment[]>(`/api/findings/${findingId}/comments`),
+
+  createFindingComment: (findingId: string, content: string) =>
+    req<FindingComment>(`/api/findings/${findingId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ content }),
+    }),
+
+  deleteFindingComment: (commentId: number) =>
+    req<void>(`/api/findings/comments/${commentId}`, { method: "DELETE" }),
+
+  bulkUpdateFindings: (findingIds: string[], updates: {
+    status?: string;
+    assigned_to?: string;
+    false_positive?: boolean;
+  }) =>
+    req<{ updated: number }>(`/api/findings/bulk`, {
+      method: "PATCH",
+      body: JSON.stringify({ finding_ids: findingIds, ...updates }),
+    }),
+
   getTeams: () => req<Team[]>("/api/teams"),
 
   createTeam: (name: string) =>
@@ -430,18 +456,20 @@ export const api = {
     req<ScanSchedule[]>(`/api/schedules${projectID ? `?project_id=${projectID}` : ''}`),
   getSchedule: (id: string) =>
     req<ScanSchedule>(`/api/schedules/${id}`),
-  createSchedule: (data: { project_id: string; scanner: string; cron_expr: string }) =>
+  createSchedule: (data: { project_id: string; scanner: string; scanner_type?: string | null; cron_expr: string }) =>
     req<ScanSchedule>("/api/schedules", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  updateSchedule: (id: string, data: { scanner?: string; cron_expr?: string; enabled?: boolean }) =>
+  updateSchedule: (id: string, data: { scanner?: string; scanner_type?: string | null; cron_expr?: string; enabled?: boolean }) =>
     req<ScanSchedule>(`/api/schedules/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
   deleteSchedule: (id: string) =>
     req<void>(`/api/schedules/${id}`, { method: "DELETE" }),
+
+  getLicense: () => req<License>("/api/license"),
 };
 
 export interface MetricsSummary {
@@ -718,10 +746,21 @@ export interface Webhook {
 }
 
 export interface WebhookCreate {
-  label: string;
-  url: string;
-  delivery_type?: "generic" | "slack" | "discord";
-  events: string[];
+	label: string;
+	url: string;
+	delivery_type: "generic" | "slack" | "discord";
+	events: string[];
+	enabled?: boolean;
+}
+
+export interface FindingComment {
+	id: number;
+	finding_id: string;
+	user_id: string;
+	username: string;
+	content: string;
+	created_at: string;
+	updated_at: string;
 }
 
 export interface WebhookUpdate {
@@ -775,6 +814,7 @@ export interface ScanSchedule {
   id: string;
   project_id: string;
   scanner: string;
+  scanner_type?: string | null;
   cron_expr: string;
   enabled: boolean;
   last_run?: string;
@@ -789,4 +829,26 @@ export interface JiraIssueLink {
   issue_url?: string;
   status?: string;
   created_at: string;
+}
+
+export interface License {
+	valid: boolean;
+	status: string;
+	expires_at?: string;
+	features?: string[];
+}
+
+export interface ProjectCoverage {
+	project_id: string;
+	project_name: string;
+	last_scan_at?: string;
+	days_since_scan?: number;
+	never_scanned: boolean;
+}
+
+export interface CoverageReport {
+	total_projects: number;
+	covered_projects: number;
+	uncovered_projects: number;
+	projects: ProjectCoverage[];
 }
