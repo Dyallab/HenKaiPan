@@ -7,7 +7,6 @@ func NewPostgresStores(db *pgxpool.Pool) Stores {
 	return Stores{
 		Findings:       &findingRepo{db},
 		Scans:          &scanRepo{db},
-		Repos:          &repoRepo{db},
 		Apps:           &appRepo{db},
 		Users:          &userRepo{db},
 		Teams:          &teamRepo{db},
@@ -18,6 +17,7 @@ func NewPostgresStores(db *pgxpool.Pool) Stores {
 		Agents:         &agentRepo{db},
 		Webhooks:       &webhookRepo{db},
 		Settings:       &settingsRepo{db},
+		Schedules:      &scheduleRepo{db},
 		Audit:          &auditRepo{db},
 		RiskAcceptance: &riskAcceptanceRepo{db},
 	}
