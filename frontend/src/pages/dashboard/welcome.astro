@@ -1,0 +1,261 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Welcome" active="dashboard">
+
+  <div class="max-w-2xl mx-auto">
+    <!-- Progress -->
+    <div class="flex items-center justify-center gap-2 mb-10">
+      <div id="step-1-dot" class="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-xs font-bold text-slate-950">1</div>
+      <div class="w-12 h-0.5 bg-slate-700"><div id="step-1-line" class="h-full bg-sky-500 w-0"></div></div>
+      <div id="step-2-dot" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400">2</div>
+      <div class="w-12 h-0.5 bg-slate-700"><div id="step-2-line" class="h-full bg-sky-500 w-0"></div></div>
+      <div id="step-3-dot" class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400">3</div>
+    </div>
+
+    <!-- Step 1: Create Project -->
+    <div id="step-1" class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-sky-500/20 rounded-xl flex items-center justify-center">
+          <span class="material-symbols-outlined text-sky-400 text-xl">add</span>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white">Create your first project</h2>
+          <p class="text-slate-400 text-sm">Connect a repository to start scanning</p>
+        </div>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Project name *</label>
+          <input id="wiz-name" type="text" placeholder="e.g. API Service"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL *</label>
+          <input id="wiz-url" type="text" placeholder="https://github.com/org/repo"
+            class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all" />
+        </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Provider</label>
+            <select id="wiz-provider" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-sky-500 transition-all">
+              <option value="git">Git</option>
+              <option value="github">GitHub</option>
+              <option value="gitlab">GitLab</option>
+            </select>
+          </div>
+          <div class="flex-1">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default branch</label>
+            <input id="wiz-branch" type="text" value="main"
+              class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-sky-500 transition-all" />
+          </div>
+        </div>
+      </div>
+      <div id="wiz-step1-msg" class="hidden mt-3 text-sm"></div>
+      <button id="wiz-step1-btn" class="mt-6 w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all active:scale-[0.99] flex items-center justify-center gap-2">
+        Create Project
+        <span class="material-symbols-outlined text-lg">arrow_forward</span>
+      </button>
+    </div>
+
+    <!-- Step 2: GitHub Token -->
+    <div id="step-2" class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
+          <span class="material-symbols-outlined text-amber-400 text-xl">key</span>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white">Configure GitHub Token</h2>
+          <p class="text-slate-400 text-sm">Optional — needed for private repositories</p>
+        </div>
+      </div>
+      <p class="text-sm text-slate-400 mb-4">
+        Create a <span class="font-mono text-sky-400">repo</span>-scoped token at
+        <a href="https://github.com/settings/tokens" target="_blank" class="text-sky-400 hover:underline">github.com/settings/tokens</a>
+      </p>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">GitHub Personal Access Token</label>
+        <input id="wiz-token" type="password" placeholder="ghp_..."
+          class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 transition-all font-mono" />
+      </div>
+      <div id="wiz-step2-msg" class="hidden mt-3 text-sm"></div>
+      <div class="flex gap-3 mt-6">
+        <button id="wiz-step2-skip" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-all text-sm">Skip</button>
+        <button id="wiz-step2-btn" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2">
+          Save Token
+          <span class="material-symbols-outlined text-lg">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 3: Run First Scan -->
+    <div id="step-3" class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-8">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+          <span class="material-symbols-outlined text-emerald-400 text-xl">security_update_good</span>
+        </div>
+        <div>
+          <h2 class="text-xl font-bold text-white">Run your first scan</h2>
+          <p class="text-slate-400 text-sm">We'll scan your project with Semgrep (SAST)</p>
+        </div>
+      </div>
+      <div class="bg-slate-900 rounded-xl p-5 mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-semibold text-white" id="wiz-scan-project">—</span>
+          <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">semgrep</span>
+        </div>
+        <p class="text-xs text-slate-500 font-mono truncate" id="wiz-scan-url">—</p>
+      </div>
+      <div id="wiz-step3-msg" class="hidden mb-3 text-sm"></div>
+      <div class="flex gap-3">
+        <button id="wiz-step3-skip" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-3 rounded-lg transition-all text-sm">Do Later</button>
+        <button id="wiz-step3-btn" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2">
+          <span class="material-symbols-outlined text-lg">rocket_launch</span>
+          Run Scan Now
+        </button>
+      </div>
+    </div>
+
+    <!-- Complete -->
+    <div id="step-done" class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-8 text-center">
+      <div class="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <span class="material-symbols-outlined text-emerald-400 text-3xl">check</span>
+      </div>
+      <h2 class="text-xl font-bold text-white mb-1">You're all set!</h2>
+      <p class="text-slate-400 text-sm mb-6">Your scan has been queued. Results will appear shortly.</p>
+      <a href="/dashboard" class="inline-flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-3 rounded-lg transition-all">
+        Go to Dashboard
+        <span class="material-symbols-outlined text-lg">arrow_forward</span>
+      </a>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  let projectId: string | null = null;
+  let projectName = '';
+  let projectUrl = '';
+
+  async function goToStep(n: number) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById(`step-${i}`)!;
+      const dot = document.getElementById(`step-${i}-dot`)!;
+      const line = document.getElementById(`step-${i}-line`);
+      if (i < n) {
+        el.classList.add('hidden');
+        dot.className = 'w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center text-xs font-bold text-slate-950';
+        dot.textContent = '✓';
+        if (line) line.style.width = '100%';
+      } else if (i === n) {
+        el.classList.remove('hidden');
+        dot.className = 'w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-xs font-bold text-slate-950';
+        dot.textContent = String(i);
+        if (line) line.style.width = '50%';
+      } else {
+        el.classList.add('hidden');
+        dot.className = 'w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-400';
+        dot.textContent = String(i);
+        if (line) line.style.width = '0%';
+      }
+    }
+  }
+
+  // Step 1: Create project
+  document.getElementById('wiz-step1-btn')!.addEventListener('click', async () => {
+    const name = (document.getElementById('wiz-name') as HTMLInputElement).value.trim();
+    const url = (document.getElementById('wiz-url') as HTMLInputElement).value.trim();
+    const provider = (document.getElementById('wiz-provider') as HTMLSelectElement).value;
+    const branch = (document.getElementById('wiz-branch') as HTMLInputElement).value.trim() || 'main';
+    const msg = document.getElementById('wiz-step1-msg')!;
+
+    if (!name) { msg.textContent = 'Project name is required.'; msg.className = 'mt-3 text-sm text-red-400'; return; }
+    if (!url) { msg.textContent = 'Repository URL is required.'; msg.className = 'mt-3 text-sm text-red-400'; return; }
+
+    const btn = document.getElementById('wiz-step1-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Creating...';
+
+    try {
+      const project = await api.createProject({ name, description: '', repo_url: url, provider, default_branch: branch });
+      projectId = project.id;
+      projectName = project.name;
+      projectUrl = project.repo_url || url;
+      msg.className = 'hidden mt-3 text-sm';
+      (document.getElementById('wiz-scan-project') as HTMLElement).textContent = projectName;
+      (document.getElementById('wiz-scan-url') as HTMLElement).textContent = projectUrl;
+      goToStep(2);
+    } catch (err: any) {
+      msg.textContent = err.message;
+      msg.className = 'mt-3 text-sm text-red-400';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Create Project <span class="material-symbols-outlined text-lg">arrow_forward</span>';
+    }
+  });
+
+  // Step 2: Save token
+  document.getElementById('wiz-step2-btn')!.addEventListener('click', async () => {
+    const token = (document.getElementById('wiz-token') as HTMLInputElement).value.trim();
+    const msg = document.getElementById('wiz-step2-msg')!;
+
+    if (!token) {
+      msg.textContent = 'Enter a token or skip this step.';
+      msg.className = 'hidden mt-3 text-sm';
+      goToStep(3);
+      return;
+    }
+
+    const btn = document.getElementById('wiz-step2-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Saving...';
+
+    try {
+      if (projectId) await api.updateProjectGitHubToken(projectId, token);
+      msg.className = 'hidden mt-3 text-sm';
+      goToStep(3);
+    } catch (err: any) {
+      msg.textContent = err.message;
+      msg.className = 'mt-3 text-sm text-red-400';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Save Token <span class="material-symbols-outlined text-lg">arrow_forward</span>';
+    }
+  });
+
+  document.getElementById('wiz-step2-skip')!.addEventListener('click', () => {
+    (document.getElementById('wiz-token') as HTMLInputElement).value = '';
+    goToStep(3);
+  });
+
+  // Step 3: Run scan
+  document.getElementById('wiz-step3-btn')!.addEventListener('click', async () => {
+    const msg = document.getElementById('wiz-step3-msg')!;
+    const btn = document.getElementById('wiz-step3-btn') as HTMLButtonElement;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Queuing scan...';
+
+    try {
+      if (projectId) await api.createScan(projectUrl, 'semgrep', projectId);
+      document.getElementById('step-3')!.classList.add('hidden');
+      document.getElementById('step-done')!.classList.remove('hidden');
+    } catch (err: any) {
+      msg.textContent = err.message;
+      msg.className = 'mb-3 text-sm text-red-400';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="material-symbols-outlined text-lg">rocket_launch</span> Run Scan Now';
+    }
+  });
+
+  document.getElementById('wiz-step3-skip')!.addEventListener('click', () => {
+    document.getElementById('step-3')!.classList.add('hidden');
+    document.getElementById('step-done')!.classList.remove('hidden');
+    document.querySelector('#step-done h2')!.textContent = 'Almost there!';
+    document.querySelector('#step-done p')!.textContent = 'Run a scan when you\'re ready from the Scans page.';
+  });
+
+  goToStep(1);
+</script>

@@ -7,12 +7,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 mb-6">
     <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">New Scan</h2>
     <form id="scan-form" class="flex gap-3 flex-wrap">
+      <div class="relative flex-1 min-w-48">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">folder_open</span>
+        <select
+          id="scan-project"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all appearance-none"
+        >
+          <option value="">Select project...</option>
+        </select>
+      </div>
       <div class="relative flex-1 min-w-64">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
         <input
           id="scan-target"
           type="text"
-          placeholder="https://github.com/org/repo  or  https://target.com  (DAST)"
+          placeholder="Or enter URL directly"
           class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
         />
       </div>
@@ -138,7 +147,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     const el = document.getElementById('scans-table')!;
     if (!scans.length) {
-      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No scans yet.</p>';
+      el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-center">
+        <span class="material-symbols-outlined text-slate-700 text-5xl mb-3">security_update_good</span>
+        <p class="text-slate-400 font-semibold text-lg">No scans yet</p>
+        <p class="text-slate-600 text-sm mt-1">Select a project above and run your first scan.</p>
+        <p class="text-slate-600 text-xs mt-2">Need a project? <a href="/dashboard/projects" class="text-sky-400 hover:underline">Create one first →</a></p>
+      </div>`;
       return;
     }
 
@@ -191,24 +205,40 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </table>`;
   }
 
+  async function loadProjects() {
+    const projects = await api.getProjects().catch(() => []);
+    const sel = document.getElementById('scan-project') as HTMLSelectElement;
+    sel.innerHTML = '<option value="">Select project...</option>' +
+      projects.map(p => `<option value="${p.id}" data-url="${p.repo_url || ''}">${p.name}${p.repo_url ? ` (${p.repo_url})` : ''}</option>`).join('');
+
+    sel.addEventListener('change', () => {
+      const opt = sel.options[sel.selectedIndex];
+      const url = opt.dataset.url || '';
+      const targetInput = document.getElementById('scan-target') as HTMLInputElement;
+      if (url) targetInput.value = url;
+    });
+  }
+
   document.getElementById('scan-form')!.addEventListener('submit', async (e) => {
     e.preventDefault();
+    const projectId = (document.getElementById('scan-project') as HTMLSelectElement).value;
     const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
     const scanner = (document.getElementById('scan-scanner') as HTMLSelectElement).value;
     const btn = document.getElementById('scan-btn') as HTMLButtonElement;
     const msg = document.getElementById('scan-msg')!;
 
-    if (!target) return;
+    if (!target && !projectId) return;
 
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Queuing...';
     msg.className = 'hidden mt-3 text-sm';
 
     try {
-      await api.createScan(target, scanner);
+      await api.createScan(target, scanner, projectId || undefined);
       msg.textContent = 'Scan queued successfully.';
       msg.className = 'mt-3 text-sm text-emerald-400';
       (document.getElementById('scan-target') as HTMLInputElement).value = '';
+      (document.getElementById('scan-project') as HTMLSelectElement).value = '';
       setTimeout(loadScans, 500);
     } catch (err: any) {
       msg.textContent = err.message;
@@ -228,5 +258,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
+  loadProjects();
   loadScans();
 </script>
