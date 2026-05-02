@@ -169,30 +169,29 @@ New target product model:
 
 ## v0.8 — First Paying Customers (SMB-ready)
 
-- [ ] Onboarding wizard: first admin setup, first project creation, repo connection inside the project, first scan in <10 minutes
-- [ ] Demo workspace / seeded sample data so prospects can evaluate value without scanning their own code first
-- [ ] GitHub-first project onboarding flow (token or app-based), optimized for small teams
-- [ ] Scan scheduling (cron-based periodic scans per project)
-- [ ] Finding deduplication across scans (same rule_id + file_path + line = same finding)
-- [ ] Default scanner packs/templates by use case (web app, API, IaC, container)
-- [ ] Opinionated severity-based notification defaults so users get value without manual config
-- [ ] Weekly executive digest email/PDF: new criticals, overdue items, trend summary, top projects at risk
-- [ ] Finish launch-blocking work already identified in v0.3/v0.6/v0.7 (PDF reports, notifications, credibility UI)
-- [ ] Basic in-product onboarding content: empty states, remediation hints, "what to do next" guidance
-- [ ] Capture product analytics + feedback prompts to learn why early users convert or churn
-- [ ] Define packaging/limits for early plans (cloud vs self-hosted; projects, scans/month, users, AI credits, support tier)
-- [ ] Billing readiness for cloud plans (even if manual at first): usage visibility + Stripe-ready plan model
+- [x] **Scan scheduling** (#4): cron-based periodic scans per project — migration 028, CRUD API (`/api/schedules`), worker scheduler (60s tick), frontend page
+- [x] **Finding deduplication** (#5): same `rule_id + file_path + line` = same finding — migration 029 adds `project_id` + `fingerprint` (SHA256) to findings, `ON CONFLICT DO NOTHING` in insert
+- [x] **Scanner packs/templates** (#6): defined packs in `scanner.Registry` (`all`, `sast`, `sca`, `secrets`, `iac`, `containers`), `GET /api/scanner-packs`, `CreateScan` refactored to use `ResolvePack()`
+- [x] **Notification defaults** (#7): `GetNotificationSettings` auto-initializes with `alert_critical=true`, `alert_high=true` on first access
+- [x] **In-product onboarding** (#10): enhanced empty states (dashboard, scans, findings), onboarding banner with 3-step quick-start
+- [x] **Onboarding wizard** (#1): `/dashboard/welcome` — 3-step guided flow (create project → set token → run scan), auto-redirect on first visit (0 projects)
+- [x] **Weekly executive digest** (#8): goroutine schedules next Monday 9am, generates email with scan summary + severity breakdown + SLA report + 7-day trend
+- [x] **Demo workspace** (#2): `scripts/seed-demo.sql` — sample project, 4 scans (semgrep, trivy, gitleaks), 9 findings with real CVEs, demonstrates dedup
+- [ ] **GitHub-first onboarding flow** (token or app-based), optimized for small teams
+- [ ] Finish launch-blocking work from v0.3/v0.6/v0.7 (PDF reports, notifications, credibility UI)
+- [ ] Capture product analytics + feedback prompts
+- [ ] Define packaging/limits for early plans (cloud vs self-hosted)
+- [ ] Billing readiness for cloud plans
 
-### v0.8.a — Domain Reset: Apps -> Projects
+### v0.8.a — Domain Reset: Apps -> Projects ✅
 
-- [ ] Replace repo-as-asset with project-as-asset across schema, handlers, repository layer, worker inputs, and frontend API client
-- [ ] Define final `projects` schema with `app_id NULL`, repo connection fields (`repo_url`, `provider`, `default_branch`, optional external repo id), and lifecycle metadata
-- [ ] Make Apps optional grouping only: App 1:N Projects
-- [ ] Add global Projects view with filters for `all / with app / without app`
-- [ ] Add App detail/list view that creates and lists projects inside each app
-- [ ] Remove standalone Repos page and replace it with Projects as the primary operational surface
-- [ ] Rewire scans so they belong to `project_id` directly
-- [ ] Reword UI copy, empty states, metrics, and reports from "repo(s)" to "project(s)" wherever the user-facing concept is the scanned asset
+- [x] Schema: `projects` with `app_id NULL`, `repo_url`, `provider`, `default_branch`, `github_token_encrypted`, `external_repo_id`; `scans.project_id` FK; `repos` table dropped
+- [x] Apps are optional grouping only (App 1:N Projects, standalone projects allowed)
+- [x] Global Projects view with `all / with app / without app` filters
+- [x] App detail/list view creates and lists projects
+- [x] Removed standalone Repos page; Projects is the primary operational surface
+- [x] Scans belong to `project_id` directly; removed `scans.repo_id`
+- [x] UI copy, empty states, metrics, reports reworded from "repo(s)" to "project(s)"
 
 ---
 
