@@ -16,10 +16,11 @@ type Handler struct {
 	queue        *asynq.Client
 	frontendURL  string
 	cookieSecure bool
+	licenseKey   string
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, licenseKey string) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, licenseKey: licenseKey}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

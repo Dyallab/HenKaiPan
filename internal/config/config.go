@@ -26,6 +26,7 @@ type Config struct {
 	Port                string // default: 8080
 	FrontendURL         string // optional: public frontend URL for external backlinks
 	CookieSecure        bool   // default: false; set true behind HTTPS
+	LicenseKey          string // optional: license key for self-hosted features
 
 	SMTPHost     string // optional email notifications
 	SMTPPort     string // default: 587
@@ -76,6 +77,7 @@ func Load() *Config {
 		Port:                  envOr("PORT", "8080"),
 		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
 		CookieSecure:          envBool("COOKIE_SECURE", false),
+		LicenseKey:            os.Getenv("LICENSE_KEY"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPPort:              envOr("SMTP_PORT", "587"),
 		SMTPUsername:          os.Getenv("SMTP_USERNAME"),
@@ -109,6 +111,7 @@ func Load() *Config {
 		"redis_addr", cfg.RedisAddr,
 		"port", cfg.Port,
 		"frontend_url_configured", cfg.FrontendURL != "",
+		"license_key_configured", cfg.LicenseKey != "",
 		"email_notifications_enabled", cfg.EmailEnabled,
 		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "",
 		"ai_providers", fmt.Sprintf("openrouter=%t, cloudflare=%t", cfg.OpenRouterAPIKey != "", cfg.CfAPIToken != ""),

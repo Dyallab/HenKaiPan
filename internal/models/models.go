@@ -85,6 +85,21 @@ type SLASummary struct {
 	NoDeadline int `json:"no_deadline"`
 }
 
+type ProjectCoverage struct {
+	ProjectID      string     `json:"project_id"`
+	ProjectName    string     `json:"project_name"`
+	LastScanAt     *time.Time `json:"last_scan_at,omitempty"`
+	DaysSinceScan  *int       `json:"days_since_scan,omitempty"`
+	NeverScanned   bool       `json:"never_scanned"`
+}
+
+type CoverageReport struct {
+	TotalProjects     int               `json:"total_projects"`
+	CoveredProjects   int               `json:"covered_projects"`
+	UncoveredProjects int               `json:"uncovered_projects"`
+	Projects          []ProjectCoverage `json:"projects"`
+}
+
 type MetricsSummary struct {
 	TotalScans         int            `json:"total_scans"`
 	ActiveScans        int            `json:"active_scans"`
@@ -287,14 +302,15 @@ type AuditLog struct {
 }
 
 type ScanSchedule struct {
-	ID        string     `json:"id"`
-	ProjectID string     `json:"project_id"`
-	Scanner   string     `json:"scanner"`
-	CronExpr  string     `json:"cron_expr"`
-	Enabled   bool       `json:"enabled"`
-	LastRun   *time.Time `json:"last_run,omitempty"`
-	NextRun   *time.Time `json:"next_run,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	ID           string     `json:"id"`
+	ProjectID    string     `json:"project_id"`
+	Scanner      string     `json:"scanner"`
+	ScannerType  *string    `json:"scanner_type,omitempty"`
+	CronExpr     string     `json:"cron_expr"`
+	Enabled      bool       `json:"enabled"`
+	LastRun      *time.Time `json:"last_run,omitempty"`
+	NextRun      *time.Time `json:"next_run,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type RiskAcceptance struct {

@@ -9,18 +9,28 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
+	"github.com/robfig/cron/v3"
 )
 
+var cronParser = cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+
+func validateCronExpr(expr string) error {
+	_, err := cronParser.Parse(expr)
+	return err
+}
+
 type scheduleCreateReq struct {
-	ProjectID string `json:"project_id"`
-	Scanner   string `json:"scanner"`
-	CronExpr  string `json:"cron_expr"`
+	ProjectID   string  `json:"project_id"`
+	Scanner     string  `json:"scanner"`
+	ScannerType *string `json:"scanner_type,omitempty"`
+	CronExpr    string  `json:"cron_expr"`
 }
 
 type scheduleUpdateReq struct {
-	Scanner  *string `json:"scanner,omitempty"`
-	CronExpr *string `json:"cron_expr,omitempty"`
-	Enabled  *bool   `json:"enabled,omitempty"`
+	Scanner     *string `json:"scanner,omitempty"`
+	ScannerType *string `json:"scanner_type,omitempty"`
+	CronExpr    *string `json:"cron_expr,omitempty"`
+	Enabled     *bool   `json:"enabled,omitempty"`
 }
 
 func (h *Handler) ListSchedules(w http.ResponseWriter, r *http.Request) {
@@ -64,15 +74,26 @@ func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
-	if req.ProjectID == "" || req.Scanner == "" || req.CronExpr == "" {
-		writeError(w, http.StatusBadRequest, "project_id, scanner, and cron_expr are required")
+	if req.ProjectID == "" || req.CronExpr == "" {
+		writeError(w, http.StatusBadRequest, "project_id and cron_expr are required")
+		return
+	}
+	if req.Scanner == "" && req.ScannerType == nil {
+		writeError(w, http.StatusBadRequest, "scanner or scanner_type is required")
+		return
+	}
+
+	// Validate cron expression
+	if err := validateCronExpr(req.CronExpr); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid cron expression: "+err.Error())
 		return
 	}
 
 	schedule, err := h.store.Schedules.Create(r.Context(), repository.ScanScheduleCreate{
-		ProjectID: req.ProjectID,
-		Scanner:   req.Scanner,
-		CronExpr:  req.CronExpr,
+		ProjectID:   req.ProjectID,
+		Scanner:     req.Scanner,
+		ScannerType: req.ScannerType,
+		CronExpr:    req.CronExpr,
 	})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "create schedule: "+err.Error())
@@ -91,10 +112,19 @@ func (h *Handler) UpdateSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate cron expression if provided
+	if req.CronExpr != nil {
+		if err := validateCronExpr(*req.CronExpr); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid cron expression: "+err.Error())
+			return
+		}
+	}
+
 	schedule, err := h.store.Schedules.Update(r.Context(), id, repository.ScanScheduleUpdate{
-		Scanner:  req.Scanner,
-		CronExpr: req.CronExpr,
-		Enabled:  req.Enabled,
+		Scanner:     req.Scanner,
+		ScannerType: req.ScannerType,
+		CronExpr:    req.CronExpr,
+		Enabled:     req.Enabled,
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

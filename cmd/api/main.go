@@ -39,19 +39,24 @@ func main() {
 	queueClient := queue.NewClient(cfg.RedisAddr)
 	defer queueClient.Close()
 
-	store := repository.NewPostgresStores(pool)
-	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure)
+	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.LicenseKey)
 
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(appmw.RequestLogger)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/api/health", h.GetHealth)
+	r.Get("/api/version", h.GetVersion)
+
 	r.Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware)
+
+		r.Get("/api/license", h.GetLicense)
 
 		r.Get("/api/scans", h.ListScans)
 		r.Post("/api/scans", h.CreateScan)
@@ -69,6 +74,10 @@ func main() {
 		r.Post("/api/findings/{id}/analyze", h.AnalyzeFinding)
 		r.Get("/api/findings/files", h.GetUniqueFiles)
 		r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
+		r.Get("/api/findings/{id}/comments", h.GetFindingComments)
+		r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", h.CreateFindingComment)
+		r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", h.DeleteFindingComment)
+		r.With(auth.RequireRole("admin", "analyst")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
 
 		r.Get("/api/audit-logs", h.ListAuditLogs)
 		r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
@@ -96,6 +105,8 @@ func main() {
 		r.Patch("/api/projects/{projectID}", h.UpdateProject)
 		r.Put("/api/projects/{projectID}/github-token", h.UpdateProjectGitHubToken)
 		r.Delete("/api/projects/{projectID}", h.DeleteProject)
+
+		r.Get("/api/coverage", h.GetCoverageReport)
 
 		r.Get("/api/findings/export", h.ExportFindings)
 

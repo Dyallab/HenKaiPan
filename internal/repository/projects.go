@@ -159,6 +159,96 @@ func (r *appRepo) GetProjectGitHubToken(ctx context.Context, id string) (string,
 	return decrypted, nil
 }
 
+func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.CoverageReport, error) {
+	query := `
+		WITH project_last_scan AS (
+			SELECT 
+				p.id as project_id,
+				p.name as project_name,
+				MAX(s.created_at) as last_scan_at
+			FROM projects p
+			LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
+			GROUP BY p.id, p.name
+		)
+		SELECT 
+			project_id,
+			project_name,
+			last_scan_at,
+			CASE 
+				WHEN last_scan_at IS NULL THEN NULL
+				ELSE EXTRACT(DAY FROM (NOW() - last_scan_at))::int
+			END as days_since_scan,
+			CASE WHEN last_scan_at IS NULL THEN true ELSE false END as never_scanned
+		FROM project_last_scan
+		ORDER BY 
+			CASE WHEN last_scan_at IS NULL THEN 0 ELSE 1 END,
+			last_scan_at ASC
+	`
+
+	if days > 0 {
+		query = `
+			WITH project_last_scan AS (
+				SELECT 
+					p.id as project_id,
+					p.name as project_name,
+					MAX(s.created_at) as last_scan_at
+				FROM projects p
+				LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
+				GROUP BY p.id, p.name
+			)
+			SELECT 
+				project_id,
+				project_name,
+				last_scan_at,
+				CASE 
+					WHEN last_scan_at IS NULL THEN NULL
+					ELSE EXTRACT(DAY FROM (NOW() - last_scan_at))::int
+				END as days_since_scan,
+				CASE WHEN last_scan_at IS NULL THEN true ELSE false END as never_scanned
+			FROM project_last_scan
+			WHERE last_scan_at IS NULL OR last_scan_at < NOW() - ($1 || ' days')::interval
+			ORDER BY 
+				CASE WHEN last_scan_at IS NULL THEN 0 ELSE 1 END,
+				last_scan_at ASC
+		`
+	}
+
+	rows, err := r.db.Query(ctx, query, days)
+	if err != nil {
+		return nil, fmt.Errorf("get coverage report: %w", err)
+	}
+	defer rows.Close()
+
+	var projects []models.ProjectCoverage
+	var totalProjects int
+	for rows.Next() {
+		var pc models.ProjectCoverage
+		err := rows.Scan(&pc.ProjectID, &pc.ProjectName, &pc.LastScanAt, &pc.DaysSinceScan, &pc.NeverScanned)
+		if err != nil {
+			return nil, fmt.Errorf("scan coverage row: %w", err)
+		}
+		projects = append(projects, pc)
+		totalProjects++
+	}
+
+	coveredProjects := 0
+	uncoveredProjects := 0
+	for _, p := range projects {
+		if p.NeverScanned {
+			uncoveredProjects++
+		} else {
+			coveredProjects++
+		}
+	}
+
+	return &models.CoverageReport{
+		TotalProjects:     totalProjects,
+		CoveredProjects:   coveredProjects,
+		UncoveredProjects: uncoveredProjects,
+		Projects:          projects,
+	}, nil
+}
+
 func (r *appRepo) DeleteProject(ctx context.Context, id string) error {
 	return DeleteByID(ctx, r.db, "projects", id)
 }

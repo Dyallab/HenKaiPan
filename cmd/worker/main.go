@@ -29,7 +29,7 @@ func main() {
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
 
-	store := repository.NewPostgresStores(pool)
+	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 
 	if n, err := store.Scans.RecoverStuck(context.Background()); err == nil && n > 0 {
 		slog.Info("recovered stuck scans", "count", n)
