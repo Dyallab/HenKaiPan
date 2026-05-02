@@ -1,0 +1,351 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Projects" active="projects">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-white">Projects</h1>
+    <p class="text-slate-400 text-sm mt-1">Manage your scanned projects and connections</p>
+  </div>
+  <button id="open-create-project"
+    class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded transition-colors">
+    <span class="material-symbols-outlined text-lg">add</span>
+    New Project
+  </button>
+</div>
+
+<!-- Filter tabs -->
+<div class="flex gap-2 mb-6">
+  <button data-filter="" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950">All</button>
+  <button data-filter="with_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">With App</button>
+  <button data-filter="without_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">Standalone</button>
+</div>
+
+<!-- Projects list -->
+<div id="projects-list" class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+  <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+</div>
+
+<!-- Empty state -->
+<div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-center">
+  <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">folder_open</span>
+  <p class="text-slate-400 font-semibold text-lg">No projects yet</p>
+  <p class="text-slate-600 text-sm mt-1">Create your first project to start scanning.</p>
+</div>
+
+<!-- Create Project Modal -->
+<div id="modal-create-project" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+    <h3 class="text-lg font-bold text-white mb-1">New Project</h3>
+    <p class="text-slate-500 text-xs mb-5">Connect a repository to start scanning</p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
+        <input id="project-name" type="text" placeholder="e.g. API Service"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
+        <input id="project-desc" type="text" placeholder="Optional"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL *</label>
+        <input id="project-repo-url" type="text" placeholder="https://github.com/org/repo"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
+        <input id="project-branch" type="text" placeholder="main" value="main"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+    </div>
+    <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
+    <div class="flex gap-3 mt-6">
+      <button id="cancel-create-project" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
+      <button id="submit-create-project" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub Token Modal -->
+<div id="token-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold text-white">Configure GitHub Token</h3>
+      <button id="close-token-modal" class="text-slate-400 hover:text-slate-200">
+        <span class="material-symbols-outlined text-xl">close</span>
+      </button>
+    </div>
+    <p class="text-sm text-slate-400 mb-4">
+      Enter a GitHub Personal Access Token to clone private repositories. The token will be encrypted and stored securely.
+    </p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Project</label>
+        <p id="modal-project-name" class="text-sm font-semibold text-white"></p>
+      </div>
+      <div>
+        <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">GitHub Token</label>
+        <input
+          id="github-token-input"
+          type="password"
+          placeholder="ghp_..."
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+        />
+        <p class="text-xs text-slate-500 mt-1">
+          Create a token with <span class="font-mono text-sky-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-sky-400 hover:underline">github.com/settings/tokens</a>
+        </p>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button
+          id="save-github-token"
+          class="flex-1 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
+        >
+          Save Token
+        </button>
+        <button
+          id="remove-github-token"
+          class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-sm font-bold transition-all"
+        >
+          Remove
+        </button>
+      </div>
+      <div id="token-msg" class="hidden text-sm"></div>
+    </div>
+  </div>
+</div>
+
+</DashboardLayout>
+
+<script>
+import { api } from '../../lib/api.ts';
+import type { Project } from '../../lib/api.ts';
+
+let allProjects: Project[] = [];
+let currentFilter = '';
+let currentProjectId: string | null = null;
+
+async function loadProjects() {
+  allProjects = await api.getProjects(currentFilter).catch(() => []);
+  renderProjects();
+}
+
+function renderProjects() {
+  const container = document.getElementById('projects-list')!;
+  const emptyState = document.getElementById('empty-state')!;
+
+  if (!allProjects.length) {
+    container.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    emptyState.classList.add('flex');
+    return;
+  }
+  emptyState.classList.add('hidden');
+  emptyState.classList.remove('flex');
+
+  container.innerHTML = `<div class="divide-y divide-slate-800/50">
+    ${allProjects.map(p => `
+      <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-slate-500 text-base">folder_open</span>
+            <p class="text-sm font-bold text-white">${p.name}</p>
+            ${p.has_token ? '<span class="material-symbols-outlined text-green-400 text-base" title="GitHub token configured">key</span>' : ''}
+            ${!p.app_id ? '<span class="text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded font-bold">Standalone</span>' : ''}
+          </div>
+          <p class="text-xs text-slate-500 font-mono truncate max-w-md">${p.repo_url || 'No URL configured'}</p>
+        </div>
+        <div class="flex items-center gap-3 shrink-0 ml-4">
+          <a href="/dashboard/scans?project=${encodeURIComponent(p.id)}"
+             class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+            <span class="material-symbols-outlined text-sm">security_update_good</span>
+            Scan
+          </a>
+          <button
+            type="button"
+            data-configure-token="${p.id}"
+            data-project-name="${p.name}"
+            data-project-has-token="${p.has_token}"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">${p.has_token ? 'key' : 'key_off'}</span>
+            ${p.has_token ? 'Token Set' : 'Set Token'}
+          </button>
+          <button
+            type="button"
+            data-delete-project="${p.id}"
+            data-project-name="${p.name}"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">delete</span>
+            Delete
+          </button>
+          <p class="text-xs text-slate-600 font-mono">${new Date(p.created_at).toLocaleDateString()}</p>
+        </div>
+      </div>
+    `).join('')}
+  </div>`;
+
+  // Configure token buttons
+  container.querySelectorAll('[data-configure-token]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const target = btn as HTMLElement;
+      currentProjectId = target.dataset.configureToken || null;
+      const projectName = target.dataset.projectName || '';
+      const hasToken = target.dataset.projectHasToken === 'true';
+
+      document.getElementById('modal-project-name')!.textContent = projectName;
+      const tokenInput = document.getElementById('github-token-input') as HTMLInputElement;
+      tokenInput.value = '';
+      tokenInput.placeholder = hasToken ? '••••••••••••' : 'ghp_...';
+
+      const removeBtn = document.getElementById('remove-github-token')!;
+      removeBtn.classList.toggle('hidden', !hasToken);
+
+      const msg = document.getElementById('token-msg')!;
+      msg.className = 'hidden text-sm';
+      msg.textContent = '';
+
+      document.getElementById('token-modal')!.classList.remove('hidden');
+    });
+  });
+
+  // Delete project buttons
+  container.querySelectorAll('[data-delete-project]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const target = btn as HTMLElement;
+      const projectId = target.dataset.deleteProject;
+      const projectName = target.dataset.projectName || 'this project';
+      if (!projectId) return;
+      if (!confirm(`Delete ${projectName}?`)) return;
+
+      try {
+        await api.deleteProject(projectId);
+        await loadProjects();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to delete project';
+        alert(message);
+      }
+    });
+  });
+}
+
+// Filter tabs
+document.querySelectorAll('.filter-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentFilter = (btn as HTMLElement).dataset.filter || '';
+    document.querySelectorAll('.filter-tab').forEach(b => {
+      b.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white`;
+    });
+    btn.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950`;
+    loadProjects();
+  });
+});
+
+// Modal close
+document.getElementById('close-token-modal')!.addEventListener('click', () => {
+  document.getElementById('token-modal')!.classList.add('hidden');
+  currentProjectId = null;
+});
+
+// Save token
+document.getElementById('save-github-token')!.addEventListener('click', async () => {
+  if (!currentProjectId) return;
+
+  const tokenInput = document.getElementById('github-token-input') as HTMLInputElement;
+  const token = tokenInput.value.trim();
+  const msg = document.getElementById('token-msg')!;
+
+  if (!token) {
+    msg.textContent = 'Token is required';
+    msg.className = 'text-sm text-red-400';
+    return;
+  }
+
+  try {
+    await api.updateProjectGitHubToken(currentProjectId, token);
+    msg.textContent = 'Token saved successfully';
+    msg.className = 'text-sm text-emerald-400';
+    setTimeout(() => {
+      document.getElementById('token-modal')!.classList.add('hidden');
+      loadProjects();
+    }, 1000);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to save token';
+    msg.textContent = message;
+    msg.className = 'text-sm text-red-400';
+  }
+});
+
+// Remove token
+document.getElementById('remove-github-token')!.addEventListener('click', async () => {
+  if (!currentProjectId) return;
+
+  const msg = document.getElementById('token-msg')!;
+
+  if (!confirm('Remove the GitHub token for this project?')) return;
+
+  try {
+    await api.updateProjectGitHubToken(currentProjectId, '');
+    msg.textContent = 'Token removed';
+    msg.className = 'text-sm text-emerald-400';
+    setTimeout(() => {
+      document.getElementById('token-modal')!.classList.add('hidden');
+      loadProjects();
+    }, 1000);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to remove token';
+    msg.textContent = message;
+    msg.className = 'text-sm text-red-400';
+  }
+});
+
+// Close modal on backdrop click
+document.getElementById('token-modal')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    document.getElementById('token-modal')!.classList.add('hidden');
+    currentProjectId = null;
+  }
+});
+
+// Create Project modal
+document.getElementById('open-create-project')!.addEventListener('click', () => {
+  (document.getElementById('project-name') as HTMLInputElement).value = '';
+  (document.getElementById('project-desc') as HTMLInputElement).value = '';
+  (document.getElementById('project-repo-url') as HTMLInputElement).value = '';
+  (document.getElementById('project-branch') as HTMLInputElement).value = 'main';
+  document.getElementById('project-error')!.classList.add('hidden');
+  document.getElementById('modal-create-project')!.classList.remove('hidden');
+});
+
+document.getElementById('cancel-create-project')!.addEventListener('click', () => {
+  document.getElementById('modal-create-project')!.classList.add('hidden');
+});
+
+document.getElementById('submit-create-project')!.addEventListener('click', async () => {
+  const name = (document.getElementById('project-name') as HTMLInputElement).value.trim();
+  const desc = (document.getElementById('project-desc') as HTMLInputElement).value.trim();
+  const repoUrl = (document.getElementById('project-repo-url') as HTMLInputElement).value.trim();
+  const branch = (document.getElementById('project-branch') as HTMLInputElement).value.trim() || 'main';
+  const errEl = document.getElementById('project-error')!;
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+  if (!repoUrl) { errEl.textContent = 'Repository URL is required.'; errEl.classList.remove('hidden'); return; }
+  try {
+    await api.createProject({ name, description: desc, repo_url: repoUrl, default_branch: branch, provider: 'git' });
+    document.getElementById('modal-create-project')!.classList.add('hidden');
+    await loadProjects();
+  } catch (e: any) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+});
+
+// Close create modal on backdrop click
+document.getElementById('modal-create-project')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).classList.add('hidden');
+});
+
+loadProjects();
+</script>
