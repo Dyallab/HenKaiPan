@@ -44,7 +44,10 @@ func (r *appRepo) List(ctx context.Context, teamFilter string) ([]models.App, er
 			idx[a.ID] = i
 		}
 		for _, p := range projects {
-			i := idx[p.AppID]
+			if p.AppID == nil {
+				continue
+			}
+			i := idx[*p.AppID]
 			apps[i].Projects = append(apps[i].Projects, p)
 		}
 	}

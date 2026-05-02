@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -26,6 +27,9 @@ func (r *settingsRepo) GetNotificationSettings(ctx context.Context) (*models.Not
 		WHERE singleton = TRUE`,
 	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &emailRecipientsRaw, &s.UpdatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return r.initDefaultNotificationSettings(ctx)
+		}
 		return nil, fmt.Errorf("get notification settings: %w", err)
 	}
 	_ = json.Unmarshal(emailRecipientsRaw, &s.EmailRecipients)
@@ -33,6 +37,30 @@ func (r *settingsRepo) GetNotificationSettings(ctx context.Context) (*models.Not
 		s.EmailRecipients = []string{}
 	}
 	return &s, nil
+}
+
+func (r *settingsRepo) initDefaultNotificationSettings(ctx context.Context) (*models.NotificationSettings, error) {
+	emailRecipientsJSON, _ := json.Marshal([]string{})
+	var out models.NotificationSettings
+	var emailRecipientsRaw []byte
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO notification_settings (singleton, alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients)
+		VALUES (TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, $1)
+		ON CONFLICT (singleton) DO NOTHING
+		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, updated_at`,
+		emailRecipientsJSON,
+	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return r.GetNotificationSettings(ctx)
+		}
+		return nil, fmt.Errorf("init notification settings: %w", err)
+	}
+	_ = json.Unmarshal(emailRecipientsRaw, &out.EmailRecipients)
+	if out.EmailRecipients == nil {
+		out.EmailRecipients = []string{}
+	}
+	return &out, nil
 }
 
 func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd NotificationSettingsUpdate) (*models.NotificationSettings, error) {
