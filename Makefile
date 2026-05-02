@@ -1,9 +1,15 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate gen-license
 
 ifneq (,$(wildcard .env))
   include .env
   export
 endif
+
+VERSION ?= dev
+BUILD_DATE ?= $(shell date -u '+%Y-%m-%d_%H:%M:%S')
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
+LDFLAGS := -ldflags "-X aspm/internal/handlers.Version=$(VERSION) -X aspm/internal/handlers.BuildDate=$(BUILD_DATE) -X aspm/internal/handlers.Commit=$(COMMIT)"
 
 dev-infra:
 	docker compose up postgres redis -d
@@ -28,8 +34,16 @@ down:
 	docker compose down
 
 build:
-	go build -o bin/api ./cmd/api
-	go build -o bin/worker ./cmd/worker
+	go build $(LDFLAGS) -o bin/api ./cmd/api
+	go build $(LDFLAGS) -o bin/worker ./cmd/worker
 
 tidy:
 	go mod tidy
+
+# (usage: make migrate MIGRATION=migrations/029_xxx.sql)
+migrate:
+	@if [ -z "$(MIGRATION)" ]; then echo "Error: MIGRATION is required. Usage: make migrate MIGRATION=migrations/029_xxx.sql"; exit 1; fi
+	cat $(MIGRATION) | docker compose exec -T postgres psql -U aspm -d aspm
+
+gen-license:
+	./scripts/generate-license.sh $(EMAIL) $(DAYS)

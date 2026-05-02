@@ -5,7 +5,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./bin/api"
-  cmd = "go build -o ./bin/api ./cmd/api"
+  cmd = "go build -ldflags \"-X aspm/internal/handlers.Version=dev -X aspm/internal/handlers.BuildDate=$(date -u '+%Y-%m-%d_%H:%M:%S') -X aspm/internal/handlers.Commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)\" -o ./bin/api ./cmd/api"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "frontend", "node_modules"]
   exclude_file = []
