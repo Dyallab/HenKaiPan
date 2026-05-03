@@ -110,6 +110,15 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                             >
                             <span id="kb-btn-label">AI Remediate</span>
                         </button>
+                        <button
+                            id="request-ai-summary-btn"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/15 transition-all"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >auto_awesome</span
+                            >
+                            AI Summary
+                        </button>
                         <a
                             id="kb-view-link"
                             href="#"
@@ -815,12 +824,11 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         >
                         <input
                             id="triage-assigned"
-                            list="users-datalist"
                             type="text"
                             placeholder="username or email"
+                            autocomplete="off"
                             class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600"
                         />
-                        <datalist id="users-datalist"></datalist>
                     </div>
                     <label class="flex items-start gap-3 cursor-pointer">
                         <input
@@ -868,11 +876,23 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 
 <script>
     import { api } from "../../../lib/api";
+    import { toast } from "../../../lib/toast";
+    import { z } from "zod";
     import type {
         AgentAnalysis,
         Finding,
         JiraIssueLink,
     } from "../../../lib/api";
+
+    // Validation schemas
+    const findingUpdateSchema = z.object({
+        status: z.string().optional(),
+        assigned_to: z.string().optional(),
+        false_positive: z.boolean().optional(),
+        notes: z.string().optional(),
+    });
+
+    const ownerSchema = z.string().min(1, "Owner cannot be empty");
 
     const findingId = new URLSearchParams(window.location.search).get("id");
 
@@ -1201,13 +1221,9 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     let analysisPolling = false;
     let analysisPollTimer: number | null = null;
     let analysisBaselineUpdatedAt: string | null = null;
-    let summaryPollTimer: number | null = null;
-    let summaryPollStartedAt: number | null = null;
 
     const ANALYSIS_POLL_INTERVAL_MS = 3000;
     const ANALYSIS_POLL_TIMEOUT_MS = 60000;
-    const SUMMARY_POLL_INTERVAL_MS = 3000;
-    const SUMMARY_POLL_TIMEOUT_MS = 60000;
 
     function setAnalysisButton(state: "idle" | "queued" | "running" | "error") {
         const btn = document.getElementById(
@@ -1292,13 +1308,6 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
         }, ANALYSIS_POLL_INTERVAL_MS);
     }
 
-    function clearSummaryPollTimer() {
-        if (summaryPollTimer !== null) {
-            window.clearTimeout(summaryPollTimer);
-            summaryPollTimer = null;
-        }
-    }
-
     function applyJiraIssue(link: JiraIssueLink | null) {
         currentJiraIssue = link;
         const createBtn = document.getElementById(
@@ -1359,90 +1368,39 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     function renderSummary(finding: Finding) {
         const descriptionEl = document.getElementById("summary-description")!;
         const metaEl = document.getElementById("summary-meta")!;
+        const requestAiBtn = document.getElementById("request-ai-summary-btn");
 
         if (finding.description) {
             descriptionEl.textContent = finding.description;
             metaEl.textContent = "Scanner-provided summary.";
+            if (requestAiBtn) requestAiBtn.classList.add("hidden");
             return;
         }
         if (finding.ai_summary) {
             descriptionEl.textContent = finding.ai_summary;
             metaEl.textContent =
                 "AI-generated reusable summary for repeated findings.";
+            if (requestAiBtn) requestAiBtn.classList.add("hidden");
             return;
         }
         if (finding.summary_state === "pending") {
-            descriptionEl.textContent = "Generating AI summary…";
             metaEl.textContent =
-                "A lightweight agent is generating a reusable description for this finding signature.";
+                "No description available yet. You can request an AI-generated summary using the button above.";
+            if (requestAiBtn) requestAiBtn.classList.add("hidden");
             return;
         }
         if (finding.summary_state === "failed") {
             descriptionEl.textContent = "Summary unavailable right now.";
             metaEl.textContent =
                 "The AI summary job failed for now. Reopen this finding later to retry.";
+            if (requestAiBtn) requestAiBtn.classList.remove("hidden");
             return;
         }
 
-        descriptionEl.textContent = "Summary not available yet.";
-        metaEl.textContent = "This finding has no scanner description yet.";
-    }
-
-    function maybePollSummary() {
-        if (
-            !currentFinding ||
-            currentFinding.description ||
-            currentFinding.ai_summary ||
-            currentFinding.summary_state !== "pending"
-        ) {
-            clearSummaryPollTimer();
-            summaryPollStartedAt = null;
-            return;
-        }
-
-        if (summaryPollStartedAt === null) {
-            summaryPollStartedAt = Date.now();
-        }
-
-        clearSummaryPollTimer();
-        summaryPollTimer = window.setTimeout(async () => {
-            if (!currentFinding) return;
-            try {
-                const fresh = await api.getFinding(currentFinding.id);
-                applyFinding(fresh);
-            } catch {
-                // keep current pending state if refresh fails
-                // Also check timeout on errors to prevent infinite loops
-                if (
-                    summaryPollStartedAt !== null &&
-                    Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS
-                ) {
-                    clearSummaryPollTimer();
-                    summaryPollStartedAt = null;
-                    return;
-                }
-            }
-
-            if (
-                !currentFinding ||
-                currentFinding.description ||
-                currentFinding.ai_summary ||
-                currentFinding.summary_state !== "pending"
-            ) {
-                clearSummaryPollTimer();
-                summaryPollStartedAt = null;
-                return;
-            }
-            if (
-                summaryPollStartedAt !== null &&
-                Date.now() - summaryPollStartedAt >= SUMMARY_POLL_TIMEOUT_MS
-            ) {
-                clearSummaryPollTimer();
-                summaryPollStartedAt = null;
-                return;
-            }
-            maybePollSummary();
-        }, SUMMARY_POLL_INTERVAL_MS);
+        descriptionEl.textContent = "No description available.";
+        metaEl.textContent =
+            "Request an AI-generated summary using the button above.";
+        if (requestAiBtn) requestAiBtn.classList.remove("hidden");
     }
 
     function applyFinding(finding: Finding) {
@@ -1578,8 +1536,18 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 
         (document.getElementById("triage-status") as HTMLSelectElement).value =
             finding.status ?? "open";
+
+        // Preserve current assigned_to value if server returns empty/null
+        // This prevents the field from being cleared during auto-refresh (AI summary polling)
+        const currentAssignedValue = (
+            document.getElementById("triage-assigned") as HTMLInputElement
+        ).value;
+        const serverAssignedValue = finding.assigned_to;
         (document.getElementById("triage-assigned") as HTMLInputElement).value =
-            finding.assigned_to ?? "";
+            serverAssignedValue != null && serverAssignedValue !== ""
+                ? serverAssignedValue
+                : currentAssignedValue;
+
         (document.getElementById("triage-fp") as HTMLInputElement).checked =
             finding.false_positive ?? false;
         (document.getElementById("triage-notes") as HTMLTextAreaElement).value =
@@ -1596,8 +1564,6 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             viewLink.classList.add("hidden");
             viewLink.classList.remove("inline-flex");
         }
-
-        maybePollSummary();
     }
 
     async function loadCorrelations() {
@@ -1616,6 +1582,27 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             document.getElementById("loading")!.classList.add("hidden");
             document.getElementById("content")!.classList.remove("hidden");
             applyFinding(finding);
+
+            // Notify if no description available
+            if (
+                !finding.description &&
+                !finding.ai_summary &&
+                finding.summary_state !== "pending"
+            ) {
+                toast(
+                    "No description available. Click to request AI summary.",
+                    "info",
+                    {
+                        onClick: () => {
+                            document
+                                .getElementById("request-ai-summary-btn")
+                                ?.click();
+                        },
+                        clickLabel: "Request Now",
+                    },
+                );
+            }
+
             await Promise.all([
                 loadCorrelations(),
                 loadAnalysis(),
@@ -1845,19 +1832,26 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             const msg = document.getElementById("triage-save-msg")!;
             btn.disabled = true;
             msg.classList.add("hidden");
+
             try {
-                const updated = await api.updateFinding(currentFinding.id, {
+                const assignedToValue = (
+                    document.getElementById(
+                        "triage-assigned",
+                    ) as HTMLInputElement
+                ).value.trim();
+
+                // Validate owner format (must be non-empty string if provided)
+                if (assignedToValue !== "") {
+                    ownerSchema.parse(assignedToValue);
+                }
+
+                const updateData = {
                     status: (
                         document.getElementById(
                             "triage-status",
                         ) as HTMLSelectElement
                     ).value,
-                    assigned_to:
-                        (
-                            document.getElementById(
-                                "triage-assigned",
-                            ) as HTMLInputElement
-                        ).value.trim() || undefined,
+                    assigned_to: assignedToValue || "",
                     false_positive: (
                         document.getElementById("triage-fp") as HTMLInputElement
                     ).checked,
@@ -1867,14 +1861,33 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                 "triage-notes",
                             ) as HTMLTextAreaElement
                         ).value.trim() || undefined,
-                });
+                };
+
+                // Validate complete update payload
+                findingUpdateSchema.parse(updateData);
+
+                const updated = await api.updateFinding(
+                    currentFinding.id,
+                    updateData,
+                );
                 applyFinding(updated);
                 msg.textContent = "Triage saved";
                 msg.className = "text-xs text-emerald-400";
                 msg.classList.remove("hidden");
             } catch (error: any) {
-                msg.textContent = error.message ?? "Failed to save triage.";
-                msg.className = "text-xs text-red-400";
+                if (error instanceof z.ZodError) {
+                    const errorMsg = error.errors
+                        .map(
+                            (e: z.ZodIssue) =>
+                                `${e.path.join(".")}: ${e.message}`,
+                        )
+                        .join(", ");
+                    msg.textContent = `Validation error: ${errorMsg}`;
+                    msg.className = "text-xs text-amber-400";
+                } else {
+                    msg.textContent = error.message ?? "Failed to save triage.";
+                    msg.className = "text-xs text-red-400";
+                }
                 msg.classList.remove("hidden");
             } finally {
                 btn.disabled = false;
@@ -1905,6 +1918,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                 viewLink.href = url;
                 viewLink.classList.remove("hidden");
                 viewLink.classList.add("inline-flex");
+                toast("AI remediation generated successfully", "success");
             } catch (error: any) {
                 if (win) win.close();
                 label.textContent = error.message?.includes("API_KEY")
@@ -1969,6 +1983,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             );
             try {
                 await api.analyzeFinding(currentFinding.id);
+                toast("Validation queued successfully", "success");
                 void pollForAnalysis(startedAt);
             } catch {
                 analysisPolling = false;
@@ -1983,17 +1998,31 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             }
         });
 
-    api.getUsers()
-        .then((users) => {
-            const datalist = document.getElementById("users-datalist")!;
-            datalist.innerHTML = users
-                .map(
-                    (user) =>
-                        `<option value="${user.username}">${user.username} — ${user.email}</option>`,
-                )
-                .join("");
-        })
-        .catch(() => {});
+    // Request AI Summary button handler
+    document
+        .getElementById("request-ai-summary-btn")!
+        .addEventListener("click", async () => {
+            if (!currentFinding) return;
+            const btn = document.getElementById(
+                "request-ai-summary-btn",
+            ) as HTMLButtonElement;
+
+            btn.disabled = true;
+            btn.innerHTML = `<span class="material-symbols-outlined text-base">schedule</span>Requesting…`;
+
+            try {
+                await api.requestSummary(currentFinding.id);
+                toast("AI summary requested successfully", "success");
+
+                // Refresh the finding to show pending state
+                const fresh = await api.getFinding(currentFinding.id);
+                applyFinding(fresh);
+            } catch (error: any) {
+                toast(error.message ?? "Failed to request AI summary", "error");
+                btn.disabled = false;
+                btn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+            }
+        });
 
     api.getMe().then((me) => {
         currentUserRole = me.role;

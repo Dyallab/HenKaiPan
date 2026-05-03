@@ -92,6 +92,35 @@ func (h *Handler) enrichFindingCodeContext(ctx context.Context, target string, f
 		return
 	}
 
+	// Get the scan to find the project
+	scan, err := h.store.Scans.Get(ctx, f.ScanID)
+	if err != nil {
+		return
+	}
+
+	// ProjectID is nullable - skip if no project
+	if scan.ProjectID == nil {
+		return
+	}
+
+	// Get the project to check for GitHub token
+	project, err := h.store.Apps.GetProjectByID(ctx, *scan.ProjectID)
+	if err != nil {
+		return
+	}
+
+	// Build clone URL with token if available
+	cloneURL := target
+	if project.HasToken {
+		token, err := h.store.Apps.GetProjectGitHubToken(ctx, project.ID)
+		if err == nil && token != "" {
+			// Inject token into HTTPS GitHub URL
+			if strings.HasPrefix(target, "https://github.com/") {
+				cloneURL = strings.Replace(target, "https://github.com/", "https://"+token+"@github.com/", 1)
+			}
+		}
+	}
+
 	cloneCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 	defer cancel()
 
@@ -101,7 +130,10 @@ func (h *Handler) enrichFindingCodeContext(ctx context.Context, target string, f
 	}
 	defer os.RemoveAll(dir)
 
-	if err := exec.CommandContext(cloneCtx, "git", "clone", "--depth=1", target, dir).Run(); err != nil {
+	// Use GIT_ASKPASS=echo to prevent interactive prompts
+	cmd := exec.CommandContext(cloneCtx, "git", "clone", "--depth=1", cloneURL, dir)
+	cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo")
+	if err := cmd.Run(); err != nil {
 		return
 	}
 

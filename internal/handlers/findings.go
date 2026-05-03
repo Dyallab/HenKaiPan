@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -116,8 +117,27 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Validate assigned_to if provided (empty string means remove owner)
+	if body.AssignedTo != nil {
+		owner := *body.AssignedTo
+		if owner != "" {
+			// Validate that owner exists as username or team name
+			valid, err := h.validateOwner(r.Context(), owner)
+			if err != nil {
+				slog.Error("validate owner failed", "owner", owner, "err", err)
+				writeError(w, http.StatusInternalServerError, "failed to validate owner")
+				return
+			}
+			if !valid {
+				writeError(w, http.StatusBadRequest, fmt.Sprintf("owner '%s' not found. Must be a valid username or team name.", owner))
+				return
+			}
+		}
+	}
+
 	// Get old value for audit trail
 	oldFinding, _ := h.store.Findings.GetByID(r.Context(), id)
+	oldOwner := oldFinding.AssignedTo
 
 	f, err := h.store.Findings.Update(r.Context(), id, repository.FindingUpdate{
 		Status:        body.Status,
@@ -131,6 +151,11 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.auditLog(r, "finding.update", "finding", id, oldFinding, f)
+
+	// Send notification if owner was assigned (and changed)
+	if body.AssignedTo != nil && *body.AssignedTo != "" && (oldOwner == nil || *body.AssignedTo != *oldOwner) {
+		h.notifyOwnerAssignment(r.Context(), f.ID, f.Title, *body.AssignedTo)
+	}
 
 	writeJSON(w, http.StatusOK, f)
 }
@@ -264,4 +289,85 @@ func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"updated": updated})
+}
+
+// validateOwner checks if the given owner string matches a username or team name
+func (h *Handler) validateOwner(ctx context.Context, owner string) (bool, error) {
+	// First check if it's a username
+	users, err := h.store.Users.List(ctx)
+	if err != nil {
+		return false, fmt.Errorf("list users: %w", err)
+	}
+	for _, u := range users {
+		if u.Username == owner || u.Email == owner {
+			return true, nil
+		}
+	}
+
+	// Then check if it's a team name
+	teams, err := h.store.Teams.List(ctx)
+	if err != nil {
+		return false, fmt.Errorf("list teams: %w", err)
+	}
+	for _, t := range teams {
+		if t.Name == owner {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// notifyOwnerAssignment creates a notification and sends email to the assigned owner
+func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingTitle, owner string) {
+	// Get user by username or email
+	users, err := h.store.Users.List(ctx)
+	if err != nil {
+		slog.Error("notify owner: list users failed", "err", err)
+		return
+	}
+
+	var targetUser *models.User
+	for _, u := range users {
+		if u.Username == owner || u.Email == owner {
+			targetUser = &u
+			break
+		}
+	}
+
+	// If owner is a team or user not found, skip notification
+	if targetUser == nil {
+		return
+	}
+
+	// Create web notification
+	_, err = h.store.Notifications.Create(ctx, repository.NotificationCreate{
+		UserID:     targetUser.ID,
+		Title:      "New Finding Assigned",
+		Message:    "You have been assigned as owner of finding: " + findingTitle,
+		Type:       "finding_assignment",
+		EntityType: ptr("finding"),
+		EntityID:   &findingID,
+	})
+	if err != nil {
+		slog.Error("create notification failed", "err", err)
+	}
+
+	// Queue email notification
+	payload, err := tasks.MarshalEmailSendPayload(tasks.EmailSendPayload{
+		Subject: "Finding assigned to you: " + findingTitle,
+		Body: "Hi " + targetUser.Username + ",\n\nYou have been assigned as the owner of the following finding:\n\nTitle: " + findingTitle + "\nFinding ID: " + findingID + "\n\nPlease review it in the dashboard.\n\nThanks,\nHenKaiPan Team",
+		To:   []string{targetUser.Email},
+	})
+	if err != nil {
+		slog.Error("marshal email payload failed", "err", err)
+		return
+	}
+	if _, err := h.queue.EnqueueContext(ctx, asynq.NewTask(tasks.TypeEmailSend, payload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second)); err != nil {
+		slog.Error("enqueue email failed", "err", err)
+	}
+}
+
+func ptr[T any](v T) *T {
+	return &v
 }
