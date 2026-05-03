@@ -29,6 +29,11 @@ func main() {
 	pool := db.Connect(cfg.DatabaseURL)
 	defer pool.Close()
 
+	if err := db.RunMigrations(context.Background(), pool); err != nil {
+		slog.Error("database migrations failed", "err", err)
+		os.Exit(1)
+	}
+
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 
 	if n, err := store.Scans.RecoverStuck(context.Background()); err == nil && n > 0 {

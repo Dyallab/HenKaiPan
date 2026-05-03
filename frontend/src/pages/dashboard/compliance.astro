@@ -3,6 +3,15 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Compliance Readiness" active="compliance">
 
+  <!-- License Upgrade Banner (hidden when license has compliance) -->
+  <div id="license-upgrade-banner" class="hidden mb-6 bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
+    <span class="material-symbols-outlined text-amber-400 shrink-0 mt-0.5">lock</span>
+    <div class="flex-1">
+      <p class="text-sm font-bold text-amber-400">Compliance is a paid feature</p>
+      <p class="text-xs text-slate-400 mt-1">Get a license key to unlock compliance frameworks, policy packs, and evidence export. <a href="/dashboard/settings#license" class="text-sky-400 hover:text-sky-300 underline">Manage license</a></p>
+    </div>
+  </div>
+
   <!-- Header: Compliance Starter Mode -->
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
@@ -270,10 +279,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   async function loadData() {
     try {
+      // Check license first
+      let hasCompliance = false;
+      try {
+        const lic = await api.get('/api/license');
+        hasCompliance = lic.valid && lic.features?.includes('compliance');
+      } catch {}
+      if (!hasCompliance) {
+        document.getElementById('license-upgrade-banner')?.classList.remove('hidden');
+      }
+
       const [metrics, { findings }, policies] = await Promise.all([
         api.getMetrics(),
         api.getFindings('', ''),
-        api.getPolicies(),
+        hasCompliance ? api.getPolicies() : Promise.resolve([]),
       ]);
 
       // Build per-scanner finding counts
@@ -294,6 +313,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       renderFramework(currentFw);
     } catch (e) {
       console.error(e);
+      document.getElementById('license-upgrade-banner')?.classList.remove('hidden');
     }
   }
 

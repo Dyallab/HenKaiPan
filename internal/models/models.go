@@ -326,3 +326,15 @@ type RiskAcceptance struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
 }
+
+type UserNotification struct {
+	ID         string    `json:"id"`
+	UserID     string    `json:"user_id"`
+	Title      string    `json:"title"`
+	Message    string    `json:"message"`
+	Type       string    `json:"type"`
+	EntityType *string   `json:"entity_type,omitempty"`
+	EntityID   *string   `json:"entity_id,omitempty"`
+	Read       bool      `json:"read"`
+	CreatedAt  time.Time `json:"created_at"`
+}
