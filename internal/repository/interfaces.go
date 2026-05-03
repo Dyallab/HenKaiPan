@@ -345,6 +345,32 @@ type RiskAcceptanceRepository interface {
 	List(ctx context.Context, filter RiskAcceptanceFilter) ([]models.RiskAcceptance, int, error)
 }
 
+// ── Notifications ────────────────────────────────────────────────────────────
+
+type NotificationCreate struct {
+	UserID     string
+	Title      string
+	Message    string
+	Type       string
+	EntityType *string
+	EntityID   *string
+}
+
+type NotificationFilter struct {
+	UserID string
+	Read   *bool
+	Page   int
+	Limit  int
+}
+
+type NotificationRepository interface {
+	Create(ctx context.Context, n NotificationCreate) (*models.UserNotification, error)
+	List(ctx context.Context, filter NotificationFilter) ([]models.UserNotification, int, error)
+	MarkAsRead(ctx context.Context, id, userID string) error
+	MarkAllAsRead(ctx context.Context, userID string) error
+	GetUnreadCount(ctx context.Context, userID string) (int, error)
+}
+
 // ── Vulnerabilities ───────────────────────────────────────────────────────────
 
 type VulnFilter struct {
@@ -513,5 +539,6 @@ type Stores struct {
 	Settings       SettingsRepository
 	Audit          AuditRepository
 	RiskAcceptance RiskAcceptanceRepository
+	Notifications  NotificationRepository
 	Health         HealthRepository
 }

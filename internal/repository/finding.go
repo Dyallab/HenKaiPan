@@ -250,7 +250,7 @@ func (r *findingRepo) Update(ctx context.Context, id string, upd FindingUpdate) 
 	_, err := r.db.Exec(ctx, `
 		UPDATE findings SET
 			status         = COALESCE($2, status),
-			assigned_to    = COALESCE($3, assigned_to),
+			assigned_to    = CASE WHEN $3 = '' THEN NULL ELSE COALESCE($3, assigned_to) END,
 			false_positive = COALESCE($4, false_positive),
 			notes          = COALESCE($5, notes),
 			resolved_at    = CASE

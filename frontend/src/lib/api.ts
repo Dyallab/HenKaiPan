@@ -1,3 +1,5 @@
+import { friendlyError } from "./toast";
+
 export const API_BASE = "http://localhost:8080";
 
 interface SuppressionCreate {
@@ -31,6 +33,11 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
       const err = await res.json().catch(() => ({ error: res.statusText }));
       const errorMsg = err.error ?? res.statusText;
       console.error(`API Error [${res.status}]:`, errorMsg, "Path:", path);
+      window.dispatchEvent(
+        new CustomEvent("api-error", {
+          detail: { message: friendlyError(errorMsg), status: res.status, path, silent: res.status === 404 },
+        }),
+      );
       throw new Error(errorMsg);
     }
     if (res.status === 204) {
@@ -106,6 +113,11 @@ export const api = {
 
   analyzeFinding: (id: string) =>
     req<{ status: string; finding_id: string }>(`/api/findings/${id}/analyze`, {
+      method: "POST",
+    }),
+
+  requestSummary: (id: string) =>
+    req<{ status: string; finding_id: string }>(`/api/findings/${id}/summary`, {
       method: "POST",
     }),
 
@@ -468,6 +480,23 @@ export const api = {
     }),
   deleteSchedule: (id: string) =>
     req<void>(`/api/schedules/${id}`, { method: "DELETE" }),
+
+  getUnreadNotificationCount: () =>
+    req<{ count: number }>("/api/notifications/unread-count"),
+
+  markNotificationAsRead: (id: string) =>
+    req<void>(`/api/notifications/${id}/read`, { method: "PATCH" }),
+
+  markAllNotificationsAsRead: () =>
+    req<void>("/api/notifications/read-all", { method: "PATCH" }),
+
+  getNotifications: (params?: { page?: number; limit?: number; read?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.page) qs.set("page", params.page.toString());
+    if (params?.limit) qs.set("limit", params.limit.toString());
+    if (params?.read !== undefined) qs.set("read", params.read.toString());
+    return req<{ notifications: any[]; total: number }>(`/api/notifications?${qs}`);
+  },
 
   getLicense: () => req<License>("/api/license"),
 };

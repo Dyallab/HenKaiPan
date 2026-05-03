@@ -318,12 +318,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300" title="Corroborated by ${f.corroboration_count} scanner(s)">+${f.corroboration_count}</span>`
               : '';
 			return `
-              <tr class="group hover:bg-slate-900/30 transition-colors ${f.false_positive ? 'opacity-50' : ''}">
-                <td class="px-6 py-4">
+              <tr class="group hover:bg-slate-900/30 transition-colors cursor-pointer ${f.false_positive ? 'opacity-50' : ''}" data-finding-id="${f.id}">
+                <td class="px-6 py-4" onclick="event.stopPropagation()">
                   <input type="checkbox" data-finding-id="${f.id}" class="finding-checkbox h-4 w-4 rounded border-slate-600 bg-surface-container text-sky-400 focus:ring-0" />
                 </td>
                 <td class="px-6 py-4">
-                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block">
+                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block" onclick="event.stopPropagation()">
                     <p class="font-bold text-on-background group-hover:text-sky-300 transition-colors">${f.title}</p>
                     <p class="text-xs text-slate-500 mt-0.5 truncate max-w-sm">${f.description ?? ''}</p>
                      <div class="flex items-center gap-2 mt-2 flex-wrap">
@@ -346,7 +346,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 <td class="px-6 py-4 hidden xl:table-cell">${slaDisplay(f)}</td>
                 <td class="px-6 py-4 hidden lg:table-cell">${jiraDisplay(f)}</td>
                 <td class="px-6 py-4 text-right">
-                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sky-500/20 bg-sky-500/5 text-sky-300 text-xs font-bold uppercase tracking-wider hover:bg-sky-500/10 transition-all">
+                  <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-sky-500/20 bg-sky-500/5 text-sky-300 text-xs font-bold uppercase tracking-wider hover:bg-sky-500/10 transition-all" onclick="event.stopPropagation()">
                     Open
                     <span class="material-symbols-outlined text-sm">arrow_forward</span>
                   </a>
@@ -370,6 +370,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     checkboxes.forEach(cb => {
       cb.addEventListener('change', () => {
         updateBulkActions();
+      });
+    });
+
+    // Setup row click handlers - navigate to detail page
+    const rows = document.querySelectorAll('tr[data-finding-id]');
+    rows.forEach(row => {
+      row.addEventListener('click', () => {
+        const findingId = row.getAttribute('data-finding-id');
+        if (findingId) {
+          window.location.href = `/dashboard/findings/detail?id=${encodeURIComponent(findingId)}`;
+        }
       });
     });
   }

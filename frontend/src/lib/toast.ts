@@ -8,6 +8,21 @@ export type ToastType = 'success' | 'error' | 'info' | 'warning';
 interface ToastOptions {
   duration?: number;
   id?: string;
+  onClick?: () => void;
+  clickLabel?: string;
+}
+
+/**
+ * Map raw API error strings to user-friendly messages
+ */
+export function friendlyError(msg: string): string {
+  if (msg === 'license_required') {
+    return 'License required — please configure your license key';
+  }
+  if (msg?.includes('API_KEY')) {
+    return 'AI provider not configured — set your API key in settings';
+  }
+  return msg;
 }
 
 /**
@@ -21,6 +36,8 @@ export function toast(
   const {
     duration = type === 'error' ? 8000 : 5000,
     id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    onClick,
+    clickLabel,
   } = options;
 
   // Create container if it doesn't exist
@@ -51,6 +68,22 @@ export function toast(
   messageEl.className = `text-sm ${getColors(type).text}`;
   messageEl.textContent = message;
 
+  toastEl.appendChild(icon);
+  toastEl.appendChild(messageEl);
+
+  // Action button (if onClick provided)
+  if (onClick && clickLabel) {
+    const actionBtn = document.createElement('button');
+    actionBtn.className = 'text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors underline';
+    actionBtn.textContent = clickLabel;
+    actionBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeToast(toastEl);
+      onClick();
+    };
+    toastEl.appendChild(actionBtn);
+  }
+
   // Close button
   const closeBtn = document.createElement('button');
   closeBtn.className = 'ml-auto text-slate-400 hover:text-slate-300 transition-colors';
@@ -58,10 +91,18 @@ export function toast(
   closeBtn.innerHTML = '<span class="material-symbols-outlined ms-fill">close</span>';
   closeBtn.onclick = () => removeToast(toastEl);
 
-  toastEl.appendChild(icon);
-  toastEl.appendChild(messageEl);
   toastEl.appendChild(closeBtn);
   container.appendChild(toastEl);
+
+  // Make entire toast clickable if onClick provided
+  if (onClick) {
+    toastEl.style.cursor = 'pointer';
+    toastEl.onclick = (e) => {
+      if ((e.target as HTMLElement).closest('button')) return;
+      removeToast(toastEl);
+      onClick();
+    };
+  }
 
   // Auto-dismiss
   if (duration > 0) {
