@@ -150,6 +150,15 @@ func parseToken(r *http.Request) (jwt.MapClaims, error) {
 		slog.Warn("failed to extract claims")
 		return nil, jwt.ErrSignatureInvalid
 	}
+	
+	// Explicit expiration check
+	if exp, ok := claims["exp"].(float64); ok {
+		if time.Now().Unix() > int64(exp) {
+			slog.Warn("JWT expired")
+			return nil, jwt.ErrSignatureInvalid
+		}
+	}
+	
 	slog.Debug("JWT parsed successfully", "subject", claims["sub"])
 	return claims, nil
 }

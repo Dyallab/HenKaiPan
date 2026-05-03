@@ -87,7 +87,7 @@ func (r *auditRepo) List(ctx context.Context, filter AuditFilter) ([]models.Audi
 		var log models.AuditLog
 		var oldRaw, newRaw []byte
 		if err := rows.Scan(&log.ID, &log.UserID, &log.UserEmail, &log.Action, &log.EntityType, &log.EntityID, &oldRaw, &newRaw, &log.IPAddress, &log.UserAgent, &log.CreatedAt); err != nil {
-			return nil, 0, err
+			return nil, 0, fmt.Errorf("audit scan: %w", err)
 		}
 		if oldRaw != nil {
 			json.Unmarshal(oldRaw, &log.OldValue)

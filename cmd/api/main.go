@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"aspm/internal/ai"
 	"aspm/internal/auth"
@@ -14,12 +15,14 @@ import (
 	"aspm/internal/license"
 	"aspm/internal/logger"
 	appmw "aspm/internal/middleware"
+	"aspm/internal/metrics"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
 	"aspm/internal/secrets"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/hibiken/asynq"
 	"github.com/rs/cors"
 )
 
@@ -50,9 +53,63 @@ func main() {
 	licSvc := license.New(cfg.LicenseSigningSecret, cfg.LicenseKey)
 	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, licSvc)
 
+	// Initialize rate limiter
+	appmw.InitRateLimiter(cfg.RedisAddr)
+	defer appmw.Close()
+
+	// Initialize Prometheus metrics
+	redisOpt := &asynq.RedisClientOpt{Addr: cfg.RedisAddr}
+	inspector := asynq.NewInspector(*redisOpt)
+	defer inspector.Close()
+	ctx := context.Background()
+
+	// Start Prometheus server
+	metrics.StartPrometheusServer(":9090")
+
+	// Start queue metrics collector
+	metrics.StartQueueMetricsCollector(ctx, inspector, 30*time.Second)
+
+	// Start DB metrics collector
+	getDBMetrics := func() (int, int, int, map[string]int, error) {
+		// Get scan counts
+		var total, running, failed int
+		err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM scans`).Scan(&total)
+		if err != nil {
+			return 0, 0, 0, nil, err
+		}
+		err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM scans WHERE status = 'running'`).Scan(&running)
+		if err != nil {
+			return 0, 0, 0, nil, err
+		}
+		err = pool.QueryRow(ctx, `SELECT COUNT(*) FROM scans WHERE status = 'failed'`).Scan(&failed)
+		if err != nil {
+			return 0, 0, 0, nil, err
+		}
+
+		// Get findings by severity
+		findings := make(map[string]int)
+		rows, err := pool.Query(ctx, `SELECT severity, COUNT(*) FROM findings GROUP BY severity`)
+		if err != nil {
+			return 0, 0, 0, nil, err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var severity string
+			var count int
+			if err := rows.Scan(&severity, &count); err != nil {
+				continue
+			}
+			findings[severity] = count
+		}
+
+		return total, running, failed, findings, nil
+	}
+	metrics.StartDBMetricsCollector(ctx, getDBMetrics, 30*time.Second)
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(appmw.RequestLogger)
+	r.Use(appmw.RateLimiter)
 	r.Use(middleware.Recoverer)
 
 	r.Get("/api/health", h.GetHealth)
@@ -233,9 +290,9 @@ func main() {
 	}
 
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:4321", "http://localhost:4322", "http://localhost:3000"},
+		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Webhook-Signature", "X-Webhook-Timestamp"},
 		AllowCredentials: true,
 	})
 

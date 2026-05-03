@@ -28,6 +28,7 @@ type Config struct {
 	CookieSecure        bool   // default: false; set true behind HTTPS
 	LicenseKey          string // optional: license key for self-hosted features
 	LicenseSigningSecret string // secret for signing license keys (default: "aspm-license-secret")
+	WebhookSecret       string // optional: secret for HMAC webhook signature validation
 
 	SMTPHost     string // optional email notifications
 	SMTPPort     string // default: 587
@@ -59,6 +60,9 @@ type Config struct {
 	RemediationConfig *ProviderConfig
 	SummaryConfig     *ProviderConfig
 	ValidationConfig  *ProviderConfig
+
+	// CORS configuration
+	AllowedOrigins []string // default: localhost origins
 }
 
 // Load reads env vars, validates required fields, and resolves provider configs.
@@ -74,6 +78,11 @@ func Load() *Config {
 		return v
 	}
 
+	allowedOrigins := []string{"http://localhost:4321", "http://localhost:4322", "http://localhost:3000"}
+	if origins := os.Getenv("CORS_ALLOWED_ORIGINS"); origins != "" {
+		allowedOrigins = strings.Split(origins, ",")
+	}
+
 	cfg := &Config{
 		DatabaseURL:           get("DATABASE_URL"),
 		JWTSecret:             get("JWT_SECRET"),
@@ -84,6 +93,7 @@ func Load() *Config {
 		CookieSecure:          envBool("COOKIE_SECURE", false),
 		LicenseKey:            os.Getenv("LICENSE_KEY"),
 		LicenseSigningSecret:  os.Getenv("LICENSE_SIGNING_SECRET"),
+		WebhookSecret:         os.Getenv("WEBHOOK_SECRET"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPPort:              envOr("SMTP_PORT", "587"),
 		SMTPUsername:          os.Getenv("SMTP_USERNAME"),
@@ -100,6 +110,7 @@ func Load() *Config {
 		AIRemediationProvider: envOr("AI_REMEDIATION_PROVIDER", "openrouter"),
 		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "ollama"),
 		AIValidationProvider:  envOr("AI_VALIDATION_PROVIDER", "openrouter"),
+		AllowedOrigins:        allowedOrigins,
 	}
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
 
@@ -120,6 +131,7 @@ func Load() *Config {
 		"port", cfg.Port,
 		"frontend_url_configured", cfg.FrontendURL != "",
 		"license_key_configured", cfg.LicenseKey != "",
+		"webhook_secret_configured", cfg.WebhookSecret != "",
 		"email_notifications_enabled", cfg.EmailEnabled,
 		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "" || cfg.OllamaURL != "",
 		"ai_providers", fmt.Sprintf("openrouter=%t, cloudflare=%t, ollama=%t", cfg.OpenRouterAPIKey != "", cfg.CfAPIToken != "", cfg.OllamaURL != ""),
@@ -129,6 +141,7 @@ func Load() *Config {
 		"summary_model", cfg.SummaryConfig.Model,
 		"validation_provider", cfg.ValidationConfig.Name,
 		"validation_model", cfg.ValidationConfig.Model,
+		"cors_allowed_origins", cfg.AllowedOrigins,
 	)
 
 	return cfg
