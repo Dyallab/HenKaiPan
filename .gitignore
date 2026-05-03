@@ -63,8 +63,8 @@ frontend/.astro/
 ehthumbs.db
 Thumbs.db
 
-api
-worker
+/api
+/worker
 data/
 
 tmp/
