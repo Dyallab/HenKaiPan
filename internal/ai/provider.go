@@ -17,6 +17,7 @@ func Init(c *config.Config) {
 	cfg = c
 	SetOpenRouterConfig(c.OpenRouterAPIKey, c.OpenRouterModel)
 	SetCloudflareConfig(c.CfAccountID, c.CfAPIToken)
+	SetOllamaConfig(c.OllamaURL, c.OllamaModel)
 }
 
 // GenerateRemediation generates remediation guidance for a security finding.
@@ -129,20 +130,26 @@ func repairInvalidJSONEscapes(content string) string {
 }
 
 // GenerateTextWithModel generates text using a specific model identifier.
-// If the model starts with @cf/, it uses Cloudflare. Otherwise, uses OpenRouter.
+// If the model starts with @cf/, it uses Cloudflare. If it's "ollama" or starts with ollama/, it uses Ollama. Otherwise, uses OpenRouter.
 // This function allows explicit model selection and is useful for dynamic model switching.
 func GenerateTextWithModel(ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, error) {
 	if cfg == nil {
 		return "", ErrAIProviderNotConfigured
 	}
 
-	// Determine provider based on model prefix
+	// Determine provider based on model prefix or config
 	var provider *config.ProviderConfig
 	if strings.HasPrefix(modelName, "@cf/") {
 		provider = &config.ProviderConfig{
 			Name:         "cloudflare",
 			Model:        modelName,
 			IsConfigured: cfg.CfAccountID != "" && cfg.CfAPIToken != "",
+		}
+	} else if strings.HasPrefix(modelName, "ollama/") || modelName == "ollama" {
+		provider = &config.ProviderConfig{
+			Name:         "ollama",
+			Model:        strings.TrimPrefix(modelName, "ollama/"),
+			IsConfigured: cfg.OllamaURL != "",
 		}
 	} else {
 		provider = &config.ProviderConfig{
@@ -167,6 +174,12 @@ func generateWithProvider(ctx context.Context, provider *config.ProviderConfig, 
 			return "", ErrAIProviderNotConfigured
 		}
 		return CloudflareGenerate(ctx, provider.Model, systemPrompt, userPrompt)
+
+	case "ollama":
+		if !OllamaEnabled() {
+			return "", ErrAIProviderNotConfigured
+		}
+		return OllamaGenerate(ctx, provider.Model, systemPrompt, userPrompt)
 
 	case "openrouter":
 		if OpenRouterKey() == "" {

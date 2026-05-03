@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"aspm/internal/auth"
+	"aspm/internal/license"
 	"aspm/internal/repository"
 
 	"github.com/hibiken/asynq"
@@ -16,11 +17,11 @@ type Handler struct {
 	queue        *asynq.Client
 	frontendURL  string
 	cookieSecure bool
-	licenseKey   string
+	license      *license.Service
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, licenseKey string) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, licenseKey: licenseKey}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, lic *license.Service) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, license: lic}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
