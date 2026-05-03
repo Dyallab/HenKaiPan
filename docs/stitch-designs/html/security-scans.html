@@ -1,0 +1,989 @@
+<!doctype html>
+
+<html class="dark" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <title>Vigilance ASPM - Scans Management</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: "class",
+                theme: {
+                    extend: {
+                        colors: {
+                            "on-tertiary": "#552100",
+                            "on-background": "#dae2fd",
+                            "on-error": "#690005",
+                            "tertiary-fixed": "#ffdbca",
+                            "tertiary-container": "#fc7519",
+                            background: "#0b1326",
+                            error: "#ffb4ab",
+                            "on-surface": "#dae2fd",
+                            "on-secondary-container": "#00311f",
+                            "on-error-container": "#ffdad6",
+                            "primary-fixed": "#cfe5ff",
+                            tertiary: "#ffb690",
+                            "surface-variant": "#2d3449",
+                            "error-container": "#93000a",
+                            "on-primary": "#003354",
+                            "surface-container-lowest": "#060e20",
+                            "on-tertiary-fixed-variant": "#783200",
+                            "surface-container-high": "#222a3d",
+                            "surface-container-highest": "#2d3449",
+                            "on-surface-variant": "#bec7d4",
+                            "primary-fixed-dim": "#98cbff",
+                            surface: "#0b1326",
+                            "on-tertiary-container": "#5b2400",
+                            primary: "#98cbff",
+                            "on-primary-fixed-variant": "#004a77",
+                            "tertiary-fixed-dim": "#ffb690",
+                            "surface-tint": "#98cbff",
+                            outline: "#88919d",
+                            "secondary-container": "#00a572",
+                            "surface-container-low": "#131b2e",
+                            "surface-container": "#171f33",
+                            "on-tertiary-fixed": "#341100",
+                            "on-primary-fixed": "#001d33",
+                            "on-secondary": "#003824",
+                            secondary: "#4edea3",
+                            "inverse-surface": "#dae2fd",
+                            "primary-container": "#00a3ff",
+                            "inverse-on-surface": "#283044",
+                            "secondary-fixed": "#6ffbbe",
+                            "secondary-fixed-dim": "#4edea3",
+                            "inverse-primary": "#00629d",
+                            "surface-bright": "#31394d",
+                            "on-secondary-fixed-variant": "#005236",
+                            "surface-dim": "#0b1326",
+                            "on-secondary-fixed": "#002113",
+                            "on-primary-container": "#00375a",
+                            "outline-variant": "#3f4852",
+                        },
+                        borderRadius: {
+                            DEFAULT: "0.125rem",
+                            lg: "0.25rem",
+                            xl: "0.5rem",
+                            full: "0.75rem",
+                        },
+                        spacing: {
+                            gutter: "20px",
+                            md: "24px",
+                            xl: "48px",
+                            lg: "32px",
+                            sm: "16px",
+                            base: "4px",
+                            xs: "8px",
+                            margin: "32px",
+                        },
+                        fontFamily: {
+                            h2: ["Inter"],
+                            "body-lg": ["Inter"],
+                            "mono-data": ["Space Grotesk"],
+                            "body-md": ["Inter"],
+                            h3: ["Inter"],
+                            h1: ["Inter"],
+                            "label-caps": ["Space Grotesk"],
+                        },
+                        fontSize: {
+                            h2: [
+                                "24px",
+                                { lineHeight: "1.3", fontWeight: "600" },
+                            ],
+                            "body-lg": [
+                                "16px",
+                                { lineHeight: "1.6", fontWeight: "400" },
+                            ],
+                            "mono-data": [
+                                "13px",
+                                { lineHeight: "1.4", fontWeight: "400" },
+                            ],
+                            "body-md": [
+                                "14px",
+                                { lineHeight: "1.5", fontWeight: "400" },
+                            ],
+                            h3: [
+                                "20px",
+                                { lineHeight: "1.4", fontWeight: "600" },
+                            ],
+                            h1: [
+                                "32px",
+                                {
+                                    lineHeight: "1.2",
+                                    letterSpacing: "-0.02em",
+                                    fontWeight: "700",
+                                },
+                            ],
+                            "label-caps": [
+                                "12px",
+                                {
+                                    lineHeight: "1",
+                                    letterSpacing: "0.05em",
+                                    fontWeight: "500",
+                                },
+                            ],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            .material-symbols-outlined {
+                font-variation-settings:
+                    "FILL" 0,
+                    "wght" 400,
+                    "GRAD" 0,
+                    "opsz" 24;
+            }
+            .custom-scrollbar::-webkit-scrollbar {
+                width: 4px;
+            }
+            .custom-scrollbar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                background: #3f4852;
+                border-radius: 10px;
+            }
+        </style>
+    </head>
+    <body
+        class="bg-background text-on-background font-body-md antialiased min-h-screen"
+    >
+        <aside
+            class="fixed left-0 h-screen w-64 border-r border-slate-800 bg-slate-950/90 backdrop-blur-lg z-50 flex flex-col py-4 space-y-2"
+        >
+            <div class="px-6 mb-8 flex items-center gap-3">
+                <div
+                    class="w-8 h-8 bg-sky-500 rounded flex items-center justify-center"
+                >
+                    <span
+                        class="material-symbols-outlined text-slate-950"
+                        style="font-variation-settings: &quot;FILL&quot; 1"
+                        >security</span
+                    >
+                </div>
+                <div>
+                    <h1
+                        class="text-sky-500 font-black text-lg leading-none tracking-tight"
+                    >
+                        Vigilance
+                    </h1>
+                    <p
+                        class="text-[10px] text-slate-500 uppercase tracking-widest font-bold"
+                    >
+                        Enterprise Tier
+                    </p>
+                </div>
+            </div>
+            <nav class="flex-1 space-y-1">
+                <div
+                    class="flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="dashboard"
+                        >dashboard</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Dashboard</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-6 py-3 bg-sky-500/10 text-sky-500 border-l-2 border-sky-500 group cursor-pointer"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="security_update_good"
+                        >security_update_good</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Scans</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="biotech"
+                        >biotech</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Findings</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span
+                        class="material-symbols-outlined"
+                        data-icon="verified_user"
+                        >verified_user</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Compliance</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="hub"
+                        >hub</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Integrations</span
+                    >
+                </div>
+                <div
+                    class="flex items-center gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-900 group cursor-pointer transition-all duration-150"
+                >
+                    <span class="material-symbols-outlined" data-icon="settings"
+                        >settings</span
+                    >
+                    <span
+                        class="font-inter text-sm uppercase tracking-wider font-bold"
+                        >Settings</span
+                    >
+                </div>
+            </nav>
+            <div class="mt-auto px-4 pb-4">
+                <button
+                    class="w-full bg-slate-900 hover:bg-slate-800 text-sky-500 py-3 rounded-lg flex items-center justify-center gap-2 font-bold uppercase tracking-wider text-xs transition-colors border border-slate-800"
+                >
+                    <span
+                        class="material-symbols-outlined text-sm"
+                        data-icon="rocket_launch"
+                        >rocket_launch</span
+                    >
+                    Run Global Scan
+                </button>
+                <div
+                    class="mt-6 pt-6 border-t border-slate-800 flex flex-col gap-1"
+                >
+                    <div
+                        class="flex items-center gap-3 px-2 py-2 text-slate-500 hover:text-sky-500 cursor-pointer transition-colors text-xs font-bold uppercase tracking-wider"
+                    >
+                        <span
+                            class="material-symbols-outlined text-sm"
+                            data-icon="menu_book"
+                            >menu_book</span
+                        >
+                        Documentation
+                    </div>
+                    <div
+                        class="flex items-center gap-3 px-2 py-2 text-slate-500 hover:text-red-400 cursor-pointer transition-colors text-xs font-bold uppercase tracking-wider"
+                    >
+                        <span
+                            class="material-symbols-outlined text-sm"
+                            data-icon="logout"
+                            >logout</span
+                        >
+                        Log Out
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <main class="ml-64 flex flex-col min-h-screen">
+            <header
+                class="sticky top-0 z-40 flex justify-between items-center px-8 h-16 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800"
+            >
+                <div class="flex items-center gap-6">
+                    <h2 class="font-h2 text-h2 text-on-background">
+                        Security Scans
+                    </h2>
+                    <div class="hidden md:flex items-center gap-4">
+                        <span
+                            class="text-sky-500 font-semibold border-b-2 border-sky-500 pb-1 cursor-pointer font-inter text-sm"
+                            >Active Jobs</span
+                        >
+                        <span
+                            class="text-slate-400 font-medium hover:text-slate-200 cursor-pointer font-inter text-sm transition-colors"
+                            >History</span
+                        >
+                        <span
+                            class="text-slate-400 font-medium hover:text-slate-200 cursor-pointer font-inter text-sm transition-colors"
+                            >Schedules</span
+                        >
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <button
+                            class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-full transition-colors"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="notifications"
+                                >notifications</span
+                            >
+                        </button>
+                        <button
+                            class="p-2 text-slate-400 hover:bg-slate-900/50 rounded-full transition-colors"
+                        >
+                            <span
+                                class="material-symbols-outlined"
+                                data-icon="settings"
+                                >settings</span
+                            >
+                        </button>
+                    </div>
+                    <div class="h-8 w-px bg-slate-800 mx-2"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right hidden lg:block">
+                            <p
+                                class="text-xs font-bold text-on-background leading-none"
+                            >
+                                Alex Chen
+                            </p>
+                            <p class="text-[10px] text-slate-500">
+                                Sr. Security Analyst
+                            </p>
+                        </div>
+                        <img
+                            alt="Security Analyst Profile"
+                            class="w-8 h-8 rounded-full border border-sky-500/50"
+                            data-alt="portrait of a focused professional security analyst in a modern office environment with digital screens"
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBwWvUmNWAU8aE77OAzkYIVibWQCnj4Isqqd4k6CqNKTh1Kwuc7b5g2JE4epGn3ygbHFybbQZazafXfF8I8u0rMiSzGizhtjL_uDaecOgnEMJE2IbFQRK-ddM-uW-RbsOPRPIPuesP1yCz_1iv0rVrKvddOTeU2pEkXVrhvxvUtT9ZMQ1tjJUxzvttJkKhU38kY6_pQ2K-QvGEApOaMmktmVluotUZ2RcgqR2nEfMIsUEoUwQCHmBDgHN3qi7v4csYqvfY-Vqt0vg"
+                        />
+                    </div>
+                </div>
+            </header>
+            <section class="p-8 space-y-6 flex-1">
+                <div
+                    class="flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                >
+                    <div class="flex-1 max-w-2xl relative">
+                        <span
+                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg"
+                            data-icon="search"
+                            >search</span
+                        >
+                        <input
+                            class="w-full bg-slate-900/50 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-on-background placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-500 transition-all font-body-md"
+                            placeholder="Search by scan name, repository, or environment..."
+                            type="text"
+                        />
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button
+                            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors font-semibold text-sm"
+                        >
+                            <span
+                                class="material-symbols-outlined text-lg"
+                                data-icon="filter_list"
+                                >filter_list</span
+                            >
+                            Filters
+                        </button>
+                        <button
+                            class="flex items-center gap-2 px-6 py-2.5 bg-primary text-on-primary rounded-lg hover:opacity-90 active:scale-95 transition-all font-bold text-sm"
+                        >
+                            <span
+                                class="material-symbols-outlined text-lg"
+                                data-icon="add"
+                                style="
+                                    font-variation-settings: &quot;wght&quot;
+                                        700;
+                                "
+                                >add</span
+                            >
+                            Run New Scan
+                        </button>
+                    </div>
+                </div>
+                <div
+                    class="bg-surface-container-low border border-slate-800 rounded-xl overflow-hidden shadow-2xl"
+                >
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr
+                                    class="bg-slate-950/50 border-b border-slate-800"
+                                >
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        <div class="flex items-center gap-2">
+                                            Scan Name
+                                            <span
+                                                class="material-symbols-outlined text-xs"
+                                                data-icon="expand_more"
+                                                >expand_more</span
+                                            >
+                                        </div>
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        Type
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        Target
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        Frequency
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        Status
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase"
+                                    >
+                                        Last Run Results
+                                    </th>
+                                    <th
+                                        class="px-6 py-4 font-label-caps text-label-caps text-slate-500 uppercase text-right"
+                                    >
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/50">
+                                <tr
+                                    class="hover:bg-slate-900/30 transition-colors"
+                                >
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-bold text-sky-500 text-sm"
+                                                >PR-Audit-Auth-Module</span
+                                            >
+                                            <span
+                                                class="text-[10px] text-slate-500 font-mono-data uppercase"
+                                                >ID: SC-88219</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2 py-1 bg-sky-500/10 text-sky-400 text-[10px] font-bold rounded uppercase tracking-wider border border-sky-500/20"
+                                            >SAST</span
+                                        >
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div
+                                            class="flex items-center gap-2 text-slate-300 text-xs font-mono-data"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-sm"
+                                                data-icon="terminal"
+                                                >terminal</span
+                                            >
+                                            vigilance-core/auth-service
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-slate-400 text-xs"
+                                    >
+                                        On Push (Main)
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_rgba(78,222,163,0.4)]"
+                                            ></div>
+                                            <span
+                                                class="text-xs font-semibold text-secondary"
+                                                >Active</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-error"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-error"
+                                                    >2</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-tertiary"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-tertiary"
+                                                    >14</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-sky-500"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-sky-500"
+                                                    >45</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button
+                                            class="p-2 text-slate-500 hover:text-sky-500 transition-colors"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined"
+                                                data-icon="more_vert"
+                                                >more_vert</span
+                                            >
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr
+                                    class="hover:bg-slate-900/30 transition-colors"
+                                >
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-bold text-sky-500 text-sm"
+                                                >Nightly-Dependency-Check</span
+                                            >
+                                            <span
+                                                class="text-[10px] text-slate-500 font-mono-data uppercase"
+                                                >ID: SC-88220</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2 py-1 bg-purple-500/10 text-purple-400 text-[10px] font-bold rounded uppercase tracking-wider border border-purple-500/20"
+                                            >SCA</span
+                                        >
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div
+                                            class="flex items-center gap-2 text-slate-300 text-xs font-mono-data"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-sm"
+                                                data-icon="inventory_2"
+                                                >inventory_2</span
+                                            >
+                                            prod-environment/manifests
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-slate-400 text-xs"
+                                    >
+                                        Daily (02:00)
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="w-2 h-2 rounded-full bg-slate-600"
+                                            ></div>
+                                            <span
+                                                class="text-xs font-semibold text-slate-500"
+                                                >Idle</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-error"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-error"
+                                                    >0</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-tertiary"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-tertiary"
+                                                    >3</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex items-center gap-1.5"
+                                            >
+                                                <span
+                                                    class="w-2 h-2 rounded-full bg-sky-500"
+                                                ></span>
+                                                <span
+                                                    class="text-xs font-mono-data text-sky-500"
+                                                    >128</span
+                                                >
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button
+                                            class="p-2 text-slate-500 hover:text-sky-500 transition-colors"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined"
+                                                data-icon="more_vert"
+                                                >more_vert</span
+                                            >
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr
+                                    class="hover:bg-slate-900/30 transition-colors"
+                                >
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-bold text-sky-500 text-sm"
+                                                >API-Fuzzing-Stage</span
+                                            >
+                                            <span
+                                                class="text-[10px] text-slate-500 font-mono-data uppercase"
+                                                >ID: SC-88221</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2 py-1 bg-amber-500/10 text-amber-400 text-[10px] font-bold rounded uppercase tracking-wider border border-amber-500/20"
+                                            >DAST</span
+                                        >
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div
+                                            class="flex items-center gap-2 text-slate-300 text-xs font-mono-data"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-sm"
+                                                data-icon="language"
+                                                >language</span
+                                            >
+                                            https://api.staging.vigilance.io
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-slate-400 text-xs"
+                                    >
+                                        Weekly (Sun)
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="material-symbols-outlined text-sky-500 text-sm animate-spin"
+                                                data-icon="sync"
+                                                >sync</span
+                                            >
+                                            <span
+                                                class="text-xs font-semibold text-sky-500"
+                                                >Running (42%)</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="text-xs text-slate-500 italic"
+                                            >Processing results...</span
+                                        >
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button
+                                            class="p-2 text-slate-500 hover:text-sky-500 transition-colors"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined"
+                                                data-icon="more_vert"
+                                                >more_vert</span
+                                            >
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr
+                                    class="hover:bg-slate-900/30 transition-colors"
+                                >
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="font-bold text-sky-500 text-sm"
+                                                >Container-Scan-Main</span
+                                            >
+                                            <span
+                                                class="text-[10px] text-slate-500 font-mono-data uppercase"
+                                                >ID: SC-88225</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-2 py-1 bg-sky-500/10 text-sky-400 text-[10px] font-bold rounded uppercase tracking-wider border border-sky-500/20"
+                                            >SAST</span
+                                        >
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div
+                                            class="flex items-center gap-2 text-slate-300 text-xs font-mono-data"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-sm"
+                                                data-icon="dock"
+                                                >dock</span
+                                            >
+                                            registry.vigilance.io/app-main:latest
+                                        </div>
+                                    </td>
+                                    <td
+                                        class="px-6 py-4 text-slate-400 text-xs"
+                                    >
+                                        On Image Push
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <div
+                                                class="w-2 h-2 rounded-full bg-error shadow-[0_0_8px_rgba(255,180,171,0.4)]"
+                                            ></div>
+                                            <span
+                                                class="text-xs font-semibold text-error"
+                                                >Failed</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div
+                                            class="flex items-center gap-2 text-error text-[10px] font-bold uppercase tracking-tight"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined text-xs"
+                                                data-icon="error"
+                                                >error</span
+                                            >
+                                            Timeout Error (E-401)
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button
+                                            class="p-2 text-slate-500 hover:text-sky-500 transition-colors"
+                                        >
+                                            <span
+                                                class="material-symbols-outlined"
+                                                data-icon="more_vert"
+                                                >more_vert</span
+                                            >
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div
+                        class="px-6 py-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/30"
+                    >
+                        <div class="text-xs text-slate-500 font-medium">
+                            Showing <span class="text-slate-300">1-4</span> of
+                            <span class="text-slate-300">24</span> scans
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button
+                                class="p-1 text-slate-600 cursor-not-allowed"
+                            >
+                                <span
+                                    class="material-symbols-outlined"
+                                    data-icon="chevron_left"
+                                    >chevron_left</span
+                                >
+                            </button>
+                            <button
+                                class="w-8 h-8 rounded flex items-center justify-center bg-sky-500 text-slate-950 text-xs font-bold"
+                            >
+                                1
+                            </button>
+                            <button
+                                class="w-8 h-8 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 text-xs font-bold transition-colors"
+                            >
+                                2
+                            </button>
+                            <button
+                                class="w-8 h-8 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 text-xs font-bold transition-colors"
+                            >
+                                3
+                            </button>
+                            <span class="text-slate-600 px-1">...</span>
+                            <button
+                                class="w-8 h-8 rounded flex items-center justify-center text-slate-400 hover:bg-slate-800 text-xs font-bold transition-colors"
+                            >
+                                6
+                            </button>
+                            <button
+                                class="p-1 text-slate-400 hover:text-sky-500 transition-colors"
+                            >
+                                <span
+                                    class="material-symbols-outlined"
+                                    data-icon="chevron_right"
+                                    >chevron_right</span
+                                >
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div
+                        class="bg-surface-container border border-slate-800 p-6 rounded-xl flex items-center gap-5"
+                    >
+                        <div
+                            class="w-12 h-12 bg-sky-500/10 rounded-lg flex items-center justify-center text-sky-500"
+                        >
+                            <span
+                                class="material-symbols-outlined text-3xl"
+                                data-icon="monitoring"
+                                >monitoring</span
+                            >
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-label-caps text-slate-500 uppercase tracking-widest mb-1"
+                            >
+                                Average Scan Time
+                            </p>
+                            <h4
+                                class="text-xl font-mono-data font-bold text-on-background"
+                            >
+                                4m 32s
+                            </h4>
+                            <p
+                                class="text-[10px] text-secondary flex items-center gap-1 mt-1"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-[10px]"
+                                    data-icon="arrow_downward"
+                                    >arrow_downward</span
+                                >
+                                12% from last week
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-surface-container border border-slate-800 p-6 rounded-xl flex items-center gap-5"
+                    >
+                        <div
+                            class="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500"
+                        >
+                            <span
+                                class="material-symbols-outlined text-3xl"
+                                data-icon="schedule_send"
+                                >schedule_send</span
+                            >
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-label-caps text-slate-500 uppercase tracking-widest mb-1"
+                            >
+                                Scheduled Today
+                            </p>
+                            <h4
+                                class="text-xl font-mono-data font-bold text-on-background"
+                            >
+                                18 Jobs
+                            </h4>
+                            <p
+                                class="text-[10px] text-slate-500 flex items-center gap-1 mt-1"
+                            >
+                                Next: SCA-Auth-Prod (in 12m)
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-surface-container border border-slate-800 p-6 rounded-xl flex items-center gap-5"
+                    >
+                        <div
+                            class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center text-secondary"
+                        >
+                            <span
+                                class="material-symbols-outlined text-3xl"
+                                data-icon="verified"
+                                >verified</span
+                            >
+                        </div>
+                        <div>
+                            <p
+                                class="text-xs font-label-caps text-slate-500 uppercase tracking-widest mb-1"
+                            >
+                                Scan Success Rate
+                            </p>
+                            <h4
+                                class="text-xl font-mono-data font-bold text-on-background"
+                            >
+                                99.2%
+                            </h4>
+                            <p
+                                class="text-[10px] text-secondary flex items-center gap-1 mt-1"
+                            >
+                                Operational stability: High
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer
+                class="w-full py-8 px-12 flex flex-col md:flex-row justify-between items-center bg-slate-950 border-t border-slate-900 mt-auto"
+            >
+                <div
+                    class="text-slate-400 font-bold font-inter text-sm mb-4 md:mb-0"
+                >
+                    Security Platform
+                </div>
+                <div class="flex flex-wrap justify-center gap-6 mb-4 md:mb-0">
+                    <a
+                        class="font-inter text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                        href="#"
+                        >Privacy Policy</a
+                    >
+                    <a
+                        class="font-inter text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                        href="#"
+                        >Terms of Service</a
+                    >
+                    <a
+                        class="font-inter text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                        href="#"
+                        >Security Disclosure</a
+                    >
+                    <a
+                        class="font-inter text-xs text-slate-500 hover:text-sky-500 transition-colors"
+                        href="#"
+                        >Trust Center</a
+                    >
+                </div>
+                <div class="font-inter text-xs text-slate-500">
+                    © 2026 Security Platform. All rights reserved.
+                </div>
+            </footer>
+        </main>
+    </body>
+</html>
