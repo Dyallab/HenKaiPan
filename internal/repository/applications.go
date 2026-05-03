@@ -16,7 +16,7 @@ func (r *appRepo) List(ctx context.Context, teamFilter string) ([]models.App, er
 		SELECT a.id, a.name, a.description, a.team_id, t.name, a.created_at
 		FROM apps a
 		LEFT JOIN teams t ON t.id = a.team_id
-		WHERE ($1 = '' OR a.team_id::text = $1)
+		WHERE ($1 = '' OR a.team_id = $1::uuid)
 		ORDER BY t.name NULLS LAST, a.name`, teamFilter)
 	if err != nil {
 		return nil, fmt.Errorf("apps list: %w", err)

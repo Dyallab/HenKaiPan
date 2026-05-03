@@ -213,7 +213,18 @@ func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.Cove
 		`
 	}
 
-	rows, err := r.db.Query(ctx, query, days)
+	var rows interface {
+		Next() bool
+		Scan(dest ...interface{}) error
+		Close()
+	}
+	var err error
+
+	if days > 0 {
+		rows, err = r.db.Query(ctx, query, days)
+	} else {
+		rows, err = r.db.Query(ctx, query)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("get coverage report: %w", err)
 	}

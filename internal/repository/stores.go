@@ -20,6 +20,7 @@ func NewPostgresStores(db *pgxpool.Pool, redisAddr string) Stores {
 		Schedules:      &scheduleRepo{db},
 		Audit:          &auditRepo{db},
 		RiskAcceptance: &riskAcceptanceRepo{db},
+		Notifications:  NewNotificationRepository(db),
 		Health:         NewHealthRepo(db, redisAddr),
 	}
 }

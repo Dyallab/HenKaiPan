@@ -42,8 +42,8 @@ BEGIN
     WHERE conrelid = 'projects'::regclass
       AND contype = 'u'
       AND conkey::int[] @> ARRAY[
-          (SELECT attnum FROM pg_attribute WHERE attrelid = 'projects'::regclass AND attname = 'app_id')
-      ];
+          (SELECT attnum::int FROM pg_attribute WHERE attrelid = 'projects'::regclass AND attname = 'app_id')
+      ]::int[];
     IF constraint_name IS NOT NULL THEN
         EXECUTE format('ALTER TABLE projects DROP CONSTRAINT %I', constraint_name);
     END IF;

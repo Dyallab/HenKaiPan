@@ -77,7 +77,7 @@ System alerts and warnings:
 
 ### Backup & Restore
 - `scripts/backup.sh` — Full database backup
-- `docs/self-hosted-backup.md` — Restore procedure
+- [Backup & Restore Guide](https://henkaipan.dyallab.com.ar/docs/backup) — Restore procedure
 
 ### Upgrade Path
 1. Pull new Docker images
