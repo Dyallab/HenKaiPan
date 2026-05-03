@@ -112,8 +112,16 @@ New target product model:
 
 - [x] Compliance starter mode (SOC 2 / ISO 27001 readiness)
 - [x] Guided policy packs
-- [x] Audit log + risk acceptance workflow
+- [x] Audit log + risk acceptance workflow (license-gated)
 - [x] Asset inventory view
+
+### v0.10 — Commercial Features ✅
+
+- [x] License system with offline JWT validation
+- [x] Feature gates for paid functionality (Comments, Audit Log, Risk Acceptance, Reports)
+- [x] User notifications system (in-app, unread tracking)
+- [x] Database migration framework
+- [x] Finding summary endpoint (`POST /api/findings/{id}/summary`)
 
 ---
 
@@ -126,22 +134,22 @@ Critical items that must be completed before v1.0 release.
 | Item | Effort | Priority |
 |------|--------|----------|
 | Scan coverage API + UI | 0.5 day | High |
-| Finding comments thread | 1 day | High |
-| Bulk operations (checkboxes + API) | 1 day | High |
+| Finding comments thread | ✅ Done | High |
+| Bulk operations (checkboxes + API) | ✅ Done | High |
 | @username mentions in comments | 0.5 day | Low |
-| In-app Documentation | 0.5 day | Medium |
+| In-app Documentation | ✅ Done | Medium |
 
 - [ ] `GET /api/coverage` — scan coverage report (projects without scans in last N days)
 - [ ] Projects page: "Never scanned" / "Last scan: X days ago" badges
 - [ ] Projects filter: "Show only projects without recent scans"
-- [ ] Migration `030_finding_comments.sql` — comments table + triggers
-- [ ] `GET/POST /api/findings/:id/comments` — comments API
-- [ ] Comments thread UI in findings modal
+- [x] Migration `031_finding_comments.sql` — comments table + triggers
+- [x] `GET/POST /api/findings/:id/comments` — comments API (license-gated)
+- [x] Comments thread UI in findings modal
 - [ ] `@username` mentions in comments → email notification
-- [ ] Bulk operations: checkboxes in findings table
-- [ ] `PATCH /api/findings/bulk` — bulk status change, assignment, export
-- [ ] Bulk actions dropdown: change status, assign to user, export selected
-- [ ] **In-app Documentation** — static markdown pages explaining each section (Dashboard, Scans, Findings, Projects, Compliance, etc.), accessible from sidebar "Documentation" link, with screenshots and navigation
+- [x] Bulk operations: checkboxes in findings table
+- [x] `PATCH /api/findings/bulk` — bulk status change, assignment, export
+- [x] Bulk actions dropdown: change status, assign to user, export selected
+- [x] **In-app Documentation** — static markdown pages explaining each section, accessible from sidebar "Documentation" link
 
 ### Credibility UI (v0.7 pending)
 
@@ -153,15 +161,21 @@ Critical items that must be completed before v1.0 release.
 
 - [ ] Findings page — show credibility score and corroboration count badges
 - [ ] Add filters/sorting for credibility score
-- [ ] Correlation details endpoint/UI ("which scanners corroborated this")
+- [x] Correlation details endpoint (`GET /api/findings/{id}/correlations`)
 
 ### AI Notification Summaries (v0.6 pending)
 
 | Item | Effort | Priority |
 |------|--------|----------|
 | AI summary generator for notifications | 1 day | High |
+| User notifications system | ✅ Done | High |
 
 - [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
+- [x] **User notifications system** — in-app notifications with read/unread status, unread count badge, mark as read endpoints
+- [x] `GET /api/notifications` — list user notifications
+- [x] `GET /api/notifications/unread-count` — unread notification count
+- [x] `PATCH /api/notifications/{id}/read` — mark single notification as read
+- [x] `PATCH /api/notifications/read-all` — mark all notifications as read
 
 ### Onboarding & Growth
 
@@ -208,21 +222,14 @@ Critical items that must be completed before v1.0 release.
 - [x] `/dashboard/system` — instance status page
 - [x] `GET /api/version` — version endpoint
 - [x] UI: version display + "new version available" indicator
-- [x] `scripts/backup.sh` — backup script
-- [x] `docs/self-hosted-backup.md` — backup/restore documentation
-
-### License System ✅
-
-- [x] `LICENSE_KEY` env var support (optional, validates offline JWT)
-- [x] `GET /api/license` — license status endpoint
-- [x] `/dashboard/settings/license` — license management UI
-- [x] `scripts/generate-license.sh` — free license key generator for beta users
+- [x] Database migration system (`internal/db/migrate.go`)
+- [x] Auto-run migrations on API startup
 
 ### Operational Documentation
 
 | Item | Effort | Priority |
 |------|--------|----------|
-| Backup/restore docs | ✅ Done | High |
+| Backup/restore docs | ❌ Removed | High |
 | Worker scaling guide | 0.5 day | Medium |
 | Scanner runtime requirements | 0.5 day | High |
 | Troubleshooting guide | 1 day | High |
@@ -230,6 +237,7 @@ Critical items that must be completed before v1.0 release.
 
 - [ ] Operational docs: backups, restore, worker scaling, scanner runtime requirements, troubleshooting
 - [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
+- [x] Database migration documentation (auto-run on startup)
 
 ---
 
@@ -279,7 +287,7 @@ Before tagging v1.0:
 - [ ] `make build` passes with version embedding
 - [ ] Docker images built and pushed
 - [ ] Deployment guide reviewed
-- [ ] Backup/restore tested end-to-end
+- [ ] Database migration system tested end-to-end
 - [ ] Demo workspace seed works
 - [ ] License generator tested
 - [ ] Changelog written

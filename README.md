@@ -1,22 +1,6 @@
 # HenKaiPan
 
-![IMG](./presentation/02-dashboard.png)
-
 HenKaiPan is an ASPM platform for security scans, findings, knowledge articles, policy automation, and AI-assisted remediation.
-
-## Screenshots
-
-### Landing
-
-![LANDING](./presentation/01-login.png)
-
-### Dashboard
-
-![DASH](./presentation/02-dashboard.png)
-
-### Vulns
-
-![VULNS](./presentation/05-vulns.png)
 
 ## Product Model
 
@@ -29,11 +13,23 @@ HenKaiPan is an ASPM platform for security scans, findings, knowledge articles, 
 
 1. **Dashboard** — health metrics, onboarding wizard, and recent activity
 2. **Scans** — scanner status, logs, results, and cron-based scan scheduling
-3. **Findings** — filters, triage, SLA tracking, exports, and cross-scan deduplication
+3. **Findings** — filters, triage, SLA tracking, exports, cross-scan deduplication, comments (paid), and analysis
 4. **Vulns** — grouped vulnerability inventory
 5. **Projects** — connect repos, manage GitHub tokens, track scan history
 6. **Knowledge** — remediation guides and AI-generated articles
-7. **Settings** — integrations, security, policies, notifications, users, teams
+7. **Compliance** — SOC 2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
+8. **Settings** — integrations, security, policies, notifications, users, teams, license management
+
+## Commercial Features (License-Gated)
+
+HenKaiPan uses a feature-based licensing system. Core functionality is free, while advanced features require a license key:
+
+- **Finding Comments** — collaborative discussion threads on findings
+- **Audit Log** — complete audit trail of user actions
+- **Risk Acceptance** — formal risk acceptance workflow with approval chain
+- **Reports & Advanced Metrics** — trend analysis, risk scores, finding exports
+
+License is validated offline via JWT. Configure with `LICENSE_KEY` and `LICENSE_SIGNING_SECRET` environment variables.
 
 ## Tech Stack
 
@@ -138,21 +134,24 @@ flowchart TD
 ## Main Components
 
 - **Frontend** — Astro 6 + Tailwind v4; UI lives in `frontend/` and uses `frontend/src/lib/api.ts`.
-- **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, and job enqueueing.
+- **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, job enqueueing, and license validation.
 - **Worker** — `cmd/worker/main.go` runs queued scans, validations, summaries, webhooks, emails, and periodic tasks (scan scheduler, digest generator).
-- **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`).
+- **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`). Dockerfiles for scanner execution live in `docker/scanners/`.
 - **Scheduling** — cron-based periodic scans managed by `internal/tasks/scan_scheduler.go`, configurable from the UI.
 - **Deduplication** — findings deduplicated across scans via SHA256 fingerprints (`scanner:rule_id:file_path:line`) with `ON CONFLICT DO NOTHING`.
 - **Digest** — weekly executive email digest (`internal/tasks/digest.go`) with severity breakdown, SLA report, and 7-day trend.
-- **Data** — PostgreSQL is the source of truth; repositories live under `internal/repository`.
+- **Data** — PostgreSQL is the source of truth; repositories live under `internal/repository`. Database migrations auto-run on API startup via `internal/db/migrate.go`.
 - **AI & integrations** — OpenRouter / Cloudflare AI, GitHub, Jira, webhooks, and notifications.
 - **Onboarding** — guided wizard at `/dashboard/welcome` with 3-step flow (project → token → first scan) and first-run redirect.
+- **License System** — offline JWT-based license validation with feature gates (`internal/license/`).
+- **Notifications** — in-app notification system with unread tracking (`internal/handlers/notifications.go`).
 
 ### Database Schema
 
 - PostgreSQL is the source of truth; schema changes live in `migrations/`.
-- Core entities: users, teams, apps, projects, scans, findings, knowledge articles, policies, suppressions, webhooks, scan schedules, and integrations.
+- Core entities: users, teams, apps, projects, scans, findings, knowledge articles, policies, suppressions, webhooks, scan schedules, integrations, and notifications.
 - Sensitive integration secrets are stored encrypted; user passwords remain hashed.
+- **Migrations auto-run** on API startup via `internal/db/migrate.go` — no manual intervention required.
 
 ### Queue Layer
 
@@ -166,12 +165,12 @@ flowchart TD
   - `internal/ai/openrouter.go` — OpenRouter integration
   - `internal/ai/cloudflare.go` — Cloudflare Workers AI integration
   - `internal/ai/provider.go` — Provider abstraction layer
-  - `internal/ai/notification.go` — AI-powered notification summaries
+  - `internal/ai/notification.go` — AI-powered notification summaries (optional)
 - AI is used for:
   - **Remediation generation** into knowledge articles
   - **Finding validation** to estimate confidence and false-positive likelihood
   - **Finding summaries** for repeated scanner results
-  - **Notification summaries** for human-readable alerts
+  - **Notification summaries** for human-readable alerts (optional)
 
 ### Integrations
 
@@ -207,10 +206,11 @@ flowchart TD
 ```text
 cmd/           # API and worker entrypoints
 frontend/      # Astro app and browser API client
-internal/      # Auth, handlers, repository, scanner, tasks, integrations
-migrations/    # Database schema and changes
+internal/      # Auth, handlers, repository, scanner, tasks, integrations, license, db
+migrations/    # Database schema and changes (auto-run on startup)
 scripts/       # Demo workspace seed and utility scripts
-presentation/  # Screenshots used in the README
+docker/        # Dockerfiles for API, worker, and scanners
+docs/          # User guides and documentation
 ```
 
 ## Local Development
