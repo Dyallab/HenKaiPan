@@ -39,7 +39,7 @@ func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 		SortBy:         q.Get("sort_by"),
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list findings")
+		h.writeInternal(w, r, err, "failed to list findings")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"findings": findings, "total": total})
@@ -106,13 +106,13 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 		Notes         *string `json:"notes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		h.writeBadRequest(w, r, "invalid body")
 		return
 	}
 
 	if body.Status != nil {
 		if !validation.IsValid(validation.FindingStatuses, *body.Status) {
-			writeError(w, http.StatusBadRequest, "invalid status")
+			h.writeBadRequest(w, r, "invalid status")
 			return
 		}
 	}
@@ -125,11 +125,11 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 			valid, err := h.validateOwner(r.Context(), owner)
 			if err != nil {
 				slog.Error("validate owner failed", "owner", owner, "err", err)
-				writeError(w, http.StatusInternalServerError, "failed to validate owner")
+				h.writeInternal(w, r, err, "failed to validate owner")
 				return
 			}
 			if !valid {
-				writeError(w, http.StatusBadRequest, fmt.Sprintf("owner '%s' not found. Must be a valid username or team name.", owner))
+				h.writeBadRequest(w, r, fmt.Sprintf("owner '%s' not found. Must be a valid username or team name.", owner))
 				return
 			}
 		}
@@ -146,7 +146,7 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 		Notes:         body.Notes,
 	})
 	if err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		h.writeNotFound(w, r, "finding")
 		return
 	}
 

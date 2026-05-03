@@ -10,10 +10,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
 	"aspm/internal/repository"
+	wh "aspm/internal/webhook"
 
 	"github.com/hibiken/asynq"
 )
@@ -147,6 +149,14 @@ func HandleWebhookSend(webhooks repository.WebhookRepository) asynq.HandlerFunc 
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("User-Agent", "ASPM-Webhook/1.0")
 		req.Header.Set("X-ASPM-Event", p.EventType)
+
+		// Add HMAC signature headers if WEBHOOK_SECRET is configured
+		if secret := os.Getenv("WEBHOOK_SECRET"); secret != "" {
+			timestamp := time.Now()
+			signature := wh.SignPayload(body, []byte(secret), timestamp)
+			req.Header.Set(wh.SignatureHeader, signature)
+			req.Header.Set(wh.TimestampHeader, timestamp.Format(time.RFC3339))
+		}
 
 		client := &http.Client{Timeout: 10 * time.Second}
 		resp, err := client.Do(req)

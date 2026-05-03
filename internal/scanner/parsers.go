@@ -138,7 +138,7 @@ type sarifDoc struct {
 			} `json:"driver"`
 		} `json:"tool"`
 		Results []struct {
-			RuleID  string `json:"ruleId"`
+			RuleID  string `json:"rule_id"`
 			Message struct {
 				Text string `json:"text"`
 			} `json:"message"`

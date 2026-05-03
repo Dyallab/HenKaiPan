@@ -17,7 +17,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Username == "" {
 		slog.WarnContext(r.Context(), "login: decode error", "error", err)
-		writeError(w, http.StatusBadRequest, "invalid request")
+		h.writeBadRequest(w, r, "invalid request")
 		return
 	}
 	slog.InfoContext(r.Context(), "login attempt", "username", req.Username)
@@ -25,13 +25,13 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	id, hash, role, err := h.store.Users.GetCredentials(r.Context(), req.Username)
 	if err != nil {
 		slog.WarnContext(r.Context(), "login: user not found or db error", "username", req.Username, "error", err)
-		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		h.writeUnauthorized(w, r)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
 		slog.WarnContext(r.Context(), "login: password mismatch", "username", req.Username)
-		writeError(w, http.StatusUnauthorized, "invalid credentials")
+		h.writeUnauthorized(w, r)
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	token, err := auth.IssueToken(req.Username, role, id)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "login: token generation failed", "error", err)
-		writeError(w, http.StatusInternalServerError, "token error")
+		h.writeInternal(w, r, err, "token generation failed")
 		return
 	}
 	slog.InfoContext(r.Context(), "login: token issued", "username", req.Username, "token_len", len(token))

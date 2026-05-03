@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"aspm/internal/auth"
+	"aspm/internal/httperrors"
 	"aspm/internal/license"
 	"aspm/internal/repository"
 
@@ -32,6 +33,45 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
+}
+
+// writeHTTPError writes a standardized HTTP error response
+func (h *Handler) writeHTTPError(w http.ResponseWriter, r *http.Request, httpErr *httperrors.HTTPError, statusCode int) {
+	slog.ErrorContext(r.Context(), "http error",
+		"code", httpErr.Code,
+		"message", httpErr.Message,
+		"details", httpErr.Details,
+		"status", statusCode,
+		"path", r.URL.Path,
+	)
+	writeJSON(w, statusCode, httpErr)
+}
+
+func (h *Handler) writeBadRequest(w http.ResponseWriter, r *http.Request, message string) {
+	h.writeHTTPError(w, r, httperrors.New(httperrors.ErrBadRequest, message), http.StatusBadRequest)
+}
+
+func (h *Handler) writeUnauthorized(w http.ResponseWriter, r *http.Request) {
+	h.writeHTTPError(w, r, httperrors.New(httperrors.ErrUnauthorized, "Invalid credentials"), http.StatusUnauthorized)
+}
+
+func (h *Handler) writeForbidden(w http.ResponseWriter, r *http.Request) {
+	h.writeHTTPError(w, r, httperrors.New(httperrors.ErrForbidden, "Access denied"), http.StatusForbidden)
+}
+
+func (h *Handler) writeNotFound(w http.ResponseWriter, r *http.Request, resource string) {
+	h.writeHTTPError(w, r, httperrors.New(httperrors.ErrNotFound, resource+" not found"), http.StatusNotFound)
+}
+
+func (h *Handler) writeInternal(w http.ResponseWriter, r *http.Request, err error, message string) {
+	h.writeHTTPError(w, r, httperrors.Wrap(err, httperrors.ErrInternal, message), http.StatusInternalServerError)
+}
+
+func (h *Handler) writeLicenseRequired(w http.ResponseWriter, r *http.Request, feature string) {
+	h.writeHTTPError(w, r,
+		httperrors.New(httperrors.ErrLicenseRequired, "License required for this feature").
+			WithMetadata("feature", feature),
+		http.StatusPaymentRequired)
 }
 
 // auditLog helper: extracts claims and logs audit entry if user is authenticated
