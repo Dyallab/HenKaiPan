@@ -1,0 +1,16 @@
+.git/
+.gitignore
+.env
+tmp/
+data/
+bin/
+node_modules/
+.air.toml
+.air-worker.toml
+.agents/
+.sisyphus/
+AGENTS.md
+TODO.md
+CHANGELOG.md
+Makefile
+docker-compose.yml
