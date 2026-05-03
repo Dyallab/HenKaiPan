@@ -5,7 +5,7 @@ RUN go mod download
 COPY . .
 RUN go build -o /worker ./cmd/worker
 
-FROM alpine:3.21
+FROM alpine:3.22.4
 RUN apk add --no-cache ca-certificates git docker-cli
 COPY --from=builder /worker /worker
 CMD ["/worker"]

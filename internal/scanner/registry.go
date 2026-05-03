@@ -74,7 +74,7 @@ var Registry = map[string]Scanner{
 		Name:        "semgrep",
 		Category:    CategorySAST,
 		Description: "Static analysis for 30+ languages",
-		Image:       "semgrep/semgrep:latest",
+		Image:       "aspm-semgrep:latest",
 		MountDst:    "/src",
 		BuildArgs: func(t string) []string {
 			return []string{"semgrep", "--sarif", "--config=auto", "--no-rewrite-rule-ids", t}
@@ -88,7 +88,7 @@ var Registry = map[string]Scanner{
 		Name:        "gosec",
 		Category:    CategorySAST,
 		Description: "Go security checker (Go projects only)",
-		Image:       "securego/gosec:latest",
+		Image:       "aspm-gosec:latest",
 		MountDst:    "/src",
 		WorkDir:     "/src",
 		BuildArgs: func(_ string) []string {
@@ -181,7 +181,7 @@ var Registry = map[string]Scanner{
 		Name:        "checkov",
 		Category:    CategoryIaC,
 		Description: "IaC security analysis (Terraform, K8s, Dockerfile, ARM…)",
-		Image:       "bridgecrew/checkov:latest",
+		Image:       "aspm-checkov:latest",
 		MountDst:    "/tf",
 		BuildArgs: func(t string) []string {
 			return []string{"-d", t, "-o", "json", "--compact"}
