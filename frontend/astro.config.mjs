@@ -6,4 +6,7 @@ export default defineConfig({
   vite: {
     plugins: [tailwindcss()],
   },
+  build: {
+    assets: 'assets', // Changed from '_astro' to fix Go embed issue (_ dirs are excluded)
+  },
 });
