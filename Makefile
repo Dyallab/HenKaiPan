@@ -1,4 +1,4 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate gen-license
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license build-scanner-slim build-all
 
 ifneq (,$(wildcard .env))
   include .env
@@ -45,5 +45,18 @@ migrate:
 	@if [ -z "$(MIGRATION)" ]; then echo "Error: MIGRATION is required. Usage: make migrate MIGRATION=migrations/029_xxx.sql"; exit 1; fi
 	cat $(MIGRATION) | docker compose exec -T postgres psql -U aspm -d aspm
 
+sync-migrations:
+	@echo "Syncing migrations to internal/db/migrations..."
+	@rm -rf internal/db/migrations/*.sql
+	@cp migrations/*.sql internal/db/migrations/
+	@echo "Done. $(shell ls internal/db/migrations/*.sql | wc -l) migration files synced."
+
 gen-license:
 	./scripts/generate-license.sh $(EMAIL) $(DAYS)
+
+build-scanner-slim:
+	docker build -f docker/scanners/semgrep.Dockerfile -t aspm-semgrep:latest .
+	docker build -f docker/scanners/gosec.Dockerfile -t aspm-gosec:latest .
+	docker build -f docker/scanners/checkov.Dockerfile -t aspm-checkov:latest .
+
+build-all: build build-scanner-slim

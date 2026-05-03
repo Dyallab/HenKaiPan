@@ -1,11 +1,23 @@
+# Stage 1: Build frontend
+FROM node:24-alpine AS frontend
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+COPY frontend/ .
+COPY docs/ ../docs/
+RUN pnpm build
+
+# Stage 2: Build Go API
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /api ./cmd/api
+COPY --from=frontend /app/frontend/dist ./cmd/api/frontend-dist
+RUN go build -tags embed_frontend -o /api ./cmd/api
 
-FROM alpine:3.21
+# Stage 3: Runtime
+FROM alpine:3.22.4
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /api /api
 EXPOSE 8080
