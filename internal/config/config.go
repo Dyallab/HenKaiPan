@@ -10,9 +10,9 @@ import (
 
 // ProviderConfig represents the configuration for a specific AI provider task (remediation, summary, validation)
 type ProviderConfig struct {
-	// Name is the provider name: "cloudflare" or "openrouter"
+	// Name is the provider name: "cloudflare", "openrouter", or "ollama"
 	Name string
-	// Model is the model identifier (e.g. "@cf/meta/llama-3.1-8b-instruct" or "openai/gpt-4.1-mini")
+	// Model is the model identifier (e.g. "@cf/meta/llama-3.1-8b-instruct", "openai/gpt-4.1-mini", or "gemma4:e4b")
 	Model string
 	// IsConfigured returns true if both provider name and credentials are available
 	IsConfigured bool
@@ -27,6 +27,7 @@ type Config struct {
 	FrontendURL         string // optional: public frontend URL for external backlinks
 	CookieSecure        bool   // default: false; set true behind HTTPS
 	LicenseKey          string // optional: license key for self-hosted features
+	LicenseSigningSecret string // secret for signing license keys (default: "aspm-license-secret")
 
 	SMTPHost     string // optional email notifications
 	SMTPPort     string // default: 587
@@ -44,6 +45,10 @@ type Config struct {
 	CfAPIToken  string
 	CfModel     string
 	CfModelSumm string
+
+	// Ollama configuration (optional, for self-hosted free tier)
+	OllamaURL   string
+	OllamaModel string
 
 	// AI Provider selection per task (remediation, summary, validation)
 	AIRemediationProvider string
@@ -78,6 +83,7 @@ func Load() *Config {
 		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
 		CookieSecure:          envBool("COOKIE_SECURE", false),
 		LicenseKey:            os.Getenv("LICENSE_KEY"),
+		LicenseSigningSecret:  os.Getenv("LICENSE_SIGNING_SECRET"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPPort:              envOr("SMTP_PORT", "587"),
 		SMTPUsername:          os.Getenv("SMTP_USERNAME"),
@@ -89,8 +95,10 @@ func Load() *Config {
 		CfAPIToken:            os.Getenv("CF_API_TOKEN"),
 		CfModel:               envOr("CF_MODEL", "@cf/meta/llama-3.1-8b-instruct"),
 		CfModelSumm:           envOr("CF_MODEL_SUMM", "@cf/google/gemma-3-12b-it"),
+		OllamaURL:             envOr("OLLAMA_URL", "http://localhost:11434"),
+		OllamaModel:           envOr("OLLAMA_MODEL", "gemma4:e4b"),
 		AIRemediationProvider: envOr("AI_REMEDIATION_PROVIDER", "openrouter"),
-		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "openrouter"),
+		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "ollama"),
 		AIValidationProvider:  envOr("AI_VALIDATION_PROVIDER", "openrouter"),
 	}
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
@@ -113,8 +121,8 @@ func Load() *Config {
 		"frontend_url_configured", cfg.FrontendURL != "",
 		"license_key_configured", cfg.LicenseKey != "",
 		"email_notifications_enabled", cfg.EmailEnabled,
-		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "",
-		"ai_providers", fmt.Sprintf("openrouter=%t, cloudflare=%t", cfg.OpenRouterAPIKey != "", cfg.CfAPIToken != ""),
+		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "" || cfg.OllamaURL != "",
+		"ai_providers", fmt.Sprintf("openrouter=%t, cloudflare=%t, ollama=%t", cfg.OpenRouterAPIKey != "", cfg.CfAPIToken != "", cfg.OllamaURL != ""),
 		"remediation_provider", cfg.RemediationConfig.Name,
 		"remediation_model", cfg.RemediationConfig.Model,
 		"summary_provider", cfg.SummaryConfig.Name,
@@ -135,6 +143,12 @@ func (c *Config) resolveProviderConfig(provider string, cloudflareModel string) 
 			Name:         "cloudflare",
 			Model:        cloudflareModel,
 			IsConfigured: c.CfAccountID != "" && c.CfAPIToken != "",
+		}
+	case "ollama":
+		return &ProviderConfig{
+			Name:         "ollama",
+			Model:        c.OllamaModel,
+			IsConfigured: c.OllamaURL != "",
 		}
 	case "openrouter", "":
 		return &ProviderConfig{
