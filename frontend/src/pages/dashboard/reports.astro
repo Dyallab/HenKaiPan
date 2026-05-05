@@ -104,33 +104,22 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     <div class="report-page space-y-6">
         <section
-            class="report-card overflow-hidden rounded-[1.75rem] border border-sky-500/20 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(11,19,38,0.92)_58%,rgba(22,163,74,0.12))] px-6 py-6 shadow-[0_20px_60px_rgba(2,8,23,0.25)]"
+            class="report-card overflow-hidden rounded-2xl border border-white/10 bg-shadow-tint px-5 py-5"
         >
             <div
                 class="report-toolbar flex items-start justify-between gap-4 flex-wrap"
             >
-                <div class="max-w-3xl space-y-3">
-                    <div class="space-y-2">
-                        <h1
-                            class="report-print-title text-3xl font-black tracking-tight text-on-background sm:text-4xl"
-                        >
-                            Browser-ready PDF report
-                        </h1>
-                        <p
-                            class="report-print-copy max-w-2xl text-sm leading-6 text-slate-300 sm:text-[15px]"
-                        >
-                            Export the current reports surface as a polished PDF
-                            directly from the browser. This view is optimized
-                            for print, keeps the executive KPIs visible, and
-                            adds a concise findings snapshot for leadership
-                            reviews.
-                        </p>
-                    </div>
+                <div>
+                    <h1
+                        class="report-print-title text-3xl font-light tracking-tight text-ghost-white font-aeonik"
+                    >
+                        Executive Reports
+                    </h1>
                 </div>
                 <div class="flex items-center gap-2 print:hidden">
                     <button
                         id="print-btn"
-                        class="flex items-center gap-2 rounded-lg border border-sky-400/30 bg-sky-500 px-4 py-2 text-sm font-black text-slate-950 transition-colors hover:bg-sky-400"
+                        class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-ghost-white transition-colors hover:bg-white/10"
                     >
                         <span class="material-symbols-outlined text-base"
                             >print</span
@@ -140,65 +129,22 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 </div>
             </div>
 
-            <div class="mt-6 grid gap-3 md:grid-cols-4">
-                <div
-                    class="report-metric-chip rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
-                >
-                    <p
-                        class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400"
-                    >
-                        Generated
-                    </p>
-                    <p
-                        id="report-generated-at"
-                        class="report-print-subtitle mt-2 text-sm font-semibold text-on-background"
-                    >
-                        —
-                    </p>
+            <div class="mt-4 grid gap-3 md:grid-cols-4">
+                <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.24em] text-iron-slate">Generated</p>
+                    <p id="report-generated-at" class="mt-2 text-sm font-medium text-ghost-white">—</p>
                 </div>
-                <div
-                    class="report-metric-chip rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
-                >
-                    <p
-                        class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400"
-                    >
-                        Trend window
-                    </p>
-                    <p
-                        id="report-window"
-                        class="report-print-subtitle mt-2 text-sm font-semibold text-on-background"
-                    >
-                        Last 30 days
-                    </p>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.24em] text-iron-slate">Trend window</p>
+                    <p id="report-window" class="mt-2 text-sm font-medium text-ghost-white">Last 30 days</p>
                 </div>
-                <div
-                    class="report-metric-chip rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
-                >
-                    <p
-                        class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400"
-                    >
-                        Export scope
-                    </p>
-                    <p
-                        id="report-scope"
-                        class="report-print-subtitle mt-2 text-sm font-semibold text-on-background"
-                    >
-                        All severities · All statuses
-                    </p>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.24em] text-iron-slate">Export scope</p>
+                    <p id="report-scope" class="mt-2 text-sm font-medium text-ghost-white">All severities · All statuses</p>
                 </div>
-                <div
-                    class="report-metric-chip rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm"
-                >
-                    <p
-                        class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400"
-                    >
-                        Report focus
-                    </p>
-                    <p
-                        class="report-print-subtitle mt-2 text-sm font-semibold text-on-background"
-                    >
-                        SLA, trends, risk, findings
-                    </p>
+                    <div class="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+                    <p class="text-[10px] font-medium uppercase tracking-[0.24em] text-iron-slate">Report focus</p>
+                    <p id="report-focus" class="mt-2 text-sm font-medium text-ghost-white">SLA, trends, risk</p>
                 </div>
             </div>
         </section>
@@ -214,7 +160,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 >
                 <select
                     id="days-select"
-                    class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                    class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all"
                 >
                     <option value="7">Last 7 days</option>
                     <option value="30" selected>Last 30 days</option>
@@ -230,65 +176,30 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         class="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500"
                         >Export severities</legend
                     >
-                    <label
-                        class="inline-flex items-center gap-2 rounded-full border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-300 cursor-pointer"
-                    >
-                        <input
-                            type="checkbox"
-                            value="critical"
-                            data-export-severity
-                            class="h-3.5 w-3.5 rounded border-red-500/40 bg-transparent text-red-400 focus:ring-0"
-                        />
+                    <label class="inline-flex items-center gap-2 rounded-full border border-vivid-crimson/20 bg-vivid-crimson/10 px-2.5 py-1 text-xs font-medium text-vivid-crimson cursor-pointer">
+                        <input type="checkbox" value="critical" data-export-severity class="h-3.5 w-3.5 rounded border-vivid-crimson/40 bg-transparent text-vivid-crimson focus:ring-0" />
                         Critical
                     </label>
-                    <label
-                        class="inline-flex items-center gap-2 rounded-full border border-orange-500/20 bg-orange-500/10 px-2.5 py-1 text-xs font-semibold text-orange-300 cursor-pointer"
-                    >
-                        <input
-                            type="checkbox"
-                            value="high"
-                            data-export-severity
-                            class="h-3.5 w-3.5 rounded border-orange-500/40 bg-transparent text-orange-400 focus:ring-0"
-                        />
+                    <label class="inline-flex items-center gap-2 rounded-full border border-goldenrod/20 bg-goldenrod/10 px-2.5 py-1 text-xs font-medium text-goldenrod cursor-pointer">
+                        <input type="checkbox" value="high" data-export-severity class="h-3.5 w-3.5 rounded border-goldenrod/40 bg-transparent text-goldenrod focus:ring-0" />
                         High
                     </label>
-                    <label
-                        class="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-300 cursor-pointer"
-                    >
-                        <input
-                            type="checkbox"
-                            value="medium"
-                            data-export-severity
-                            class="h-3.5 w-3.5 rounded border-amber-500/40 bg-transparent text-amber-400 focus:ring-0"
-                        />
+                    <label class="inline-flex items-center gap-2 rounded-full border border-spectrum-flare/20 bg-spectrum-flare/10 px-2.5 py-1 text-xs font-medium text-spectrum-flare cursor-pointer">
+                        <input type="checkbox" value="medium" data-export-severity class="h-3.5 w-3.5 rounded border-spectrum-flare/40 bg-transparent text-spectrum-flare focus:ring-0" />
                         Medium
                     </label>
-                    <label
-                        class="inline-flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-300 cursor-pointer"
-                    >
-                        <input
-                            type="checkbox"
-                            value="low"
-                            data-export-severity
-                            class="h-3.5 w-3.5 rounded border-sky-500/40 bg-transparent text-sky-400 focus:ring-0"
-                        />
+                    <label class="inline-flex items-center gap-2 rounded-full border border-emerald-green/20 bg-emerald-green/10 px-2.5 py-1 text-xs font-medium text-emerald-green cursor-pointer">
+                        <input type="checkbox" value="low" data-export-severity class="h-3.5 w-3.5 rounded border-emerald-green/40 bg-transparent text-emerald-green focus:ring-0" />
                         Low
                     </label>
-                    <label
-                        class="inline-flex items-center gap-2 rounded-full border border-slate-500/20 bg-slate-500/10 px-2.5 py-1 text-xs font-semibold text-slate-300 cursor-pointer"
-                    >
-                        <input
-                            type="checkbox"
-                            value="info"
-                            data-export-severity
-                            class="h-3.5 w-3.5 rounded border-slate-500/40 bg-transparent text-slate-400 focus:ring-0"
-                        />
+                    <label class="inline-flex items-center gap-2 rounded-full border border-iron-slate/20 bg-iron-slate/10 px-2.5 py-1 text-xs font-medium text-iron-slate cursor-pointer">
+                        <input type="checkbox" value="info" data-export-severity class="h-3.5 w-3.5 rounded border-iron-slate/40 bg-transparent text-iron-slate focus:ring-0" />
                         Info
                     </label>
                 </fieldset>
                 <select
                     id="export-status"
-                    class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                    class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all"
                 >
                     <option value="">All statuses</option>
                     <option value="open">Open</option>
@@ -298,7 +209,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 </select>
                 <button
                     id="export-btn"
-                    class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-bold"
+                    class="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-ghost-white rounded-lg hover:bg-white/10 transition-colors text-sm font-medium"
                 >
                     <span class="material-symbols-outlined text-base"
                         >download</span
@@ -308,131 +219,49 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </div>
         </div>
 
-        <section
-            class="report-card rounded-2xl border border-outline-variant/20 bg-surface-container-low/70 p-5"
-        >
+        <section class="rounded-2xl border border-white/10 bg-shadow-tint p-4">
             <div class="flex items-start justify-between gap-4 flex-wrap">
-                <div class="space-y-2">
-                    <p
-                        class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
-                    >
-                        Executive brief
-                    </p>
-                    <h2
-                        class="report-print-title text-xl font-black tracking-tight text-on-background"
-                    >
-                        Current exposure snapshot
-                    </h2>
-                </div>
-                <p
-                    class="report-print-copy max-w-2xl text-sm leading-6 text-slate-400"
-                >
-                    Built for browser print-to-PDF flows. Filters affect CSV
-                    exports, while the snapshot below reflects live platform
-                    metrics for leadership reporting and review.
-                </p>
+                <h2 class="text-lg font-light text-ghost-white font-aeonik">Current exposure snapshot</h2>
             </div>
-            <div
-                id="report-summary"
-                class="report-print-list mt-4 space-y-3 text-sm text-slate-300"
-            >
-                <p class="text-slate-500">Loading summary…</p>
+            <div id="report-summary" class="mt-4 space-y-3 text-sm text-iron-slate">
+                <p class="text-iron-slate">Loading summary…</p>
             </div>
         </section>
 
         <!-- KPI row -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div
-                class="report-card report-kpi bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <p
-                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2"
-                >
-                    SLA Compliance
-                </p>
-                <p
-                    id="kpi-sla-pct"
-                    class="text-3xl font-black text-emerald-400"
-                >
-                    —%
-                </p>
-                <p id="kpi-sla-sub" class="text-xs text-slate-500 mt-1"></p>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-1.5">SLA Compliance</p>
+                <p id="kpi-sla-pct" class="text-2xl font-light text-ghost-white font-aeonik">—%</p>
+                <p id="kpi-sla-sub" class="text-xs text-iron-slate mt-1"></p>
             </div>
-            <div
-                class="report-card report-kpi bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <p
-                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2"
-                >
-                    Overdue SLA
-                </p>
-                <p id="kpi-overdue" class="text-3xl font-black text-red-400">
-                    —
-                </p>
-                <p class="text-xs text-slate-500 mt-1">
-                    findings past deadline
-                </p>
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-1.5">Overdue SLA</p>
+                <p id="kpi-overdue" class="text-2xl font-light text-ghost-white font-aeonik">—</p>
+                <p class="text-xs text-iron-slate mt-1">findings past deadline</p>
             </div>
-            <div
-                class="report-card report-kpi bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <p
-                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2"
-                >
-                    Open Findings
-                </p>
-                <p id="kpi-open" class="text-3xl font-black text-sky-400">—</p>
-                <p class="text-xs text-slate-500 mt-1">unresolved</p>
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-1.5">Open Findings</p>
+                <p id="kpi-open" class="text-2xl font-light text-ghost-white font-aeonik">—</p>
+                <p class="text-xs text-iron-slate mt-1">unresolved</p>
             </div>
-            <div
-                class="report-card report-kpi bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <p
-                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2"
-                >
-                    Resolved
-                </p>
-                <p id="kpi-resolved" class="text-3xl font-black text-teal-400">
-                    —
-                </p>
-                <p class="text-xs text-slate-500 mt-1">fixed or verified</p>
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-1.5">Resolved</p>
+                <p id="kpi-resolved" class="text-2xl font-light text-ghost-white font-aeonik">—</p>
+                <p class="text-xs text-iron-slate mt-1">fixed or verified</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <!-- Findings trend chart -->
-            <div
-                class="report-card bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <div class="flex items-center justify-between mb-4">
-                    <h2
-                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                    >
-                        Findings Over Time
-                    </h2>
-                    <div
-                        class="flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest"
-                    >
-                        <span class="flex items-center gap-1"
-                            ><span
-                                class="w-3 h-0.5 bg-red-500 inline-block rounded"
-                            ></span>Critical</span
-                        >
-                        <span class="flex items-center gap-1"
-                            ><span
-                                class="w-3 h-0.5 bg-orange-500 inline-block rounded"
-                            ></span>High</span
-                        >
-                        <span class="flex items-center gap-1"
-                            ><span
-                                class="w-3 h-0.5 bg-amber-500 inline-block rounded"
-                            ></span>Medium</span
-                        >
-                        <span class="flex items-center gap-1"
-                            ><span
-                                class="w-3 h-0.5 bg-sky-400 inline-block rounded"
-                            ></span>Low</span
-                        >
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate">Findings Over Time</p>
+                    <div class="flex items-center gap-3 text-[10px] font-medium uppercase tracking-widest">
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-vivid-crimson inline-block rounded"></span>Critical</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-goldenrod inline-block rounded"></span>High</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-spectrum-flare inline-block rounded"></span>Medium</span>
+                        <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-emerald-green inline-block rounded"></span>Low</span>
                     </div>
                 </div>
                 <div
@@ -444,14 +273,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </div>
 
             <!-- Status distribution -->
-            <div
-                class="report-card bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-            >
-                <h2
-                    class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
-                >
-                    Finding Status Distribution
-                </h2>
+            <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+                <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-3">Finding Status Distribution</p>
                 <div id="status-dist" class="space-y-3">
                     <p class="text-sm text-slate-500">Loading…</p>
                 </div>
@@ -459,68 +282,25 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         </div>
 
         <!-- Risk score per repo -->
-        <div
-            class="report-card bg-surface-container-low border border-outline-variant/20 rounded-xl p-5"
-        >
-            <h2
-                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5"
-            >
-                Risk Score by Project
-            </h2>
+        <div class="bg-shadow-tint border border-white/10 rounded-xl p-4">
+            <p class="text-[10px] font-medium uppercase tracking-widest text-iron-slate mb-4">Risk Score by Project</p>
             <div id="risk-scores">
                 <p class="text-sm text-slate-500">Loading…</p>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-            <section
-                class="report-card report-print-page-break rounded-2xl border border-outline-variant/20 bg-surface-container-low p-5"
-            >
-                <div
-                    class="mb-4 flex items-start justify-between gap-4 flex-wrap"
-                >
-                    <div>
-                        <p
-                            class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
-                        >
-                            Priority findings
-                        </p>
-                        <h2
-                            class="report-print-title mt-1 text-lg font-black text-on-background"
-                        >
-                            Top unresolved findings snapshot
-                        </h2>
-                    </div>
-                    <p
-                        class="report-print-copy max-w-xl text-xs leading-5 text-slate-400"
-                    >
-                        Highest-severity unresolved findings ranked for
-                        executive escalation. Ideal for print/PDF appendices.
-                    </p>
-                </div>
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+            <section class="rounded-2xl border border-white/10 bg-shadow-tint p-4">
+                <h2 class="text-lg font-light text-ghost-white font-aeonik mb-3">Top unresolved findings</h2>
                 <div id="priority-findings" class="overflow-x-auto">
                     <p class="text-sm text-slate-500">Loading findings…</p>
                 </div>
             </section>
 
-            <section
-                class="report-card rounded-2xl border border-outline-variant/20 bg-surface-container-low p-5"
-            >
-                <p
-                    class="report-print-muted text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
-                >
-                    Action cues
-                </p>
-                <h2
-                    class="report-print-title mt-1 text-lg font-black text-on-background"
-                >
-                    Immediate next moves
-                </h2>
-                <div
-                    id="report-actions"
-                    class="report-print-list mt-4 space-y-3 text-sm text-slate-300"
-                >
-                    <p class="text-slate-500">Loading actions…</p>
+            <section class="rounded-2xl border border-white/10 bg-shadow-tint p-4">
+                <h2 class="text-lg font-light text-ghost-white font-aeonik mb-3">Recommended actions</h2>
+                <div id="report-actions" class="space-y-3 text-sm text-iron-slate">
+                    <p class="text-iron-slate">Loading actions…</p>
                 </div>
             </section>
         </div>
@@ -563,10 +343,10 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             points.map((p, i) => `${x(i)},${y(p[key] as number)}`).join(" ");
 
         const series: { key: keyof TrendPoint; color: string }[] = [
-            { key: "low", color: "#38bdf8" },
-            { key: "medium", color: "#f59e0b" },
-            { key: "high", color: "#f97316" },
-            { key: "critical", color: "#ef4444" },
+{ key: "low", color: "#72ce7b" },
+          { key: "medium", color: "#d1aad7" },
+          { key: "high", color: "#ffd600" },
+          { key: "critical", color: "#ff6467" },
         ];
 
         // Y axis
@@ -606,23 +386,18 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     function riskBar(rs: RepoRiskScore, maxScore: number): string {
         const pct = maxScore > 0 ? Math.round((rs.score / maxScore) * 100) : 0;
-        const color =
-            rs.score >= 500
-                ? "bg-red-500"
-                : rs.score >= 100
-                  ? "bg-orange-500"
-                  : rs.score >= 20
-                    ? "bg-amber-500"
-                    : "bg-sky-500";
+        const barColors = [
+            { threshold: 500, class: "bg-vivid-crimson" },
+            { threshold: 100, class: "bg-goldenrod" },
+            { threshold: 20, class: "bg-spectrum-flare" },
+            { threshold: 0, class: "bg-emerald-green" },
+        ];
+        const color = barColors.find(t => rs.score >= t.threshold).class;
         const breakdown = [
-            rs.critical
-                ? `<span class="text-red-400">${rs.critical}C</span>`
-                : "",
-            rs.high ? `<span class="text-orange-400">${rs.high}H</span>` : "",
-            rs.medium
-                ? `<span class="text-amber-400">${rs.medium}M</span>`
-                : "",
-            rs.low ? `<span class="text-sky-400">${rs.low}L</span>` : "",
+            rs.critical ? `<span class="text-vivid-crimson">${rs.critical}C</span>` : "",
+            rs.high ? `<span class="text-goldenrod">${rs.high}H</span>` : "",
+            rs.medium ? `<span class="text-spectrum-flare">${rs.medium}M</span>` : "",
+            rs.low ? `<span class="text-emerald-green">${rs.low}L</span>` : "",
         ]
             .filter(Boolean)
             .join(" ");
@@ -709,17 +484,17 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
         return `
       <div class="grid gap-3 lg:grid-cols-3">
-        <article class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">SLA posture</p>
-          <p class="mt-2 text-sm leading-6 text-on-background">${sla.total > 0 ? `${sla.on_time} of ${sla.total} tracked findings are on time, with <span class="font-black text-red-400">${sla.overdue}</span> currently overdue.` : "No SLA-tracked findings are available yet."}</p>
+        <article class="rounded-xl border border-white/10 bg-white/5 px-4 py-4">
+          <p class="text-[10px] font-medium uppercase tracking-[0.22em] text-iron-slate">SLA posture</p>
+          <p class="mt-2 text-sm leading-6 text-ghost-white">${sla.total > 0 ? `${sla.on_time} of ${sla.total} findings on time, <span class="text-vivid-crimson">${sla.overdue}</span> overdue.` : "No SLA-tracked findings yet."}</p>
         </article>
-        <article class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Critical pressure</p>
-          <p class="mt-2 text-sm leading-6 text-on-background">${criticalOpen} critical and ${highOpen} high unresolved findings currently require active ownership and remediation follow-up.</p>
+        <article class="rounded-xl border border-white/10 bg-white/5 px-4 py-4">
+          <p class="text-[10px] font-medium uppercase tracking-[0.22em] text-iron-slate">Critical pressure</p>
+          <p class="mt-2 text-sm leading-6 text-ghost-white">${criticalOpen} critical, ${highOpen} high unresolved findings.</p>
         </article>
-        <article class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-4">
-          <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500">Highest-risk project</p>
-          <p class="mt-2 text-sm leading-6 text-on-background">${mostExposed ? `<span class="font-black">${mostExposed.project_name || mostExposed.repo_name}</span> leads with a score of <span class="font-black">${mostExposed.score}</span>.` : "Risk scoring becomes available once projects and findings are present."}</p>
+        <article class="rounded-xl border border-white/10 bg-white/5 px-4 py-4">
+          <p class="text-[10px] font-medium uppercase tracking-[0.22em] text-iron-slate">Highest-risk project</p>
+          <p class="mt-2 text-sm leading-6 text-ghost-white">${mostExposed ? `<span class="font-medium">${mostExposed.project_name || mostExposed.repo_name}</span> — score <span class="font-medium">${mostExposed.score}</span>.` : "No data yet."}</p>
         </article>
       </div>`;
     }
@@ -743,17 +518,17 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
         const actions = [
             overdue.length
-                ? `Triage ${overdue.length} unresolved findings with active SLA deadlines before the next reporting window closes.`
-                : "Maintain SLA discipline by reviewing newly opened findings before they become overdue.",
+                ? `Triage ${overdue.length} unresolved findings past SLA deadline.`
+                : "All SLA-tracked findings are on time.",
             criticalOpen.length
-                ? `Escalate ${criticalOpen.length} critical unresolved findings into an immediate remediation workstream.`
-                : "No critical unresolved findings are open right now; sustain the current containment posture.",
+                ? `Escalate ${criticalOpen.length} critical unresolved findings.`
+                : "No critical findings open.",
             topRisk
-                ? `Prioritize ${topRisk.project_name || topRisk.repo_name} for focused remediation because it currently drives the highest aggregate risk score.`
-                : "As projects accumulate findings, add a targeted remediation focus per highest-risk project.",
+                ? `Prioritize ${topRisk.project_name || topRisk.repo_name} (risk score: ${topRisk.score}).`
+                : "No risk data available.",
         ];
 
-        return `<ol class="space-y-3">${actions.map((action, index) => `<li class="rounded-2xl border border-outline-variant/20 bg-surface px-4 py-3"><span class="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-sky-500/15 text-xs font-black text-sky-300">${index + 1}</span>${action}</li>`).join("")}</ol>`;
+        return `<ol class="space-y-2">${actions.map((action, index) => `<li class="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3"><span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-iridescent-glow/15 text-xs font-medium text-iridescent-glow shrink-0">${index + 1}</span><span class="text-sm text-ghost-white">${action}</span></li>`).join("")}</ol>`;
     }
 
     function renderPriorityFindings(findings: Finding[]): string {
@@ -774,7 +549,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             .slice(0, 8);
 
         if (!rows.length) {
-            return '<p class="text-sm text-slate-500">No unresolved findings to include in the printable appendix.</p>';
+            return '<p class="text-sm text-iron-slate">No unresolved findings.</p>';
         }
 
         return `
@@ -822,12 +597,12 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
         // KPIs
         const pct = sla.total > 0 ? sla.percent.toFixed(1) : "—";
-        const pctColor =
-            sla.percent >= 90
-                ? "text-emerald-400"
-                : sla.percent >= 70
-                  ? "text-amber-400"
-                  : "text-red-400";
+        const pctColors = [
+            { threshold: 90, class: "text-emerald-green" },
+            { threshold: 70, class: "text-goldenrod" },
+            { threshold: 0, class: "text-vivid-crimson" },
+        ];
+        const pctColor = pctColors.find(t => sla.percent >= t.threshold).class;
         document.getElementById("kpi-sla-pct")!.textContent =
             sla.total > 0 ? `${pct}%` : "—";
         document.getElementById("kpi-sla-pct")!.className =
@@ -876,36 +651,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             color: string;
             bar: string;
         }[] = [
-            {
-                key: "open",
-                label: "Open",
-                color: "text-slate-400",
-                bar: "bg-slate-400",
-            },
-            {
-                key: "in_review",
-                label: "In Review",
-                color: "text-sky-400",
-                bar: "bg-sky-400",
-            },
-            {
-                key: "accepted_risk",
-                label: "Accepted Risk",
-                color: "text-amber-400",
-                bar: "bg-amber-400",
-            },
-            {
-                key: "fixed",
-                label: "Fixed",
-                color: "text-emerald-400",
-                bar: "bg-emerald-400",
-            },
-            {
-                key: "verified",
-                label: "Verified",
-                color: "text-teal-400",
-                bar: "bg-teal-400",
-            },
+            { key: "open", label: "Open", color: "text-vivid-crimson", bar: "bg-vivid-crimson" },
+            { key: "in_review", label: "In Review", color: "text-iridescent-glow", bar: "bg-iridescent-glow" },
+            { key: "accepted_risk", label: "Accepted Risk", color: "text-goldenrod", bar: "bg-goldenrod" },
+            { key: "fixed", label: "Fixed", color: "text-emerald-green", bar: "bg-emerald-green" },
+            { key: "verified", label: "Verified", color: "text-emerald-green", bar: "bg-emerald-green" },
         ];
 
         document.getElementById("status-dist")!.innerHTML = STATUS_META.map(
@@ -928,7 +678,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         const riskEl = document.getElementById("risk-scores")!;
         if (!risk.length) {
             riskEl.innerHTML =
-                '<p class="text-sm text-slate-500">No projects added yet.</p>';
+                '<p class="text-sm text-iron-slate">No projects yet.</p>';
         } else {
             const maxScore = risk[0].score || 1;
             riskEl.innerHTML = `<div class="space-y-4">${risk.map((rs) => riskBar(rs, maxScore)).join("")}</div>`;
