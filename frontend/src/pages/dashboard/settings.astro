@@ -48,7 +48,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             data-section={s.id}
                             class={`settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
                                 s.id === "general"
-                                    ? "bg-sky-500/10 text-sky-400"
+                                    ? "bg-cyan-500/10 text-cyan-400"
                                     : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
                             }`}
                         >
@@ -88,7 +88,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="org-name"
                                     type="text"
                                     value="HenKaiPan — Security Posture Manager"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -100,7 +100,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="api-url"
                                     type="text"
                                     value="http://localhost:8080"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -112,13 +112,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="admin-user"
                                     type="text"
                                     value="admin"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                 />
                             </div>
                         </div>
                         <button
                             id="save-general"
-                            class="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition-all active:scale-95"
+                            class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition-all active:scale-95"
                         >
                             Save Changes
                         </button>
@@ -133,7 +133,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 text-center space-y-4"
                         >
                             <div
-                                class="w-20 h-20 rounded-xl mx-auto bg-sky-500 flex items-center justify-center"
+                                class="w-20 h-20 rounded-xl mx-auto bg-cyan-500 flex items-center justify-center"
                             >
                                 <span
                                     class="material-symbols-outlined ms-fill text-slate-950 text-4xl"
@@ -189,7 +189,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     label: "Semgrep",
                                     type: "SAST",
                                     icon: "code",
-                                    color: "text-sky-400",
+                                    color: "text-cyan-400",
                                     desc: "Static analysis for 30+ languages.",
                                 },
                                 {
@@ -213,7 +213,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     label: "Gosec",
                                     type: "SAST",
                                     icon: "code",
-                                    color: "text-sky-400",
+                                    color: "text-cyan-400",
                                     desc: "Go security checker.",
                                 },
                                 {
@@ -249,7 +249,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     desc: "Fast web vulnerability scanner.",
                                 },
                             ].map((s) => (
-                                <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex flex-col gap-3 hover:border-sky-500/30 transition-all">
+                                <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex flex-col gap-3 hover:border-cyan-500/30 transition-all">
                                     <div class="flex items-center gap-3">
                                         <div class="w-10 h-10 bg-surface-container-lowest rounded-lg border border-outline-variant/20 flex items-center justify-center shrink-0">
                                             <span
@@ -265,7 +265,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                             <span
                                                 class={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
                                                     s.type === "SAST"
-                                                        ? "text-sky-400 bg-sky-500/10 border-sky-500/20"
+                                                        ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
                                                         : s.type === "SCA"
                                                           ? "text-purple-400 bg-purple-500/10 border-purple-500/20"
                                                           : s.type === "Secrets"
@@ -316,7 +316,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-base-url"
                                     type="url"
                                     placeholder="https://your-team.atlassian.net"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -328,7 +328,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-user-email"
                                     type="email"
                                     placeholder="security@company.com"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -340,7 +340,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-api-token"
                                     type="password"
                                     placeholder="Atlassian API token"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -352,7 +352,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-project-key"
                                     type="text"
                                     placeholder="SEC"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
                                 />
                             </div>
                             <div class="space-y-2">
@@ -364,7 +364,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-issue-type"
                                     type="text"
                                     placeholder="Task"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                 />
                             </div>
                             <div class="space-y-2 md:col-span-2">
@@ -376,7 +376,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     id="jira-labels"
                                     type="text"
                                     placeholder="security, aspm, backlog"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none transition-all"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                 />
                                 <p class="text-xs text-slate-500">
                                     Comma-separated labels added when creating
@@ -389,7 +389,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             <input
                                 id="jira-enabled"
                                 type="checkbox"
-                                class="mt-1 rounded border-slate-600 bg-surface-container text-sky-400 focus:ring-0 cursor-pointer"
+                                class="mt-1 rounded border-slate-600 bg-surface-container text-cyan-400 focus:ring-0 cursor-pointer"
                             />
                             <div>
                                 <p
@@ -409,7 +409,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         <div class="flex items-center gap-3">
                             <button
                                 id="save-jira"
-                                class="px-4 py-2.5 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95"
+                                class="px-4 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg font-bold text-sm transition-all active:scale-95"
                                 >Save Jira Integration</button
                             >
                             <p id="jira-msg" class="text-xs hidden"></p>
@@ -441,7 +441,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             class="font-bold text-on-background flex items-center gap-2"
                         >
                             <span
-                                class="material-symbols-outlined text-sky-400 text-xl"
+                                class="material-symbols-outlined text-cyan-400 text-xl"
                                 >mail</span
                             >
                             Alert Preferences
@@ -497,7 +497,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                         <button
                                             data-toggle={a.id}
                                             data-notification-key={a.key}
-                                            class={`toggle-btn relative w-10 h-5 rounded-full transition-all ${a.default ? "bg-sky-500" : "bg-slate-700"}`}
+                                            class={`toggle-btn relative w-10 h-5 rounded-full transition-all ${a.default ? "bg-cyan-500" : "bg-slate-700"}`}
                                             aria-pressed={String(a.default)}
                                         >
                                             <span
@@ -526,12 +526,12 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="email-recipients"
                                 rows="3"
                                 placeholder="alice@company.com, bob@company.com"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-cyan-500 outline-none"
                             ></textarea>
                             <div class="flex items-center gap-3">
                                 <button
                                     id="save-email-recipients"
-                                    class="px-3 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                    class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition-all active:scale-95"
                                 >
                                     Save recipients
                                 </button>
@@ -570,15 +570,15 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             </h4>
                             <button
                                 id="add-webhook-btn"
-                                class="text-xs text-sky-400 font-bold hover:underline"
+                                class="text-xs text-cyan-400 font-bold hover:underline"
                                 >+ Add New</button
                             >
                         </div>
 
                         <div
-                            class="rounded-xl border border-sky-500/15 bg-sky-500/5 p-4 space-y-3"
+                            class="rounded-xl border border-cyan-500/15 bg-cyan-500/5 p-4 space-y-3"
                         >
-                            <div class="flex items-center gap-2 text-sky-300">
+                            <div class="flex items-center gap-2 text-cyan-300">
                                 <span
                                     class="material-symbols-outlined text-base"
                                     >info</span
@@ -662,13 +662,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="webhook-label"
                                 type="text"
                                 placeholder="Label (e.g. Slack #security)"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                             <input
                                 id="webhook-url"
                                 type="url"
                                 placeholder="https://hooks.example.com/..."
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background font-mono focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                             <div class="grid gap-3 md:grid-cols-2">
                                 <div class="space-y-1.5">
@@ -678,7 +678,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                     >
                                     <select
                                         id="webhook-delivery-type"
-                                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                        class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                                     >
                                         <option value="generic"
                                             >Generic JSON</option
@@ -714,7 +714,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             <div class="flex gap-2">
                                 <button
                                     id="save-webhook"
-                                    class="px-3 py-1.5 bg-sky-500 text-slate-950 text-xs font-bold rounded transition-all hover:bg-sky-400"
+                                    class="px-3 py-1.5 bg-cyan-500 text-slate-950 text-xs font-bold rounded transition-all hover:bg-cyan-400"
                                     >Save</button
                                 >
                                 <button
@@ -756,7 +756,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         class="font-bold text-on-background flex items-center gap-2"
                     >
                         <span
-                            class="material-symbols-outlined text-sky-400 text-xl"
+                            class="material-symbols-outlined text-cyan-400 text-xl"
                             >key</span
                         >
                         Session Security
@@ -833,7 +833,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                     <button
                         id="show-create-user"
-                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                        class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
                     >
                         <span class="material-symbols-outlined text-base"
                             >person_add</span
@@ -858,7 +858,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="new-username"
                                 type="text"
                                 placeholder="johndoe"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="space-y-1.5">
@@ -870,7 +870,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="new-email"
                                 type="email"
                                 placeholder="john@example.com"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="space-y-1.5">
@@ -882,7 +882,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="new-password"
                                 type="password"
                                 placeholder="••••••••"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="space-y-1.5">
@@ -892,7 +892,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             >
                             <select
                                 id="new-role"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             >
                                 <option value="analyst">Analyst</option>
                                 <option value="viewer">Viewer</option>
@@ -903,7 +903,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     <div class="flex gap-3 pt-2">
                         <button
                             id="save-new-user"
-                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
                             >Create User</button
                         >
                         <button
@@ -946,7 +946,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                     <button
                         id="show-create-policy"
-                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                        class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
                     >
                         <span class="material-symbols-outlined text-base"
                             >add</span
@@ -970,7 +970,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             id="policy-name"
                             type="text"
                             placeholder="e.g. Auto-review critical secrets"
-                            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                         />
                     </div>
 
@@ -983,7 +983,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             </p>
                             <button
                                 id="add-condition"
-                                class="text-xs text-sky-400 font-bold hover:underline"
+                                class="text-xs text-cyan-400 font-bold hover:underline"
                                 >+ Add Condition</button
                             >
                         </div>
@@ -999,7 +999,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             </p>
                             <button
                                 id="add-action"
-                                class="text-xs text-sky-400 font-bold hover:underline"
+                                class="text-xs text-cyan-400 font-bold hover:underline"
                                 >+ Add Action</button
                             >
                         </div>
@@ -1009,7 +1009,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     <div class="flex gap-3 pt-2">
                         <button
                             id="save-policy"
-                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
                             >Create Policy</button
                         >
                         <button
@@ -1048,7 +1048,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                     <button
                         id="show-create-suppression"
-                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                        class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
                     >
                         <span class="material-symbols-outlined text-base"
                             >add</span
@@ -1079,7 +1079,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="sup-name"
                                 type="text"
                                 placeholder="e.g. Suppress test file secrets"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="space-y-1.5">
@@ -1094,7 +1094,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="sup-rule-id"
                                 type="text"
                                 placeholder="e.g. G304"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="space-y-1.5">
@@ -1107,7 +1107,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             >
                             <select
                                 id="sup-scanner"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             >
                                 <option value="">Any scanner</option>
                                 <option value="semgrep">semgrep</option>
@@ -1132,7 +1132,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="sup-file-pattern"
                                 type="text"
                                 placeholder="e.g. test/ or vendor/"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                         <div class="col-span-2 space-y-1.5">
@@ -1147,14 +1147,14 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="sup-reason"
                                 type="text"
                                 placeholder="e.g. False positive in test fixtures"
-                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                         </div>
                     </div>
                     <div class="flex gap-3 pt-2">
                         <button
                             id="save-suppression"
-                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
                             >Create Rule</button
                         >
                         <button
@@ -1195,7 +1195,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     </div>
                     <button
                         id="show-create-team"
-                        class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
+                        class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-4 py-2 rounded-lg text-sm transition-all active:scale-95"
                     >
                         <span class="material-symbols-outlined text-base"
                             >group_add</span
@@ -1215,11 +1215,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             id="new-team-name"
                             type="text"
                             placeholder="Team name (e.g. AppSec)"
-                            class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                            class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                         />
                         <button
                             id="save-new-team"
-                            class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                            class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
                             >Create</button
                         >
                         <button
@@ -1285,11 +1285,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="license-key-input"
                                 type="text"
                                 placeholder="HENKAI-XXXX-XXXX-XXXX-XXXX"
-                                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-sky-500 outline-none"
+                                class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-mono text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             />
                             <button
                                 id="save-license-btn"
-                                class="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
+                                class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all"
                             >
                                 Save
                             </button>
@@ -1318,7 +1318,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             navBtns.forEach((b) => {
                 b.className = `settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
                     b.dataset.section === target
-                        ? "bg-sky-500/10 text-sky-400"
+                        ? "bg-cyan-500/10 text-cyan-400"
                         : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
                 }`;
             });
@@ -1367,7 +1367,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     function setToggleState(btn: HTMLButtonElement, enabled: boolean) {
         btn.setAttribute("aria-pressed", String(enabled));
-        btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${enabled ? "bg-sky-500" : "bg-slate-700"}`;
+        btn.className = `toggle-btn relative w-10 h-5 rounded-full transition-all ${enabled ? "bg-cyan-500" : "bg-slate-700"}`;
         const dot = btn.querySelector("span") as HTMLElement;
         dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${enabled ? "right-0.5" : "left-0.5"}`;
     }
@@ -1644,7 +1644,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             role === "admin"
                 ? "text-red-400 bg-red-500/10 border-red-500/20"
                 : role === "analyst"
-                  ? "text-sky-400 bg-sky-500/10 border-sky-500/20"
+                  ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
                   : "text-slate-400 bg-slate-500/10 border-slate-500/20";
         return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${cls}">${role}</span>`;
     }
@@ -1681,7 +1681,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
               <tr class="border-b border-outline-variant/10 hover:bg-slate-900/30 transition-colors" data-user-id="${u.id}">
                 <td class="px-4 py-3">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/20 flex items-center justify-center text-sky-400 text-xs font-bold">
+                    <div class="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
                       ${u.username.slice(0, 2).toUpperCase()}
                     </div>
                     <span class="font-semibold text-on-background">${u.username}</span>
@@ -1828,7 +1828,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
               .map(
                   (m) => `
             <div class="flex items-center gap-2 bg-slate-950 border border-slate-800 rounded-full px-3 py-1">
-              <div class="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center text-sky-400 text-[9px] font-bold">
+              <div class="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 text-[9px] font-bold">
                 ${m.username.slice(0, 2).toUpperCase()}
               </div>
               <span class="text-xs text-on-background">${m.username}</span>
@@ -1844,7 +1844,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         }
 
         <div class="flex gap-2 pt-1">
-          <select class="add-member-select flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-tid="${t.id}">
+          <select class="add-member-select flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" data-tid="${t.id}">
             <option value="">— Add member —</option>
             ${allUsers
                 .filter((u) => !t.members.find((m) => m.id === u.id))
@@ -1854,7 +1854,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 )
                 .join("")}
           </select>
-          <button class="add-member-btn px-3 py-1.5 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg text-xs font-bold hover:bg-sky-500/20 transition-all" data-tid="${t.id}">
+          <button class="add-member-btn px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 rounded-lg text-xs font-bold hover:bg-cyan-500/20 transition-all" data-tid="${t.id}">
             Add
           </button>
         </div>
@@ -1963,17 +1963,17 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     function renderConditionRow(idx: number, c: PolicyCondition) {
         return `<div class="flex gap-2 items-center" data-cond-idx="${idx}">
-      <select class="cond-field bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
+      <select class="cond-field bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" data-idx="${idx}">
         <option value="severity"  ${c.field === "severity" ? "selected" : ""}>Severity</option>
         <option value="scanner"   ${c.field === "scanner" ? "selected" : ""}>Scanner</option>
         <option value="rule_id"   ${c.field === "rule_id" ? "selected" : ""}>Rule ID</option>
         <option value="file_path" ${c.field === "file_path" ? "selected" : ""}>File Path</option>
       </select>
-      <select class="cond-op bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
+      <select class="cond-op bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" data-idx="${idx}">
         <option value="eq"       ${c.op === "eq" ? "selected" : ""}>equals</option>
         <option value="contains" ${c.op === "contains" ? "selected" : ""}>contains</option>
       </select>
-      <input class="cond-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" type="text" placeholder="value" value="${c.value}" data-idx="${idx}" />
+      <input class="cond-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" type="text" placeholder="value" value="${c.value}" data-idx="${idx}" />
       <button class="del-cond text-slate-600 hover:text-error transition-colors" data-idx="${idx}">
         <span class="material-symbols-outlined text-sm">close</span>
       </button>
@@ -1982,11 +1982,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     function renderActionRow(idx: number, a: PolicyAction) {
         return `<div class="flex gap-2 items-center" data-action-idx="${idx}">
-      <select class="action-type bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" data-idx="${idx}">
+      <select class="action-type bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" data-idx="${idx}">
         <option value="set_status" ${a.type === "set_status" ? "selected" : ""}>Set Status</option>
         <option value="assign"     ${a.type === "assign" ? "selected" : ""}>Assign To</option>
       </select>
-      <input class="action-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-sky-500 outline-none" type="text" placeholder="${a.type === "set_status" ? "open|in_review|accepted_risk|fixed|verified" : "username"}" value="${a.value}" data-idx="${idx}" />
+      <input class="action-value flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-on-background focus:ring-1 focus:ring-cyan-500 outline-none" type="text" placeholder="${a.type === "set_status" ? "open|in_review|accepted_risk|fixed|verified" : "username"}" value="${a.value}" data-idx="${idx}" />
       <button class="del-action text-slate-600 hover:text-error transition-colors" data-idx="${idx}">
         <span class="material-symbols-outlined text-sm">close</span>
       </button>
@@ -2123,8 +2123,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 space-y-3" data-policy-id="${p.id}">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-              <span class="material-symbols-outlined text-sky-400 text-base">policy</span>
+            <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-cyan-400 text-base">policy</span>
             </div>
             <div>
               <p class="font-bold text-sm text-on-background">${p.name}</p>
@@ -2133,7 +2133,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
           </div>
           <div class="flex items-center gap-3">
             <button
-              class="toggle-policy-btn relative w-10 h-5 rounded-full transition-all ${p.enabled ? "bg-sky-500" : "bg-slate-700"}"
+              class="toggle-policy-btn relative w-10 h-5 rounded-full transition-all ${p.enabled ? "bg-cyan-500" : "bg-slate-700"}"
               aria-pressed="${p.enabled}" data-pid="${p.id}">
               <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${p.enabled ? "right-0.5" : "left-0.5"}"></span>
             </button>
@@ -2154,7 +2154,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             p.actions.length
                 ? `
         <div class="flex flex-wrap gap-1.5">
-          ${p.actions.map((a) => `<span class="text-[10px] font-mono bg-sky-500/10 border border-sky-500/20 rounded px-2 py-0.5 text-sky-300">${a.type} → "${a.value}"</span>`).join("")}
+          ${p.actions.map((a) => `<span class="text-[10px] font-mono bg-cyan-500/10 border border-cyan-500/20 rounded px-2 py-0.5 text-cyan-300">${a.type} → "${a.value}"</span>`).join("")}
         </div>`
                 : ""
         }
@@ -2310,7 +2310,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             default:
                 return {
                     label: "Generic JSON",
-                    badge: "text-sky-300 bg-sky-500/10 border-sky-500/20",
+                    badge: "text-cyan-300 bg-cyan-500/10 border-cyan-500/20",
                     help: "Generic mode posts the raw ASPM event envelope to your endpoint.",
                 };
         }
@@ -2422,8 +2422,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
           return `
       <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex items-center justify-between" data-webhook-id="${w.id}">
         <div class="flex items-center gap-3 min-w-0">
-          <div class="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-sky-400 text-base">webhook</span>
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-cyan-400 text-base">webhook</span>
           </div>
           <div class="min-w-0">
             <p class="font-bold text-sm text-on-background">${w.label}</p>
@@ -2438,10 +2438,10 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
           </div>
         </div>
         <div class="flex items-center gap-2 ml-4 shrink-0">
-          <button class="test-webhook-btn text-slate-600 hover:text-sky-400 transition-colors text-xs font-bold" data-wid="${w.id}">
+          <button class="test-webhook-btn text-slate-600 hover:text-cyan-400 transition-colors text-xs font-bold" data-wid="${w.id}">
             Test
           </button>
-          <button class="toggle-webhook-btn relative w-10 h-5 rounded-full transition-all ${w.enabled ? "bg-sky-500" : "bg-slate-700"}" data-wid="${w.id}" aria-pressed="${w.enabled}">
+          <button class="toggle-webhook-btn relative w-10 h-5 rounded-full transition-all ${w.enabled ? "bg-cyan-500" : "bg-slate-700"}" data-wid="${w.id}" aria-pressed="${w.enabled}">
             <span class="absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${w.enabled ? "right-0.5" : "left-0.5"}"></span>
           </button>
           <button class="delete-webhook-btn text-slate-600 hover:text-error transition-colors" data-wid="${w.id}">

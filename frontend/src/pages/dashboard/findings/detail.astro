@@ -12,7 +12,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
         <p class="text-sm font-semibold text-red-300">Finding not found.</p>
         <a
             href="/dashboard/findings"
-            class="inline-flex items-center gap-2 text-sm text-sky-300 hover:text-sky-200 transition-colors"
+            class="inline-flex items-center gap-2 text-sm text-cyan-300 hover:text-cyan-200 transition-colors"
         >
             <span class="material-symbols-outlined text-base">arrow_back</span>
             Back to findings
@@ -25,7 +25,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
         >
             <a
                 href="/dashboard/findings"
-                class="hover:text-sky-300 transition-colors">Findings</a
+                class="hover:text-cyan-300 transition-colors">Findings</a
             >
             <span>/</span>
             <span id="breadcrumb-id" class="font-mono text-slate-400"></span>
@@ -103,7 +103,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         </button>
                         <button
                             id="kb-remediate-btn"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/15 transition-all"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/15 transition-all"
                         >
                             <span class="material-symbols-outlined text-base"
                                 >auto_awesome</span
@@ -112,7 +112,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         </button>
                         <button
                             id="request-ai-summary-btn"
-                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:bg-sky-500/15 transition-all"
+                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/15 transition-all"
                         >
                             <span class="material-symbols-outlined text-base"
                                 >auto_awesome</span
@@ -283,7 +283,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                 <a
                                     id="resource-scan-link"
                                     href="#"
-                                    class="inline-flex items-center gap-2 text-sky-300 hover:text-sky-200 transition-colors"
+                                    class="inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 transition-colors"
                                 >
                                     <span
                                         class="material-symbols-outlined text-sm"
@@ -509,7 +509,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                 id="comment-input"
                                 rows="2"
                                 placeholder="Add a comment... Use @username to mention team members"
-                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none"
                             ></textarea>
                             <div class="flex items-center justify-between mt-2">
                                 <p class="text-[10px] text-slate-500">
@@ -518,7 +518,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                 </p>
                                 <button
                                     id="comment-submit"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors"
                                 >
                                     <span
                                         class="material-symbols-outlined text-sm"
@@ -575,7 +575,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                     id="risk-rationale"
                                     rows="4"
                                     placeholder="Why is this risk being accepted? What compensating controls exist?"
-                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none"
                                 ></textarea>
                             </div>
                             <div>
@@ -586,7 +586,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                                 <input
                                     id="risk-expires-at"
                                     type="date"
-                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all"
                                 />
                                 <p class="text-[10px] text-slate-500 mt-1">
                                     Risk acceptance must be re-reviewed after
@@ -808,7 +808,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         >
                         <select
                             id="triage-status"
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all"
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all"
                         >
                             <option value="open">Open</option>
                             <option value="in_review">In Review</option>
@@ -827,7 +827,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                             type="text"
                             placeholder="username or email"
                             autocomplete="off"
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600"
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
                         />
                     </div>
                     <label class="flex items-start gap-3 cursor-pointer">
@@ -855,13 +855,13 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                             id="triage-notes"
                             rows="5"
                             placeholder="Add triage context, mitigation notes, or acceptance rationale..."
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 resize-none"
+                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none"
                         ></textarea>
                     </div>
                     <p id="triage-save-msg" class="text-xs hidden"></p>
                     <button
                         id="triage-save"
-                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-sky-500 text-slate-950 text-sm font-bold hover:bg-sky-400 transition-all active:scale-[0.99]"
+                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-cyan-500 text-slate-950 text-sm font-bold hover:bg-cyan-400 transition-all active:scale-[0.99]"
                     >
                         <span class="material-symbols-outlined text-base"
                             >save</span
@@ -901,19 +901,19 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     }
 
     const SEV_STYLES: Record<string, string> = {
-        critical: "text-red-400 bg-red-500/10 border-red-500/20",
-        high: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-        medium: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-        low: "text-sky-400 bg-sky-500/10 border-sky-500/20",
-        info: "text-slate-400 bg-slate-500/10 border-slate-500/20",
+        critical: "text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20",
+        high: "text-goldenrod bg-goldenrod/10 border-goldenrod/20",
+        medium: "text-spectrum-flare bg-spectrum-flare/10 border-spectrum-flare/20",
+        low: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
+        info: "text-iron-slate bg-iron-slate/10 border-iron-slate/20",
     };
 
     const STATUS_STYLES: Record<string, string> = {
-        open: "text-slate-300 bg-slate-500/10 border-slate-500/20",
-        in_review: "text-sky-400 bg-sky-500/10 border-sky-500/20",
-        accepted_risk: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-        fixed: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
-        verified: "text-teal-400 bg-teal-500/10 border-teal-500/20",
+        open: "text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20",
+        in_review: "text-iridescent-glow bg-iridescent-glow/10 border-iridescent-glow/20",
+        accepted_risk: "text-goldenrod bg-goldenrod/10 border-goldenrod/20",
+        fixed: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
+        verified: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
     };
 
     const STATUS_LABELS: Record<string, string> = {
@@ -927,11 +927,11 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
         semgrep: {
             label: "SAST",
-            color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+            color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
         },
         gosec: {
             label: "SAST",
-            color: "text-sky-400 bg-sky-500/10 border-sky-500/20",
+            color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20",
         },
         trivy: {
             label: "SCA",
@@ -1061,7 +1061,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                     findings.filter((f) => f.scanner === finding.scanner)
                         .length > 1;
                 return `
-			<a href="/dashboard/findings/detail?id=${encodeURIComponent(finding.id)}" class="block rounded-2xl border border-outline-variant/20 bg-slate-950/40 px-4 py-4 hover:border-sky-500/20 hover:bg-slate-950/60 transition-all">
+			<a href="/dashboard/findings/detail?id=${encodeURIComponent(finding.id)}" class="block rounded-2xl border border-outline-variant/20 bg-slate-950/40 px-4 py-4 hover:border-cyan-500/20 hover:bg-slate-950/60 transition-all">
 			  <div class="flex flex-wrap items-center gap-2">
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
 				<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${severity}">${finding.severity}</span>
@@ -1272,7 +1272,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             string
         > = {
             queued: "border-purple-500/20 bg-purple-500/10",
-            running: "border-sky-500/20 bg-sky-500/10",
+            running: "border-cyan-500/20 bg-cyan-500/10",
             success: "border-emerald-500/20 bg-emerald-500/10",
             error: "border-red-500/20 bg-red-500/10",
         };
@@ -1289,7 +1289,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 
         panel.className = `w-full max-w-md rounded-2xl border px-4 py-3 backdrop-blur-sm ${tones[state]}`;
         icon.textContent = icons[state];
-        icon.className = `material-symbols-outlined text-lg ${state === "success" ? "text-emerald-300" : state === "error" ? "text-red-300" : state === "running" ? "text-sky-300 animate-pulse" : "text-purple-300"}`;
+        icon.className = `material-symbols-outlined text-lg ${state === "success" ? "text-emerald-300" : state === "error" ? "text-red-300" : state === "running" ? "text-cyan-300 animate-pulse" : "text-purple-300"}`;
         titleEl.textContent = title;
         bodyEl.textContent = body;
     }
@@ -1502,7 +1502,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                       "border-purple-500/20 bg-purple-500/10 text-purple-300",
                   )
                 : "",
-            `<a href="/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-200 text-sm font-semibold hover:brightness-110 transition-all">Scan Detail<span class="material-symbols-outlined text-sm">open_in_new</span></a>`,
+            `<a href="/dashboard/scans/detail?id=${encodeURIComponent(finding.scan_id)}" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:brightness-110 transition-all">Scan Detail<span class="material-symbols-outlined text-sm">open_in_new</span></a>`,
         ]
             .filter(Boolean)
             .join("");

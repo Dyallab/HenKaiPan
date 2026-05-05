@@ -20,7 +20,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 <select
                     id="sched-project"
                     required
-                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none"
                 >
                     <option value="">Select project...</option>
                 </select>
@@ -33,7 +33,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 <select
                     id="sched-scan-type"
                     required
-                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none"
                 >
                     <option value="">Select scanner type...</option>
                     <option value="sast">SAST (Semgrep, Gosec)</option>
@@ -71,7 +71,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 <select
                     id="sched-frequency"
                     required
-                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all appearance-none"
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none"
                 >
                     <option value="1h">Every hour</option>
                     <option value="3h">Every 3 hours</option>
@@ -95,13 +95,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                     id="sched-cron-custom"
                     type="text"
                     placeholder="0 9 * * 1"
-                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 transition-all placeholder:text-slate-600 font-mono"
+                    class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 font-mono"
                 />
             </div>
             <button
                 type="submit"
                 id="sched-btn"
-                class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95"
+                class="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-cyan-400 transition-all active:scale-95"
             >
                 <span class="material-symbols-outlined text-lg">add</span>
                 Add Schedule
@@ -123,7 +123,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </h2>
             <button
                 id="refresh-btn"
-                class="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high border border-outline-variant/30 text-slate-400 rounded-lg text-xs font-bold hover:text-sky-400 hover:border-sky-500/50 transition-all active:scale-95"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-surface-container-high border border-outline-variant/30 text-slate-400 rounded-lg text-xs font-bold hover:text-cyan-400 hover:border-cyan-500/50 transition-all active:scale-95"
                 title="Refresh"
             >
                 <span class="material-symbols-outlined text-sm">sync</span>
@@ -187,10 +187,10 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
               .map((s) => {
                   const typeLabel = s.scanner_type
                       ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-purple-400 bg-purple-500/10 border-purple-500/20">${s.scanner_type}</span>`
-                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">individual</span>`;
+                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-cyan-400 bg-cyan-500/10 border-cyan-500/20">individual</span>`;
                   const scannerDisplay = s.scanner_type
                       ? `<span class="text-xs text-slate-400">All ${s.scanner_type} scanners</span>`
-                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-sky-400 bg-sky-500/10 border-sky-500/20">${s.scanner}</span>`;
+                      : `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border text-cyan-400 bg-cyan-500/10 border-cyan-500/20">${s.scanner}</span>`;
                   const frequencyLabel = cronToHumanFrequency(s.cron_expr);
                   const frequencyDisplay =
                       frequencyLabel === "Custom"
@@ -205,7 +205,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
               <td class="px-6 py-3">
                 <label class="relative inline-flex items-center cursor-pointer">
                   <input type="checkbox" class="sr-only peer toggle-schedule" data-id="${s.id}" ${s.enabled ? "checked" : ""} />
-                  <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
+                  <div class="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:bg-cyan-500 after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full"></div>
                 </label>
               </td>
               <td class="px-6 py-3 font-mono text-xs text-slate-500">${s.last_run ? new Date(s.last_run).toLocaleString() : "—"}</td>

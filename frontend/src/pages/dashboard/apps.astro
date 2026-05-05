@@ -4,29 +4,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Apps & Projects" active="apps">
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-5">
   <div>
-    <h1 class="text-2xl font-bold text-white">Apps & Projects</h1>
-    <p class="text-slate-400 text-sm mt-1">Team → App → Project → Repo hierarchy</p>
+    <h1 class="text-xl font-bold text-white">Apps & Projects</h1>
+    <p class="text-slate-400 text-sm mt-0.5">Team → App → Project → Repo hierarchy</p>
   </div>
   <button id="open-create-app"
-    class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded transition-colors">
+    class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
     <span class="material-symbols-outlined text-lg">add</span>
     New App
   </button>
 </div>
 
 <!-- Team filter tabs -->
-<div id="team-tabs" class="flex gap-2 mb-6 flex-wrap"></div>
+<div id="team-tabs" class="flex gap-2 mb-4 flex-wrap"></div>
 
 <!-- Team metrics banner -->
-<div id="team-metrics-row" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8"></div>
+<div id="team-metrics-row" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-5"></div>
 
 <!-- App list -->
 <div id="app-list" class="space-y-4"></div>
 
 <!-- Empty state -->
-<div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-center">
+<div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
   <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">apps</span>
   <p class="text-slate-400 font-semibold text-lg">No apps yet</p>
   <p class="text-slate-600 text-sm mt-1">Create your first app to start organizing projects and repos.</p>
@@ -40,17 +40,17 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
         <input id="app-name" type="text" placeholder="e.g. Payment Gateway"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
         <textarea id="app-desc" rows="2" placeholder="Optional description"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"></textarea>
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 resize-none"></textarea>
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Team</label>
         <select id="app-team"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500">
           <option value="">— No team —</option>
         </select>
       </div>
@@ -58,7 +58,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <div id="app-error" class="hidden mt-3 text-red-400 text-xs"></div>
     <div class="flex gap-3 mt-6">
       <button id="cancel-create-app" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
-      <button id="submit-create-app" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+      <button id="submit-create-app" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
     </div>
   </div>
 </div>
@@ -67,34 +67,34 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <div id="modal-create-project" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
   <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
     <h3 class="text-lg font-bold text-white mb-1">New Project</h3>
-    <p id="project-modal-app-name" class="text-sky-400 text-xs mb-5"></p>
+    <p id="project-modal-app-name" class="text-cyan-400 text-xs mb-5"></p>
     <div class="space-y-4">
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
         <input id="project-name" type="text" placeholder="e.g. API Service"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
         <input id="project-desc" type="text" placeholder="Optional"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL</label>
         <input id="project-repo-url" type="text" placeholder="https://github.com/org/repo"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
         <p class="text-slate-500 text-xs mt-1">Git URL for cloning and scanning.</p>
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
         <input id="project-branch" type="text" placeholder="main" value="main"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
     </div>
     <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
     <div class="flex gap-3 mt-6">
       <button id="cancel-create-project" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
-      <button id="submit-create-project" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+      <button id="submit-create-project" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
     </div>
   </div>
 </div>
@@ -111,7 +111,7 @@ let pendingProjectAppId = '';
 let pendingProjectAppName = '';
 
 const scoreColor = (score: number) =>
-  score === 0 ? 'text-emerald-400' : score < 100 ? 'text-yellow-400' : score < 500 ? 'text-orange-400' : 'text-red-400';
+  score === 0 ? 'text-emerald-green' : score < 100 ? 'text-goldenrod' : score < 500 ? 'text-goldenrod' : 'text-vivid-crimson';
 
 const severityDot = (label: string, count: number, color: string) =>
   count > 0 ? `<span class="flex items-center gap-1 text-xs ${color} font-bold">${count}<span class="text-slate-500 font-normal">${label}</span></span>` : '';
@@ -120,12 +120,12 @@ function renderTeamTabs() {
   const container = document.getElementById('team-tabs')!;
   const teams = [...new Set(allApps.map(a => a.team_name).filter(Boolean))] as string[];
   container.innerHTML = `
-    <button data-team="" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '' ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">All</button>
+    <button data-team="" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">All</button>
     ${teams.map(t => {
       const tid = allApps.find(a => a.team_name === t)?.team_id ?? '';
-      return `<button data-team="${tid}" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === tid ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">${t}</button>`;
+      return `<button data-team="${tid}" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === tid ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">${t}</button>`;
     }).join('')}
-    ${allApps.some(a => !a.team_id) ? `<button data-team="__unassigned__" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '__unassigned__' ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">Unassigned</button>` : ''}
+    ${allApps.some(a => !a.team_id) ? `<button data-team="__unassigned__" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '__unassigned__' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">Unassigned</button>` : ''}
   `;
   container.querySelectorAll('.team-tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -140,8 +140,8 @@ function renderTeamMetrics() {
   const container = document.getElementById('team-metrics-row')!;
   if (!teamMetrics.length) { container.innerHTML = ''; return; }
   container.innerHTML = teamMetrics.map(m => `
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-      <div class="flex items-start justify-between mb-3">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-3">
+      <div class="flex items-start justify-between mb-2">
         <div>
           <p class="text-white font-bold text-sm">${m.team_name}</p>
           <p class="text-slate-500 text-xs mt-0.5">${m.app_count} app${m.app_count !== 1 ? 's' : ''} · ${m.project_count} project${m.project_count !== 1 ? 's' : ''}</p>
@@ -149,15 +149,15 @@ function renderTeamMetrics() {
         <span class="text-xs font-black ${scoreColor(m.score)} bg-slate-800 px-2 py-1 rounded">${m.score}</span>
       </div>
       <div class="flex gap-3 flex-wrap mb-3">
-        ${severityDot('C', m.critical, 'text-red-400')}
-        ${severityDot('H', m.high, 'text-orange-400')}
-        ${severityDot('M', m.medium, 'text-yellow-400')}
-        ${severityDot('L', m.low, 'text-blue-400')}
-        ${!m.critical && !m.high && !m.medium && !m.low ? '<span class="text-emerald-400 text-xs font-bold">Clean</span>' : ''}
+        ${severityDot('C', m.critical, 'text-vivid-crimson')}
+        ${severityDot('H', m.high, 'text-goldenrod')}
+        ${severityDot('M', m.medium, 'text-spectrum-flare')}
+        ${severityDot('L', m.low, 'text-emerald-green')}
+        ${!m.critical && !m.high && !m.medium && !m.low ? '<span class="text-emerald-green text-xs font-bold">Clean</span>' : ''}
       </div>
       <div class="flex items-center gap-2">
         <div class="flex-1 bg-slate-800 rounded-full h-1.5">
-          <div class="h-1.5 rounded-full ${m.sla_compliance >= 90 ? 'bg-emerald-500' : m.sla_compliance >= 70 ? 'bg-yellow-500' : 'bg-red-500'}"
+          <div class="h-1.5 rounded-full ${m.sla_compliance >= 90 ? 'bg-emerald-green' : m.sla_compliance >= 70 ? 'bg-goldenrod' : 'bg-vivid-crimson'}"
             style="width:${m.sla_compliance}%"></div>
         </div>
         <span class="text-xs text-slate-400 shrink-0">${m.sla_compliance.toFixed(0)}% SLA</span>
@@ -189,15 +189,15 @@ function renderApps() {
   container.innerHTML = filtered.map(app => `
     <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <!-- App header -->
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800/60">
+      <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800/60">
         <div class="flex items-center gap-3">
-          <div class="w-8 h-8 rounded bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-sky-400 text-base">folder_open</span>
+          <div class="w-8 h-8 rounded bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-cyan-400 text-base">folder_open</span>
           </div>
           <div>
             <p class="text-white font-bold text-sm">${app.name}</p>
             <p class="text-slate-500 text-xs mt-0.5">
-              ${app.team_name ? `<span class="text-sky-400/70">${app.team_name}</span> · ` : ''}
+              ${app.team_name ? `<span class="text-cyan-400/70">${app.team_name}</span> · ` : ''}
               ${app.description || '<span class="italic">No description</span>'}
             </p>
           </div>
@@ -205,7 +205,7 @@ function renderApps() {
         <div class="flex items-center gap-2">
           <span class="text-xs text-slate-500">${app.projects.length} project${app.projects.length !== 1 ? 's' : ''}</span>
           <button data-add-project="${app.id}" data-app-name="${app.name}"
-            class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded transition-colors">
+            class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded transition-colors">
             <span class="material-symbols-outlined text-sm">add</span>
             Project
           </button>
@@ -220,13 +220,13 @@ function renderApps() {
       ${app.projects.length ? `
         <div class="divide-y divide-slate-800/50">
           ${app.projects.map(p => `
-            <div class="flex items-center justify-between px-5 py-3 hover:bg-slate-800/30 transition-colors group">
+            <div class="flex items-center justify-between px-4 py-2.5 hover:bg-slate-800/30 transition-colors group">
               <div class="flex items-center gap-3">
                 <span class="material-symbols-outlined text-slate-600 text-base">code</span>
                 <div>
                   <p class="text-slate-200 text-sm font-medium">${p.name}</p>
                   ${p.repo_url
-                    ? `<a href="${p.repo_url}" target="_blank" class="text-xs text-slate-500 hover:text-sky-400 transition-colors font-mono">${p.repo_url}</a>`
+                    ? `<a href="${p.repo_url}" target="_blank" class="text-xs text-slate-500 hover:text-cyan-400 transition-colors font-mono">${p.repo_url}</a>`
                     : `<span class="text-xs text-slate-600 italic">No URL configured</span>`}
                 </div>
               </div>

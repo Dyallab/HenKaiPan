@@ -70,7 +70,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
     <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
       <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
         <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Findings</h2>
-        <select id="sev-filter" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-sky-500 transition-all">
+        <select id="sev-filter" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-cyan-500 transition-all">
           <option value="">All severities</option>
           <option value="critical">Critical</option>
           <option value="high">High</option>
@@ -93,24 +93,24 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
   import type { Finding } from '../../../lib/api';
 
   const SEV_STYLES: Record<string, string> = {
-    critical: 'text-red-400 bg-red-500/10 border-red-500/20',
-    high:     'text-orange-400 bg-orange-500/10 border-orange-500/20',
-    medium:   'text-amber-400 bg-amber-500/10 border-amber-500/20',
-    low:      'text-sky-400 bg-sky-500/10 border-sky-500/20',
-    info:     'text-slate-400 bg-slate-500/10 border-slate-500/20',
+    critical: 'text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20',
+    high:     'text-goldenrod bg-goldenrod/10 border-goldenrod/20',
+    medium:   'text-spectrum-flare bg-spectrum-flare/10 border-spectrum-flare/20',
+    low:      'text-emerald-green bg-emerald-green/10 border-emerald-green/20',
+    info:     'text-iron-slate bg-iron-slate/10 border-iron-slate/20',
   };
   const SEV_BAR: Record<string, string> = {
-    critical: 'bg-red-500',
-    high:     'bg-orange-500',
-    medium:   'bg-amber-500',
-    low:      'bg-sky-500',
-    info:     'bg-slate-500',
+    critical: 'bg-vivid-crimson',
+    high:     'bg-goldenrod',
+    medium:   'bg-spectrum-flare',
+    low:      'bg-emerald-green',
+    info:     'bg-iron-slate',
   };
   const STATUS_STYLES: Record<string, string> = {
-    completed: 'text-emerald-400 bg-emerald-500/10',
-    running:   'text-sky-400 bg-sky-500/10',
-    pending:   'text-amber-400 bg-amber-500/10',
-    failed:    'text-red-400 bg-red-500/10',
+    completed: 'text-emerald-green bg-emerald-green/10',
+    running:   'text-iridescent-glow bg-iridescent-glow/10',
+    pending:   'text-goldenrod bg-goldenrod/10',
+    failed:    'text-vivid-crimson bg-vivid-crimson/10',
   };
 
   const scanId = new URLSearchParams(window.location.search).get('id');
@@ -241,7 +241,7 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
       findings.forEach(f => { counts[f.severity] = (counts[f.severity] ?? 0) + 1; });
 
       document.getElementById('severity-summary')!.innerHTML = sevOrder.map(s => `
-        <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-center cursor-pointer hover:border-sky-500/20 transition-all"
+        <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 text-center cursor-pointer hover:border-cyan-500/20 transition-all"
              data-sev="${s}">
           <div class="h-1 ${SEV_BAR[s]} rounded-full mb-3 mx-auto w-8"></div>
           <p class="text-xl font-black ${SEV_STYLES[s].split(' ')[0]}">${counts[s] ?? 0}</p>
