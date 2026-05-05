@@ -2,61 +2,43 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Sign in — Hen Kai Pan">
-    <div
-        class="min-h-screen flex items-center justify-center px-4 bg-background"
-    >
+<Layout title="Sign in — HenKaiPan">
+    <div class="min-h-screen flex items-center justify-center px-4 bg-background">
         <div class="w-full max-w-sm">
             <div class="text-center mb-8">
                 <div class="inline-flex items-center gap-2.5 mb-3">
-                    <div
-                        class="w-9 h-9 bg-sky-500 rounded-lg flex items-center justify-center"
-                    >
-                        <span
-                            class="material-symbols-outlined ms-fill text-slate-950 text-xl"
-                            >security</span
-                        >
+                    <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-white/5 border border-white/10">
+                        <span class="material-symbols-outlined ms-fill text-iridescent-glow text-xl">security</span>
                     </div>
-                    <span
-                        class="font-black tracking-tighter text-sky-500 text-2xl"
-                        >Hen Kai Pan</span
-                    >
+                    <span class="font-aeonik font-light tracking-tight text-ghost-white text-2xl">HenKaiPan</span>
                 </div>
-                <p class="text-slate-500 text-sm">Sign in to your dashboard</p>
+                <p class="text-iron-slate text-sm">Sign in to your dashboard</p>
             </div>
 
-            <div
-                class="bg-surface-container border border-outline-variant/30 rounded-xl p-8"
-            >
+            <div class="bg-shadow-tint border border-white/10 rounded-lg p-8">
                 <form id="login-form" class="space-y-5">
                     <div>
-                        <label
-                            class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2"
-                            >Username</label
-                        >
+                        <label class="block text-xs font-medium uppercase tracking-wider text-iron-slate mb-2">Username</label>
                         <input
                             id="username"
                             type="text"
                             value="admin"
-                            class="w-full bg-surface-container-low border border-outline-variant/40 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                            class="w-full bg-deep-space border border-white/10 text-ghost-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-iridescent-glow focus:ring-1 focus:ring-iridescent-glow transition-colors"
                         />
                     </div>
                     <div>
-                        <label
-                            class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2"
-                            >Password</label
-                        >
+                        <label class="block text-xs font-medium uppercase tracking-wider text-iron-slate mb-2">Password</label>
                         <input
                             id="password"
                             type="password"
                             value="admin"
-                            class="w-full bg-surface-container-low border border-outline-variant/40 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+                            class="w-full bg-deep-space border border-white/10 text-ghost-white rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-iridescent-glow focus:ring-1 focus:ring-iridescent-glow transition-colors"
                         />
                     </div>
                     <button
                         type="submit"
                         id="submit-btn"
-                        class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+                        class="w-full bg-primary hover:bg-primary-fixed-dim text-on-primary font-medium py-3 rounded-lg transition-all text-sm uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         Sign in
                     </button>
@@ -71,76 +53,47 @@ import Layout from "../layouts/Layout.astro";
 
         (async () => {
             try {
-                const res = await fetch(`${API_BASE}/api/me`, {
-                    credentials: "include",
-                });
-                if (!res.ok) {
-                    console.log("Not authenticated, staying on login");
-                    return;
-                }
-                console.log("Already authenticated, redirecting to dashboard");
+                const res = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
+                if (!res.ok) return;
                 window.location.href = "/dashboard";
             } catch (err) {
                 console.error("Auth check error:", err);
             }
         })();
 
-        document
-            .getElementById("login-form")!
-            .addEventListener("submit", async (e) => {
-                e.preventDefault();
-                const btn = document.getElementById(
-                    "submit-btn",
-                ) as HTMLButtonElement;
-                const username = (
-                    document.getElementById("username") as HTMLInputElement
-                ).value;
-                const password = (
-                    document.getElementById("password") as HTMLInputElement
-                ).value;
+        document.getElementById("login-form")!.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById("submit-btn") as HTMLButtonElement;
+            const username = (document.getElementById("username") as HTMLInputElement).value;
+            const password = (document.getElementById("password") as HTMLInputElement).value;
 
-                btn.disabled = true;
-                const originalText = btn.textContent;
-                btn.textContent = "Signing in...";
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = "Signing in...";
 
-                try {
-                    const res = await fetch(
-                        "http://localhost:8080/api/auth/login",
-                        {
-                            method: "POST",
-                            credentials: "include",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ username, password }),
-                        },
-                    );
+            try {
+                const res = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                });
 
-                    console.log("Login response status:", res.status);
-                    const data = await res.json();
+                const data = await res.json();
 
-                    if (!res.ok) {
-                        const errorMsg =
-                            data.error || `Login failed (${res.status})`;
-                        console.error("Login failed:", errorMsg);
-                        toast(errorMsg, "error");
-                        return;
-                    }
-
-                    toast(`Welcome back, ${data.username}!`, "success");
-
-                    // Give toast time to show before redirect
-                    setTimeout(() => {
-                        window.location.href = "/dashboard";
-                    }, 500);
-                } catch (err: any) {
-                    const errorMsg =
-                        err?.message ||
-                        "Connection error. Check that the API server is running.";
-                    console.error("Login error:", err);
-                    toast(`Error: ${errorMsg}`, "error");
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = originalText;
+                if (!res.ok) {
+                    toast(data.error || `Login failed (${res.status})`, "error");
+                    return;
                 }
-            });
+
+                toast(`Welcome back, ${data.username}!`, "success");
+                setTimeout(() => { window.location.href = "/dashboard"; }, 500);
+            } catch (err: any) {
+                toast(`Error: ${err?.message || "Connection error. Check that the API server is running."}`, "error");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
     </script>
 </Layout>
