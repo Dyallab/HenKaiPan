@@ -2,73 +2,86 @@
 @plugin "@tailwindcss/typography";
 
 @theme {
+  /* DESIGN.md palette */
+  --color-deep-space: #000000;
+  --color-ghost-white: #ffffff;
+  --color-iron-slate: #a1a1a1;
+  --color-halo-pale: #f4f0ff;
+  --color-shadow-tint: #020202;
+  --color-subtle-gray: #e5e5e5;
+  --color-iridescent-glow: #bbdef2;
+  --color-spectrum-flare: #d1aad7;
+  --color-vivid-crimson: #ff6467;
+  --color-goldenrod: #ffd600;
+  --color-emerald-green: #72ce7b;
+
   /* Background / Surface */
-  --color-background: #0b1326;
-  --color-surface: #0b1326;
-  --color-surface-dim: #0b1326;
-  --color-surface-bright: #31394d;
-  --color-surface-container-lowest: #060e20;
-  --color-surface-container-low: #131b2e;
-  --color-surface-container: #171f33;
-  --color-surface-container-high: #222a3d;
-  --color-surface-container-highest: #2d3449;
-  --color-surface-variant: #2d3449;
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-dim: #000000;
+  --color-surface-bright: #1a1a1a;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #020202;
+  --color-surface-container: #020202;
+  --color-surface-container-high: #0a0a0a;
+  --color-surface-container-highest: #121212;
+  --color-surface-variant: #1a1a1a;
 
   /* On-surface */
-  --color-on-background: #dae2fd;
-  --color-on-surface: #dae2fd;
-  --color-on-surface-variant: #bec7d4;
+  --color-on-background: #ffffff;
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #a1a1a1;
 
   /* Primary */
-  --color-primary: #98cbff;
-  --color-on-primary: #003354;
-  --color-primary-container: #00a3ff;
-  --color-on-primary-container: #00375a;
-  --color-primary-fixed: #cfe5ff;
-  --color-primary-fixed-dim: #98cbff;
+  --color-primary: #bbdef2;
+  --color-on-primary: #000000;
+  --color-primary-container: #8bc4e8;
+  --color-on-primary-container: #000000;
+  --color-primary-fixed: #d4eaf8;
+  --color-primary-fixed-dim: #bbdef2;
   --color-on-primary-fixed: #001d33;
   --color-on-primary-fixed-variant: #004a77;
-  --color-inverse-primary: #00629d;
-  --color-surface-tint: #98cbff;
+  --color-inverse-primary: #8bc4e8;
+  --color-surface-tint: #bbdef2;
 
   /* Secondary */
-  --color-secondary: #4edea3;
-  --color-on-secondary: #003824;
-  --color-secondary-container: #00a572;
-  --color-on-secondary-container: #00311f;
-  --color-secondary-fixed: #6ffbbe;
-  --color-secondary-fixed-dim: #4edea3;
+  --color-secondary: #72ce7b;
+  --color-on-secondary: #000000;
+  --color-secondary-container: #5ab864;
+  --color-on-secondary-container: #000000;
+  --color-secondary-fixed: #8de095;
+  --color-secondary-fixed-dim: #72ce7b;
   --color-on-secondary-fixed: #002113;
   --color-on-secondary-fixed-variant: #005236;
 
   /* Tertiary */
-  --color-tertiary: #ffb690;
-  --color-on-tertiary: #552100;
-  --color-tertiary-container: #fc7519;
-  --color-on-tertiary-container: #5b2400;
-  --color-tertiary-fixed: #ffdbca;
-  --color-tertiary-fixed-dim: #ffb690;
+  --color-tertiary: #d1aad7;
+  --color-on-tertiary: #000000;
+  --color-tertiary-container: #b88cc0;
+  --color-on-tertiary-container: #000000;
+  --color-tertiary-fixed: #e0c0e5;
+  --color-tertiary-fixed-dim: #d1aad7;
   --color-on-tertiary-fixed: #341100;
   --color-on-tertiary-fixed-variant: #783200;
 
   /* Error */
-  --color-error: #ffb4ab;
-  --color-on-error: #690005;
-  --color-error-container: #93000a;
-  --color-on-error-container: #ffdad6;
+  --color-error: #ff6467;
+  --color-on-error: #000000;
+  --color-error-container: #cc4043;
+  --color-on-error-container: #ffffff;
 
   /* Outline */
-  --color-outline: #88919d;
+  --color-outline: #a1a1a1;
   --color-outline-variant: #3f4852;
 
   /* Inverse */
-  --color-inverse-surface: #dae2fd;
-  --color-inverse-on-surface: #283044;
+  --color-inverse-surface: #ffffff;
+  --color-inverse-on-surface: #000000;
 
-  /* Legacy aliases for JS-generated HTML */
-  --color-surface-card: #171f33;
+  /* Legacy aliases */
+  --color-surface-card: #020202;
   --color-surface-border: #3f4852;
-  --color-accent: #0ea5e9;
+  --color-accent: #bbdef2;
 }
 
 @layer base {
@@ -77,7 +90,7 @@
   }
 
   ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: #0b1326; }
-  ::-webkit-scrollbar-thumb { background: #3f4852; border-radius: 10px; }
-  ::-webkit-scrollbar-thumb:hover { background: #88919d; }
+  ::-webkit-scrollbar-track { background: #000000; }
+  ::-webkit-scrollbar-thumb { background: #a1a1a1; border-radius: 8px; }
+  ::-webkit-scrollbar-thumb:hover { background: #e5e5e5; }
 }
