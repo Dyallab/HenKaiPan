@@ -10,7 +10,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-slate-400 text-sm mt-1">Compliance trail of all security-relevant changes</p>
     </div>
     <div class="flex gap-3">
-      <select id="filter-entity" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+      <select id="filter-entity" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
         <option value="">All entity types</option>
         <option value="finding">Findings</option>
         <option value="policy">Policies</option>
@@ -19,7 +19,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <option value="scan">Scans</option>
         <option value="user">Users</option>
       </select>
-      <select id="filter-action" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+      <select id="filter-action" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
         <option value="">All actions</option>
         <option value="finding.update">Finding Update</option>
         <option value="finding.create">Finding Create</option>
@@ -70,7 +70,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   };
 
   const ACTION_COLORS: Record<string, string> = {
-    'finding.update': 'text-sky-400 bg-sky-500/10',
+    'finding.update': 'text-cyan-400 bg-cyan-500/10',
     'finding.create': 'text-emerald-400 bg-emerald-500/10',
     'policy.enable': 'text-emerald-400 bg-emerald-500/10',
     'policy.disable': 'text-amber-400 bg-amber-500/10',
@@ -140,7 +140,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   </td>
                   <td class="px-6 py-4">
                     <div>
-                      <p class="text-xs font-bold text-sky-400">${log.entity_type}</p>
+                      <p class="text-xs font-bold text-cyan-400">${log.entity_type}</p>
                       <p class="text-[10px] text-slate-500 font-mono">${log.entity_id.slice(0, 8)}</p>
                     </div>
                   </td>

@@ -10,12 +10,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <p class="text-slate-400 text-sm mt-1">Complete overview of projects, apps, scanners, and security coverage</p>
     </div>
     <div class="flex gap-3">
-      <select id="filter-type" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+      <select id="filter-type" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
         <option value="">All asset types</option>
         <option value="app">Apps</option>
         <option value="project">Projects</option>
       </select>
-      <select id="filter-team" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-sky-500 transition-all">
+      <select id="filter-team" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
         <option value="">All teams</option>
       </select>
       <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold">
@@ -29,8 +29,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
     <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
       <div class="flex items-center justify-between mb-3">
-        <span class="material-symbols-outlined text-sky-400 text-2xl">folder_open</span>
-        <span id="count-apps" class="text-3xl font-black text-sky-400">0</span>
+        <span class="material-symbols-outlined text-cyan-400 text-2xl">folder_open</span>
+        <span id="count-apps" class="text-3xl font-black text-cyan-400">0</span>
       </div>
       <p class="text-sm text-slate-400">Total Apps</p>
     </div>
@@ -204,7 +204,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                 return `
                   <tr class="hover:bg-slate-900/30 transition-colors">
                     <td class="px-6 py-4">
-                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider text-sky-400 bg-sky-500/10 border-sky-500/20">
+                      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 border-cyan-500/20">
                         <span class="material-symbols-outlined text-sm">folder_open</span>
                         App
                       </span>
@@ -243,7 +243,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                         <div>
                           <p class="font-bold text-on-background">${project.name}</p>
                           <p class="text-xs text-slate-500 mt-0.5">${project.description || 'No description'}</p>
-                          ${project.repo_url ? `<a href="${project.repo_url}" target="_blank" class="text-[10px] text-sky-400 hover:underline mt-1 block truncate max-w-xs">${project.repo_name || project.repo_url}</a>` : '<p class="text-[10px] text-amber-400 mt-1 italic">No repo connected</p>'}
+                          ${project.repo_url ? `<a href="${project.repo_url}" target="_blank" class="text-[10px] text-cyan-400 hover:underline mt-1 block truncate max-w-xs">${project.repo_name || project.repo_url}</a>` : '<p class="text-[10px] text-amber-400 mt-1 italic">No repo connected</p>'}
                         </div>
                       </td>
                       <td class="px-6 py-4">

@@ -4,39 +4,39 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Dashboard" active="dashboard">
 
   <!-- Onboarding banner (hidden when scans exist) -->
-  <div id="onboarding-banner" class="hidden bg-gradient-to-br from-sky-500/10 via-sky-500/5 to-transparent border border-sky-500/20 rounded-2xl p-6 lg:p-8 mb-6">
+  <div id="onboarding-banner" class="hidden bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-transparent border border-cyan-500/20 rounded-2xl p-5 lg:p-6 mb-5">
     <div class="flex items-start gap-4 flex-col lg:flex-row">
-      <div class="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center shrink-0">
-        <span class="material-symbols-outlined text-sky-400 text-2xl">rocket_launch</span>
+      <div class="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-cyan-400 text-2xl">rocket_launch</span>
       </div>
       <div class="flex-1">
         <h2 class="text-lg font-bold text-white mb-1">Welcome to HenKaiPan</h2>
         <p class="text-slate-400 text-sm mb-4">Get started in 3 steps</p>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a href="/dashboard/welcome" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-sky-500/30 transition-all group">
-            <div class="w-8 h-8 bg-sky-500/10 rounded-lg flex items-center justify-center shrink-0">
-              <span class="material-symbols-outlined text-sky-400 text-lg">add</span>
+          <a href="/dashboard/welcome" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-cyan-500/30 transition-all group">
+            <div class="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined text-cyan-400 text-lg">add</span>
             </div>
             <div>
-              <p class="text-sm font-bold text-white group-hover:text-sky-400 transition-colors">1. Add a Project</p>
+              <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">1. Add a Project</p>
               <p class="text-xs text-slate-500">Connect your repo</p>
             </div>
           </a>
-          <a href="/dashboard/projects" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-sky-500/30 transition-all group">
+          <a href="/dashboard/projects" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-cyan-500/30 transition-all group">
             <div class="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-amber-400 text-lg">key</span>
             </div>
             <div>
-              <p class="text-sm font-bold text-white group-hover:text-sky-400 transition-colors">2. Set GitHub Token</p>
+              <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">2. Set GitHub Token</p>
               <p class="text-xs text-slate-500">Clone private repos</p>
             </div>
           </a>
-          <a href="/dashboard/scans" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-sky-500/30 transition-all group">
+          <a href="/dashboard/scans" class="flex items-center gap-3 bg-surface-container border border-outline-variant/20 rounded-xl p-4 hover:border-cyan-500/30 transition-all group">
             <div class="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center shrink-0">
               <span class="material-symbols-outlined text-emerald-400 text-lg">security_update_good</span>
             </div>
             <div>
-              <p class="text-sm font-bold text-white group-hover:text-sky-400 transition-colors">3. Run a Scan</p>
+              <p class="text-sm font-bold text-white group-hover:text-cyan-400 transition-colors">3. Run a Scan</p>
               <p class="text-xs text-slate-500">Find vulnerabilities</p>
             </div>
           </a>
@@ -46,44 +46,44 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Metric cards -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
     {[
-      { id: 'metric-scans',    label: 'Total Scans',    icon: 'security_update_good', color: 'text-sky-400' },
-      { id: 'metric-critical', label: 'Critical',       icon: 'emergency',            color: 'text-red-400' },
-      { id: 'metric-high',     label: 'High',           icon: 'warning',              color: 'text-orange-400' },
+      { id: 'metric-scans',    label: 'Total Scans',    icon: 'security_update_good', color: 'text-cyan-400' },
+      { id: 'metric-critical', label: 'Critical',       icon: 'emergency',            color: 'text-vivid-crimson' },
+      { id: 'metric-high',     label: 'High',           icon: 'warning',              color: 'text-goldenrod' },
       { id: 'metric-total',    label: 'Total Findings', icon: 'biotech',              color: 'text-primary' },
     ].map(m => (
-      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5 hover:border-sky-500/20 transition-all">
-        <div class="flex items-center justify-between mb-3">
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 hover:border-cyan-500/20 transition-all">
+        <div class="flex items-center justify-between mb-2">
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">{m.label}</p>
-          <span class={`material-symbols-outlined text-xl ${m.color}`}>{m.icon}</span>
+          <span class={`material-symbols-outlined text-lg ${m.color}`}>{m.icon}</span>
         </div>
-        <p id={m.id} class={`text-3xl font-black tracking-tight ${m.color}`}>—</p>
+        <p id={m.id} class={`text-2xl font-black tracking-tight ${m.color}`}>—</p>
       </div>
     ))}
   </div>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
 
-    <!-- Severity breakdown -->
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
-      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Findings by Severity</h2>
-      <div id="severity-bars" class="space-y-3"></div>
-    </div>
-
-    <!-- Scanner breakdown -->
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
-      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Scans by Tool</h2>
-      <div id="scanner-bars" class="space-y-3"></div>
+    <!-- Severity + Scanner combined -->
+    <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4">
+        <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Findings by Severity</h2>
+        <div id="severity-bars" class="space-y-2.5"></div>
+      </div>
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4">
+        <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Scans by Tool</h2>
+        <div id="scanner-bars" class="space-y-2.5"></div>
+      </div>
     </div>
 
     <!-- Active scans -->
-    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
-      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Active Scans</h2>
-      <p id="active-scans" class="text-4xl font-black text-sky-400">—</p>
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-4 flex flex-col">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Active Scans</h2>
+      <p id="active-scans" class="text-3xl font-black text-cyan-400">—</p>
       <p class="text-xs text-slate-500 mt-1">pending or running</p>
-      <div class="mt-5">
-        <a href="/dashboard/scans" class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+      <div class="mt-auto pt-4">
+        <a href="/dashboard/scans" class="inline-flex items-center gap-2 px-4 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
           <span class="material-symbols-outlined text-sm">add</span>
           New Scan
         </a>
@@ -93,12 +93,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   <!-- Recent scans -->
   <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
-    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+    <div class="px-5 py-3 border-b border-outline-variant/20 flex items-center justify-between">
       <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Recent Scans</h2>
-      <a href="/dashboard/scans" class="text-xs text-sky-400 hover:text-sky-300 font-semibold transition-colors">View all →</a>
+      <a href="/dashboard/scans" class="text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors">View all →</a>
     </div>
     <div id="recent-scans" class="divide-y divide-outline-variant/20">
-      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+      <p class="px-5 py-3 text-sm text-slate-500">Loading...</p>
     </div>
   </div>
 
@@ -111,20 +111,20 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     critical: 'bg-red-500',
     high:     'bg-orange-500',
     medium:   'bg-yellow-500',
-    low:      'bg-sky-500',
+    low:      'bg-cyan-500',
     info:     'bg-slate-500',
   };
 
   const STATUS_STYLES: Record<string, string> = {
     completed: 'text-emerald-400 bg-emerald-500/10',
-    running:   'text-sky-400 bg-sky-500/10',
+    running:   'text-cyan-400 bg-cyan-500/10',
     pending:   'text-amber-400 bg-amber-500/10',
     failed:    'text-red-400 bg-red-500/10',
   };
 
   const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
-    semgrep:      { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
-    gosec:        { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+    semgrep:      { label: 'SAST',      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    gosec:        { label: 'SAST',      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
     trivy:        { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
     grype:        { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
     'osv-scanner':{ label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
@@ -191,18 +191,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const scanEl = document.getElementById('scanner-bars')!;
       const totalScans = Object.values(m.scans_by_scanner).reduce((a: number, b: number) => a + b, 0) || 1;
       scanEl.innerHTML = Object.entries(m.scans_by_scanner).map(([k, v]) =>
-        bar(k, v as number, totalScans as number, 'bg-sky-500')
+        bar(k, v as number, totalScans as number, 'bg-cyan-500')
       ).join('') || '<p class="text-xs text-slate-500">No scans yet</p>';
 
       const recentEl = document.getElementById('recent-scans')!;
       if (!m.recent_scans.length) {
-        recentEl.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No scans yet. <a href="/dashboard/scans" class="text-sky-400 hover:underline">Start one →</a></p>';
+        recentEl.innerHTML = '<p class="px-5 py-3 text-sm text-slate-500">No scans yet. <a href="/dashboard/scans" class="text-cyan-400 hover:underline">Start one →</a></p>';
         return;
       }
       recentEl.innerHTML = m.recent_scans.map(s => `
-        <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
+        <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
           <div class="min-w-0">
-            <p class="text-sm font-semibold text-on-background truncate max-w-xs mb-1">${s.target}</p>
+            <p class="text-sm font-semibold text-on-background truncate max-w-xs">${s.target}</p>
             <div class="flex items-center gap-2">
               ${scannerBadge(s.scanner)}
               <span class="text-xs text-slate-500">${new Date(s.created_at).toLocaleString()}</span>

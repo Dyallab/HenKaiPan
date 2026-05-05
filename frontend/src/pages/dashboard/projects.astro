@@ -4,21 +4,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 <DashboardLayout title="Projects" active="projects">
 
 <!-- Header -->
-<div class="flex items-center justify-between mb-6">
+<div class="flex items-center justify-between mb-5">
   <div>
-    <h1 class="text-2xl font-bold text-white">Projects</h1>
-    <p class="text-slate-400 text-sm mt-1">Manage your scanned projects and connections</p>
+    <h1 class="text-xl font-bold text-white">Projects</h1>
+    <p class="text-slate-400 text-sm mt-0.5">Manage your scanned projects and connections</p>
   </div>
   <button id="open-create-project"
-    class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded transition-colors">
+    class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
     <span class="material-symbols-outlined text-lg">add</span>
     New Project
   </button>
 </div>
 
 <!-- Filter tabs -->
-<div class="flex gap-2 mb-6">
-  <button data-filter="" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950">All</button>
+<div class="flex gap-2 mb-4">
+  <button data-filter="" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-cyan-500 text-slate-950">All</button>
   <button data-filter="with_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">With App</button>
   <button data-filter="without_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">Standalone</button>
   <div class="flex-1"></div>
@@ -30,11 +30,11 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
 <!-- Projects list -->
 <div id="projects-list" class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
-  <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+  <p class="px-5 py-3 text-sm text-slate-500">Loading...</p>
 </div>
 
 <!-- Empty state -->
-<div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-center">
+<div id="empty-state" class="hidden flex-col items-center justify-center py-16 text-center">
   <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">folder_open</span>
   <p class="text-slate-400 font-semibold text-lg">No projects yet</p>
   <p class="text-slate-600 text-sm mt-1">Create your first project to start scanning.</p>
@@ -49,28 +49,28 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
         <input id="project-name" type="text" placeholder="e.g. API Service"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
         <input id="project-desc" type="text" placeholder="Optional"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL *</label>
         <input id="project-repo-url" type="text" placeholder="https://github.com/org/repo"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
       <div>
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
         <input id="project-branch" type="text" placeholder="main" value="main"
-          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
     </div>
     <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
     <div class="flex gap-3 mt-6">
       <button id="cancel-create-project" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
-      <button id="submit-create-project" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+      <button id="submit-create-project" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
     </div>
   </div>
 </div>
@@ -98,16 +98,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           id="github-token-input"
           type="password"
           placeholder="ghp_..."
-          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+          class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-white text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
         />
         <p class="text-xs text-slate-500 mt-1">
-          Create a token with <span class="font-mono text-sky-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-sky-400 hover:underline">github.com/settings/tokens</a>
+          Create a token with <span class="font-mono text-cyan-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-cyan-400 hover:underline">github.com/settings/tokens</a>
         </p>
       </div>
       <div class="flex gap-3 pt-2">
         <button
           id="save-github-token"
-          class="flex-1 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
+          class="flex-1 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
         >
           Save Token
         </button>
@@ -158,7 +158,7 @@ function getCoverageBadge(coverage?: ProjectCoverage) {
       return `<span class="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span>${coverage.days_since_scan}d ago</span>`;
     }
     if (coverage.days_since_scan > 7) {
-      return `<span class="text-xs text-sky-400 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span>${coverage.days_since_scan}d ago</span>`;
+      return `<span class="text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">schedule</span>${coverage.days_since_scan}d ago</span>`;
     }
     return '<span class="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-bold flex items-center gap-1"><span class="material-symbols-outlined text-sm">check_circle</span>Recent</span>';
   }
@@ -205,7 +205,7 @@ function renderProjects() {
     ${filteredProjects.map(p => {
       const coverage = coverageData.get(p.id);
       return `
-      <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
+      <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
         <div class="min-w-0">
           <div class="flex items-center gap-2 mb-1 flex-wrap">
             <span class="material-symbols-outlined text-slate-500 text-base">folder_open</span>
@@ -218,7 +218,7 @@ function renderProjects() {
         </div>
         <div class="flex items-center gap-3 shrink-0 ml-4">
           <a href="/dashboard/scans?project=${encodeURIComponent(p.id)}"
-             class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+             class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
             <span class="material-symbols-outlined text-sm">security_update_good</span>
             Scan
           </a>
@@ -227,7 +227,7 @@ function renderProjects() {
             data-configure-token="${p.id}"
             data-project-name="${p.name}"
             data-project-has-token="${p.has_token}"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors"
           >
             <span class="material-symbols-outlined text-sm">${p.has_token ? 'key' : 'key_off'}</span>
             ${p.has_token ? 'Token Set' : 'Set Token'}
@@ -298,7 +298,7 @@ document.querySelectorAll('.filter-tab').forEach(btn => {
     document.querySelectorAll('.filter-tab').forEach(b => {
       b.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white`;
     });
-    btn.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-sky-500 text-slate-950`;
+    btn.className = `filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-cyan-500 text-slate-950`;
     showCoverageOnly = false;
     document.getElementById('coverage-filter')!.className = 'px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20';
     loadProjects();

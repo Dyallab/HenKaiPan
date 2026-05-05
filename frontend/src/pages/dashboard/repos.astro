@@ -11,7 +11,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         id="repo-name"
         type="text"
         placeholder="my-service"
-        class="w-40 bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+        class="w-40 bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600"
       />
       <div class="relative flex-1 min-w-64">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">link</span>
@@ -19,12 +19,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
           id="repo-url"
           type="text"
           placeholder="https://github.com/org/repo"
-          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600"
         />
       </div>
       <button
         type="submit"
-        class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95"
+        class="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-cyan-400 transition-all active:scale-95"
       >
         <span class="material-symbols-outlined text-lg">add</span>
         Add Repo
@@ -66,16 +66,16 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             id="github-token-input"
             type="password"
             placeholder="ghp_..."
-            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-sky-500 outline-none font-mono transition-all"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
           />
           <p class="text-xs text-slate-500 mt-1">
-            Create a token with <span class="font-mono text-sky-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-sky-400 hover:underline">github.com/settings/tokens</a>
+            Create a token with <span class="font-mono text-cyan-400">repo</span> scope at <a href="https://github.com/settings/tokens" target="_blank" class="text-cyan-400 hover:underline">github.com/settings/tokens</a>
           </p>
         </div>
         <div class="flex gap-3 pt-2">
           <button
             id="save-github-token"
-            class="flex-1 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
+            class="flex-1 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-sm font-bold transition-all active:scale-95"
           >
             Save Token
           </button>
@@ -123,13 +123,13 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-configure-token="${r.id}"
               data-repo-name="${r.name}"
               data-repo-has-token="${r.has_token}"
-              class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors"
             >
               <span class="material-symbols-outlined text-sm">${r.has_token ? 'key' : 'key_off'}</span>
               ${r.has_token ? 'Token Set' : 'Set Token'}
             </button>
             <a href="/dashboard/scans?repo=${encodeURIComponent(r.url)}"
-               class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+               class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
               <span class="material-symbols-outlined text-sm">security_update_good</span>
               Scan
             </a>

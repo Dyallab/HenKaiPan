@@ -8,7 +8,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <span class="material-symbols-outlined text-amber-400 shrink-0 mt-0.5">lock</span>
     <div class="flex-1">
       <p class="text-sm font-bold text-amber-400">Compliance is a paid feature</p>
-      <p class="text-xs text-slate-400 mt-1">Get a license key to unlock compliance frameworks, policy packs, and evidence export. <a href="/dashboard/settings#license" class="text-sky-400 hover:text-sky-300 underline">Manage license</a></p>
+      <p class="text-xs text-slate-400 mt-1">Get a license key to unlock compliance frameworks, policy packs, and evidence export. <a href="/dashboard/settings#license" class="text-cyan-400 hover:text-cyan-300 underline">Manage license</a></p>
     </div>
   </div>
 
@@ -16,7 +16,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
     <div>
       <div class="flex items-center gap-2 mb-2">
-        <span class="material-symbols-outlined text-sky-400 text-2xl">rocket_launch</span>
+        <span class="material-symbols-outlined text-cyan-400 text-2xl">rocket_launch</span>
         <h1 class="text-2xl font-bold text-white">Compliance Starter Mode</h1>
       </div>
       <p class="text-slate-400 text-sm mt-1 max-w-xl">
@@ -36,8 +36,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
     <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
       <div class="flex items-center justify-between mb-3">
-        <span class="material-symbols-outlined text-sky-400 text-2xl">checklist</span>
-        <span id="progress-pct" class="text-3xl font-black text-sky-400">0%</span>
+        <span class="material-symbols-outlined text-cyan-400 text-2xl">checklist</span>
+        <span id="progress-pct" class="text-3xl font-black text-cyan-400">0%</span>
       </div>
       <p class="text-sm text-slate-400">Controls Compliant</p>
       <p id="progress-text" class="text-xs text-slate-500 mt-1">0 of 0 controls</p>
@@ -61,32 +61,32 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Policy Packs Section -->
-  <div class="bg-gradient-to-br from-sky-500/10 to-purple-500/10 border border-sky-500/20 rounded-2xl p-6 mb-8">
+  <div class="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-cyan-500/20 rounded-2xl p-6 mb-8">
     <div class="flex items-center gap-2 mb-4">
-      <span class="material-symbols-outlined text-sky-400 text-xl">auto_awesome</span>
+      <span class="material-symbols-outlined text-cyan-400 text-xl">auto_awesome</span>
       <h2 class="text-lg font-bold text-white">Recommended Policy Packs</h2>
     </div>
     <p class="text-sm text-slate-400 mb-4">Enable these pre-configured policies to automatically enforce compliance controls.</p>
     
     <div class="grid md:grid-cols-2 gap-4">
       <!-- SOC2 Starter Pack -->
-      <div class="bg-surface-container-low border border-sky-500/20 rounded-xl p-5">
+      <div class="bg-surface-container-low border border-cyan-500/20 rounded-xl p-5">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-sky-400 text-xl">security</span>
+            <span class="material-symbols-outlined text-cyan-400 text-xl">security</span>
             <h3 class="font-bold text-on-background">SOC2 Starter Pack</h3>
           </div>
-          <span class="text-xs font-bold text-sky-400 bg-sky-500/10 px-2 py-1 rounded border border-sky-500/20">5 policies</span>
+          <span class="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded border border-cyan-500/20">5 policies</span>
         </div>
         <p class="text-xs text-slate-400 mb-3">Essential policies for SOC 2 Type II readiness: access control, vulnerability management, secure coding, change management, and monitoring.</p>
         <div class="flex flex-wrap gap-1 mb-4">
-          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC6.1</span>
-          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC7.1</span>
-          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC6.3</span>
-          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">CC8.1</span>
-          <span class="text-[10px] text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">A1.2</span>
+          <span class="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">CC6.1</span>
+          <span class="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">CC7.1</span>
+          <span class="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">CC6.3</span>
+          <span class="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">CC8.1</span>
+          <span class="text-[10px] text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">A1.2</span>
         </div>
-        <button id="enable-soc2-pack" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest rounded transition-colors">
+        <button id="enable-soc2-pack" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest rounded transition-colors">
           <span class="material-symbols-outlined text-base">add_task</span>
           Enable SOC2 Pack
         </button>
@@ -138,21 +138,21 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               data-fw={f.id}
               class={`w-full text-left p-4 rounded-xl border-2 transition-all framework-btn ${
                 f.active
-                  ? 'border-sky-500 bg-sky-500/5'
+                  ? 'border-cyan-500 bg-cyan-500/5'
                   : 'border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high'
               }`}
             >
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div class={`w-10 h-10 rounded-lg flex items-center justify-center ${f.active ? 'bg-sky-500/20' : 'bg-surface-container-highest'}`}>
-                    <span class={`material-symbols-outlined ${f.active ? 'text-sky-400' : 'text-slate-500'}`}>{f.icon}</span>
+                  <div class={`w-10 h-10 rounded-lg flex items-center justify-center ${f.active ? 'bg-cyan-500/20' : 'bg-surface-container-highest'}`}>
+                    <span class={`material-symbols-outlined ${f.active ? 'text-cyan-400' : 'text-slate-500'}`}>{f.icon}</span>
                   </div>
                   <div>
                     <span class={`block font-bold text-sm ${f.active ? 'text-on-background' : 'text-slate-400'}`}>{f.label}</span>
                     <span class="block text-xs text-slate-500 mt-0.5">{f.sub}</span>
                   </div>
                 </div>
-                {f.active && <span class="material-symbols-outlined text-sky-400 ms-fill">check_circle</span>}
+                {f.active && <span class="material-symbols-outlined text-cyan-400 ms-fill">check_circle</span>}
               </div>
             </button>
           ))}
@@ -211,7 +211,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
               id="controls-search"
               type="text"
               placeholder="Search controls..."
-              class="bg-surface-container border border-outline-variant/30 rounded-lg pl-9 pr-4 py-1.5 text-xs w-52 focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none text-on-background placeholder:text-slate-600"
+              class="bg-surface-container border border-outline-variant/30 rounded-lg pl-9 pr-4 py-1.5 text-xs w-52 focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 outline-none text-on-background placeholder:text-slate-600"
             />
           </div>
         </div>
@@ -336,7 +336,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     
     if (soc2AllEnabled) {
       soc2Btn.innerHTML = '<span class="material-symbols-outlined text-base">check</span> SOC2 Enabled';
-      soc2Btn.classList.remove('bg-sky-500', 'hover:bg-sky-400');
+      soc2Btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
       soc2Btn.classList.add('bg-emerald-500', 'hover:bg-emerald-400');
     }
     if (isoAllEnabled) {
@@ -438,7 +438,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const catControls = controls.filter(c => c.category === cat);
       const catCompliant = catControls.filter(c => controlStatus(c.scanners) === 'compliant').length;
       const catPct = Math.round((catCompliant / catControls.length) * 100);
-      const color = catPct >= 90 ? 'bg-sky-500' : catPct >= 70 ? 'bg-tertiary' : 'bg-error';
+      const color = catPct >= 90 ? 'bg-cyan-500' : catPct >= 70 ? 'bg-tertiary' : 'bg-error';
       return `
         <div>
           <div class="flex justify-between text-xs mb-1.5">
@@ -492,7 +492,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
             return `
               <tr class="hover:bg-slate-900/30 transition-colors">
                 <td class="px-6 py-4">
-                  <span class="font-mono text-sky-400 font-bold text-sm">${c.id}</span>
+                  <span class="font-mono text-cyan-400 font-bold text-sm">${c.id}</span>
                 </td>
                 <td class="px-6 py-4 max-w-xs">
                   <p class="font-bold text-on-background">${c.title}</p>
@@ -531,7 +531,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         const isActive = b.dataset.fw === fw;
         b.className = `w-full text-left p-4 rounded-xl border-2 transition-all framework-btn ${
           isActive
-            ? 'border-sky-500 bg-sky-500/5'
+            ? 'border-cyan-500 bg-cyan-500/5'
             : 'border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high'
         }`;
         const iconEl = b.querySelector('.material-symbols-outlined.ms-fill') as HTMLElement | null;
