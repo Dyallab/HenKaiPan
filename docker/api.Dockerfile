@@ -4,7 +4,6 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN corepack enable && pnpm install --frozen-lockfile
 COPY frontend/ .
-COPY docs/ ../docs/
 RUN pnpm build
 
 # Stage 2: Build Go API
