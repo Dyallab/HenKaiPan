@@ -19,16 +19,16 @@ type ProviderConfig struct {
 }
 
 type Config struct {
-	DatabaseURL         string // required
-	JWTSecret           string // required
-	SecretEncryptionKey string // required for encrypting sensitive DB fields
-	RedisAddr           string // default: localhost:6379
-	Port                string // default: 8080
-	FrontendURL         string // optional: public frontend URL for external backlinks
-	CookieSecure        bool   // default: false; set true behind HTTPS
-	LicenseKey          string // optional: license key for self-hosted features
+	DatabaseURL          string // required
+	JWTSecret            string // required
+	SecretEncryptionKey  string // required for encrypting sensitive DB fields
+	RedisAddr            string // default: localhost:6379
+	Port                 string // default: 8080
+	FrontendURL          string // optional: public frontend URL for external backlinks
+	CookieSecure         bool   // default: false; set true behind HTTPS
+	LicenseKey           string // optional: license key for self-hosted features
 	LicenseSigningSecret string // secret for signing license keys (default: "aspm-license-secret")
-	WebhookSecret       string // optional: secret for HMAC webhook signature validation
+	WebhookSecret        string // optional: secret for HMAC webhook signature validation
 
 	SMTPHost     string // optional email notifications
 	SMTPPort     string // default: 587
@@ -87,7 +87,7 @@ func Load() *Config {
 		DatabaseURL:           get("DATABASE_URL"),
 		JWTSecret:             get("JWT_SECRET"),
 		SecretEncryptionKey:   get("SECRET_ENCRYPTION_KEY"),
-		RedisAddr:             envOr("REDIS_ADDR", "localhost:6379"),
+		RedisAddr:             get("REDIS_ADDR"),
 		Port:                  envOr("PORT", "8080"),
 		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
 		CookieSecure:          envBool("COOKIE_SECURE", false),
@@ -105,7 +105,7 @@ func Load() *Config {
 		CfAPIToken:            os.Getenv("CF_API_TOKEN"),
 		CfModel:               envOr("CF_MODEL", "@cf/meta/llama-3.1-8b-instruct"),
 		CfModelSumm:           envOr("CF_MODEL_SUMM", "@cf/google/gemma-3-12b-it"),
-		OllamaURL:             envOr("OLLAMA_URL", "http://localhost:11434"),
+		OllamaURL:             envOr("OLLAMA_URL", "http://host.docker.internal:11434"),
 		OllamaModel:           envOr("OLLAMA_MODEL", "gemma4:e4b"),
 		AIRemediationProvider: envOr("AI_REMEDIATION_PROVIDER", "openrouter"),
 		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "ollama"),
@@ -199,5 +199,3 @@ func envBool(key string, def bool) bool {
 	}
 	return v
 }
-
-

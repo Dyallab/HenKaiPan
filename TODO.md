@@ -170,7 +170,7 @@ Critical items that must be completed before v1.0 release.
 | AI summary generator for notifications | 1 day | High |
 | User notifications system | ✅ Done | High |
 
-- [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Configurable via `AI_SUMMARY_MODEL` env var. Falls back to structured text if not configured.
+- [ ] **AI notification summaries via small LLM** (e.g. Gemma 3 12B): generate human-readable digest from finding context for Slack/webhook/email notifications instead of raw JSON blobs. Uses task-specific model (e.g. `OLLAMA_MODEL` or `CF_MODEL_SUMM` depending on provider). Falls back to structured text if not configured.
 - [x] **User notifications system** — in-app notifications with read/unread status, unread count badge, mark as read endpoints
 - [x] `GET /api/notifications` — list user notifications
 - [x] `GET /api/notifications/unread-count` — unread notification count
