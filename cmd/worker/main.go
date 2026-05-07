@@ -9,6 +9,7 @@ import (
 	"aspm/internal/ai"
 	"aspm/internal/config"
 	"aspm/internal/db"
+	"aspm/internal/events"
 	"aspm/internal/findings"
 	"aspm/internal/logger"
 	"aspm/internal/metrics"
@@ -82,12 +83,16 @@ func main() {
 	}
 
 	if cfg.SummaryConfig.IsConfigured {
-		summaryAgent := findings.NewSummaryAgent(store.Findings, cfg.SummaryConfig.Model)
+		summaryAgent := findings.NewSummaryAgent(store.Findings)
 		mux.HandleFunc(tasks.TypeFindingSummarize, tasks.HandleFindingSummarize(summaryAgent))
 		slog.Info("agent:summarize handler registered", "provider", cfg.SummaryConfig.Name, "model", cfg.SummaryConfig.Model)
 	} else {
 		slog.Warn("AI summary not configured — agent:summarize handler will not be registered")
 	}
+
+	// Initialize Redis bridge so worker can publish SSE events that the API
+	// process will receive and relay to its connected SSE clients.
+	events.InitRedisBridge(cfg.RedisAddr)
 
 	slog.Info("worker started, waiting for tasks")
 	if err := srv.Run(mux); err != nil {

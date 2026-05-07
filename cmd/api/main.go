@@ -11,6 +11,7 @@ import (
 	"aspm/internal/auth"
 	"aspm/internal/config"
 	"aspm/internal/db"
+	"aspm/internal/events"
 	"aspm/internal/handlers"
 	"aspm/internal/license"
 	"aspm/internal/logger"
@@ -51,11 +52,17 @@ func main() {
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 	licSvc := license.New(cfg.LicenseSigningSecret, cfg.LicenseKey)
-	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, licSvc)
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc)
 
 	// Initialize rate limiter
 	appmw.InitRateLimiter(cfg.RedisAddr)
 	defer appmw.Close()
+
+	// Initialize Redis bridge for cross-process SSE event delivery.
+	// The API process subscribes to Redis so that events published by the worker
+	// reach the SSE clients connected to this API instance.
+	events.InitRedisBridge(cfg.RedisAddr)
+	events.SubscribeFromRedis()
 
 	// Initialize Prometheus metrics
 	redisOpt := &asynq.RedisClientOpt{Addr: cfg.RedisAddr}
@@ -139,6 +146,10 @@ func main() {
 		r.Get("/api/findings/files", h.GetUniqueFiles)
 		r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
 		r.With(auth.RequireRole("admin", "analyst")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
+
+		// ── SSE Events ──
+		r.Get("/api/events", h.HandleSSEEvents)
+		r.Get("/api/events/stats", h.GetSSEStats)
 
 		// ── Notifications ──
 		r.Get("/api/notifications", h.GetNotifications)
