@@ -26,6 +26,8 @@ type Config struct {
 	Port                 string // default: 8080
 	FrontendURL          string // optional: public frontend URL for external backlinks
 	CookieSecure         bool   // default: false; set true behind HTTPS
+	CookieDomain         string // optional: cookie domain for production (e.g. ".example.com")
+	CookieSameSite       string // optional: "lax" (default), "strict", or "none" (requires Secure=true)
 	LicenseKey           string // optional: license key for self-hosted features
 	LicenseSigningSecret string // secret for signing license keys (default: "aspm-license-secret")
 	WebhookSecret        string // optional: secret for HMAC webhook signature validation
@@ -91,6 +93,8 @@ func Load() *Config {
 		Port:                  envOr("PORT", "8080"),
 		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
 		CookieSecure:          envBool("COOKIE_SECURE", false),
+		CookieDomain:          os.Getenv("COOKIE_DOMAIN"),
+		CookieSameSite:        envOr("COOKIE_SAMESITE", "lax"),
 		LicenseKey:            os.Getenv("LICENSE_KEY"),
 		LicenseSigningSecret:  os.Getenv("LICENSE_SIGNING_SECRET"),
 		WebhookSecret:         os.Getenv("WEBHOOK_SECRET"),

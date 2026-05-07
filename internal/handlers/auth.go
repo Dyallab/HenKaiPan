@@ -45,8 +45,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	slog.InfoContext(r.Context(), "login: token issued", "username", req.Username, "token_len", len(token))
 
-	auth.SetAuthCookie(w, token, h.cookieSecure)
-	slog.InfoContext(r.Context(), "login: cookie set", "username", req.Username, "secure", h.cookieSecure)
+	auth.SetAuthCookie(w, token, h.cookieSecure, h.cookieDomain, h.cookieSameSite)
+	slog.InfoContext(r.Context(), "login: cookie set", "username", req.Username, "secure", h.cookieSecure, "domain", h.cookieDomain, "samesite", h.cookieSameSite)
 
 	w.Header().Set("Cache-Control", "no-store")
 
@@ -58,6 +58,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
-	auth.ClearAuthCookie(w, h.cookieSecure)
+	auth.ClearAuthCookie(w, h.cookieSecure, h.cookieDomain, h.cookieSameSite)
 	w.WriteHeader(http.StatusNoContent)
 }

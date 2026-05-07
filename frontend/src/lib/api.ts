@@ -1,6 +1,6 @@
 import { friendlyError } from "./toast";
 
-export const API_BASE = "http://localhost:8080";
+export const API_BASE = import.meta.env.PUBLIC_API_BASE || "";
 
 interface SuppressionCreate {
   Name: string;
@@ -147,7 +147,7 @@ export const api = {
     scanner = "",
     status = "",
   ) =>
-    `http://localhost:8080/api/findings/export?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&status=${status}`,
+    `${API_BASE}/api/findings/export?severity=${encodeURIComponent(serializeMultiValue(severity))}&scanner=${scanner}&status=${status}`,
 
   getMe: () => req<User>("/api/me"),
 

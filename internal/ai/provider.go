@@ -129,43 +129,6 @@ func repairInvalidJSONEscapes(content string) string {
 	return b.String()
 }
 
-// GenerateTextWithModel generates text using a specific model identifier.
-// If the model starts with @cf/, it uses Cloudflare. If it's "ollama" or starts with ollama/, it uses Ollama. Otherwise, uses OpenRouter.
-// This function allows explicit model selection and is useful for dynamic model switching.
-func GenerateTextWithModel(ctx context.Context, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, error) {
-	if cfg == nil {
-		return "", ErrAIProviderNotConfigured
-	}
-
-	// Determine provider based on model prefix or config
-	var provider *config.ProviderConfig
-	if strings.HasPrefix(modelName, "@cf/") {
-		provider = &config.ProviderConfig{
-			Name:         "cloudflare",
-			Model:        modelName,
-			IsConfigured: cfg.CfAccountID != "" && cfg.CfAPIToken != "",
-		}
-	} else if strings.HasPrefix(modelName, "ollama/") || modelName == "ollama" {
-		provider = &config.ProviderConfig{
-			Name:         "ollama",
-			Model:        strings.TrimPrefix(modelName, "ollama/"),
-			IsConfigured: cfg.OllamaURL != "",
-		}
-	} else {
-		provider = &config.ProviderConfig{
-			Name:         "openrouter",
-			Model:        modelName,
-			IsConfigured: cfg.OpenRouterAPIKey != "",
-		}
-	}
-
-	if !provider.IsConfigured {
-		return "", ErrAIProviderNotConfigured
-	}
-
-	return generateWithProvider(ctx, provider, systemPrompt, userPrompt, maxTokens)
-}
-
 // generateWithProvider is the core router that dispatches to the appropriate provider.
 func generateWithProvider(ctx context.Context, provider *config.ProviderConfig, systemPrompt, userPrompt string, maxTokens int) (string, error) {
 	switch provider.Name {
