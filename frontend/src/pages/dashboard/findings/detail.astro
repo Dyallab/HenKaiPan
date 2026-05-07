@@ -155,6 +155,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                             </div>
                         </div>
                     </div>
+                    
                     <p id="jira-status" class="hidden text-xs text-slate-500">
                     </p>
                 </div>
@@ -198,7 +199,8 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                 <section data-tab-panel="overview" class="tab-panel space-y-6">
                     <div class="grid md:grid-cols-2 gap-4">
                         <div
-                            class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5"
+                            id="summary-card"
+                            class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 scroll-mt-24"
                         >
                             <p
                                 class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500 mb-2"
@@ -875,14 +877,15 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 </DashboardLayout>
 
 <script>
-    import { api } from "../../../lib/api";
-    import { toast } from "../../../lib/toast";
+    import { api } from "@lib/api";
+    import { toast } from "@lib/toast";
     import { z } from "zod";
+    import { getSSEClient } from "@lib/sse";
     import type {
         AgentAnalysis,
         Finding,
         JiraIssueLink,
-    } from "../../../lib/api";
+    } from "@lib/api";
 
     // Validation schemas
     const findingUpdateSchema = z.object({
@@ -901,7 +904,8 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     }
 
     const SEV_STYLES: Record<string, string> = {
-        critical: "text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20",
+        critical:
+            "text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20",
         high: "text-goldenrod bg-goldenrod/10 border-goldenrod/20",
         medium: "text-spectrum-flare bg-spectrum-flare/10 border-spectrum-flare/20",
         low: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
@@ -910,10 +914,12 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 
     const STATUS_STYLES: Record<string, string> = {
         open: "text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20",
-        in_review: "text-iridescent-glow bg-iridescent-glow/10 border-iridescent-glow/20",
+        in_review:
+            "text-iridescent-glow bg-iridescent-glow/10 border-iridescent-glow/20",
         accepted_risk: "text-goldenrod bg-goldenrod/10 border-goldenrod/20",
         fixed: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
-        verified: "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
+        verified:
+            "text-emerald-green bg-emerald-green/10 border-emerald-green/20",
     };
 
     const STATUS_LABELS: Record<string, string> = {
@@ -1368,39 +1374,62 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     function renderSummary(finding: Finding) {
         const descriptionEl = document.getElementById("summary-description")!;
         const metaEl = document.getElementById("summary-meta")!;
-        const requestAiBtn = document.getElementById("request-ai-summary-btn");
+        const requestAiBtn = document.getElementById(
+            "request-ai-summary-btn",
+        ) as HTMLButtonElement | null;
 
         if (finding.description) {
             descriptionEl.textContent = finding.description;
             metaEl.textContent = "Scanner-provided summary.";
-            if (requestAiBtn) requestAiBtn.classList.add("hidden");
+            if (requestAiBtn) {
+                requestAiBtn.classList.add("hidden");
+                requestAiBtn.disabled = false;
+                requestAiBtn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+            }
             return;
         }
         if (finding.ai_summary) {
             descriptionEl.textContent = finding.ai_summary;
             metaEl.textContent =
                 "AI-generated reusable summary for repeated findings.";
-            if (requestAiBtn) requestAiBtn.classList.add("hidden");
+            if (requestAiBtn) {
+                requestAiBtn.classList.add("hidden");
+                requestAiBtn.disabled = false;
+                requestAiBtn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+            }
             return;
         }
         if (finding.summary_state === "pending") {
+            descriptionEl.textContent = "Generating AI summary…";
             metaEl.textContent =
-                "No description available yet. You can request an AI-generated summary using the button above.";
-            if (requestAiBtn) requestAiBtn.classList.add("hidden");
+                "The AI summary is being generated. This may take a moment.";
+            if (requestAiBtn) {
+                requestAiBtn.classList.add("hidden");
+                requestAiBtn.disabled = true;
+                requestAiBtn.innerHTML = `<span class="material-symbols-outlined text-base">progress_activity</span>Generating…`;
+            }
             return;
         }
         if (finding.summary_state === "failed") {
             descriptionEl.textContent = "Summary unavailable right now.";
             metaEl.textContent =
-                "The AI summary job failed for now. Reopen this finding later to retry.";
-            if (requestAiBtn) requestAiBtn.classList.remove("hidden");
+                "The AI summary job failed for now. You can retry using the button above.";
+            if (requestAiBtn) {
+                requestAiBtn.classList.remove("hidden");
+                requestAiBtn.disabled = false;
+                requestAiBtn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+            }
             return;
         }
 
         descriptionEl.textContent = "No description available.";
         metaEl.textContent =
             "Request an AI-generated summary using the button above.";
-        if (requestAiBtn) requestAiBtn.classList.remove("hidden");
+        if (requestAiBtn) {
+            requestAiBtn.classList.remove("hidden");
+            requestAiBtn.disabled = false;
+            requestAiBtn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+        }
     }
 
     function applyFinding(finding: Finding) {
@@ -1442,11 +1471,30 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
         tags.innerHTML = `<span class="px-3 py-2 rounded-xl border ${scanner.color} text-sm font-semibold">${scanner.label}</span>${finding.suppressed ? '<span class="px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-300 text-sm font-semibold">Suppressed</span>' : ""}`;
 
         renderSummary(finding);
-        document.getElementById("overview-ai-confidence")!.textContent = "—";
-        document.getElementById("overview-ai-state")!.textContent =
-            "Loading validator analysis…";
-        document.getElementById("overview-rule")!.textContent =
-            finding.rule_id || "—";
+
+        // Preserve existing AI validation state - only initialize if empty
+        const overviewConfidenceEl = document.getElementById(
+            "overview-ai-confidence",
+        )!;
+        const overviewStateEl = document.getElementById("overview-ai-state")!;
+        const overviewRuleEl = document.getElementById("overview-rule")!;
+
+        // Only set rule_id on initial load, preserve during refreshes
+        if (
+            overviewRuleEl.textContent === "" ||
+            overviewRuleEl.textContent === "—"
+        ) {
+            overviewRuleEl.textContent = finding.rule_id || "—";
+        }
+
+        // Don't overwrite AI validation state on finding refresh
+        // It will be updated by loadAnalysis() if needed
+        if (
+            overviewConfidenceEl.textContent === "" ||
+            overviewConfidenceEl.textContent === "—"
+        ) {
+            overviewConfidenceEl.textContent = "—";
+        }
         document.getElementById("resource-location")!.textContent =
             locationLabel(finding);
         document.getElementById("resource-scan-id")!.textContent =
@@ -1582,26 +1630,6 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             document.getElementById("loading")!.classList.add("hidden");
             document.getElementById("content")!.classList.remove("hidden");
             applyFinding(finding);
-
-            // Notify if no description available
-            if (
-                !finding.description &&
-                !finding.ai_summary &&
-                finding.summary_state !== "pending"
-            ) {
-                toast(
-                    "No description available. Click to request AI summary.",
-                    "info",
-                    {
-                        onClick: () => {
-                            document
-                                .getElementById("request-ai-summary-btn")
-                                ?.click();
-                        },
-                        clickLabel: "Request Now",
-                    },
-                );
-            }
 
             await Promise.all([
                 loadCorrelations(),
@@ -1998,14 +2026,115 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
             }
         });
 
+    // SSE client for real-time updates (singleton already connected from DashboardLayout)
+    const sseClient = getSSEClient();
+
+    sseClient.on("finding_summary_completed", (event) => {
+        if (event.data.finding_id === findingId) {
+            resetAiSummaryButton();
+
+            const summaryCard = document.getElementById("summary-card");
+            if (summaryCard) {
+                summaryCard.classList.add(
+                    "ring-2",
+                    "ring-cyan-500",
+                    "ring-offset-2",
+                    "ring-offset-slate-950",
+                    "transition-all",
+                    "duration-500"
+                );
+                setTimeout(() => {
+                    summaryCard.classList.remove(
+                        "ring-2",
+                        "ring-cyan-500",
+                        "ring-offset-2",
+                        "ring-offset-slate-950",
+                        "transition-all",
+                        "duration-500"
+                    );
+                }, 2000);
+            }
+
+            void load();
+            toast("AI summary completed", "success");
+        }
+    });
+
+    sseClient.on("finding_validation_completed", (event) => {
+        if (event.data.finding_id === findingId) {
+            void loadAnalysis();
+
+            const confidence = Math.round(event.data.confidence * 100);
+            toast(`AI validation completed (${confidence}% confidence)`, "success");
+
+            const analysisCard = document.getElementById("analysis-card");
+            if (analysisCard) {
+                analysisCard.classList.add(
+                    "ring-2",
+                    "ring-purple-500",
+                    "ring-offset-2",
+                    "ring-offset-slate-950",
+                    "transition-all",
+                    "duration-500"
+                );
+                setTimeout(() => {
+                    analysisCard.classList.remove(
+                        "ring-2",
+                        "ring-purple-500",
+                        "ring-offset-2",
+                        "ring-offset-slate-950",
+                        "transition-all",
+                        "duration-500"
+                    );
+                }, 2000);
+            }
+        }
+    });
+
     // Request AI Summary button handler
+    let summaryRequestInProgress = false;
+
+    function resetAiSummaryButton() {
+        const btn = document.getElementById(
+            "request-ai-summary-btn",
+        ) as HTMLButtonElement | null;
+        if (!btn) return;
+        btn.disabled = false;
+        btn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+    }
+
     document
         .getElementById("request-ai-summary-btn")!
         .addEventListener("click", async () => {
-            if (!currentFinding) return;
+            if (!currentFinding || summaryRequestInProgress) return;
+            summaryRequestInProgress = true;
+
             const btn = document.getElementById(
                 "request-ai-summary-btn",
             ) as HTMLButtonElement;
+
+            // Scroll to summary card and highlight it
+            const summaryCard = document.getElementById("summary-card");
+            if (summaryCard) {
+                summaryCard.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+                summaryCard.classList.add(
+                    "ring-2",
+                    "ring-cyan-500",
+                    "ring-offset-2",
+                    "ring-offset-slate-950",
+                );
+                setTimeout(() => {
+                    summaryCard.classList.remove(
+                        "ring-2",
+                        "ring-cyan-500",
+                        "ring-offset-2",
+                        "ring-offset-slate-950",
+                    );
+                }, 2000);
+            }
 
             btn.disabled = true;
             btn.innerHTML = `<span class="material-symbols-outlined text-base">schedule</span>Requesting…`;
@@ -2019,8 +2148,9 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                 applyFinding(fresh);
             } catch (error: any) {
                 toast(error.message ?? "Failed to request AI summary", "error");
-                btn.disabled = false;
-                btn.innerHTML = `<span class="material-symbols-outlined text-base">auto_awesome</span>AI Summary`;
+                resetAiSummaryButton();
+            } finally {
+                summaryRequestInProgress = false;
             }
         });
 

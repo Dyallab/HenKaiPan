@@ -8,34 +8,54 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         <div class="border-b border-slate-800 pb-4">
             <div class="flex items-center justify-between">
                 <div>
-                    <h2 class="text-xl font-bold text-on-background">System Health</h2>
-                    <p class="text-sm text-slate-400 mt-1">Monitor instance status and connectivity.</p>
+                    <h2 class="text-xl font-bold text-on-background">
+                        System Health
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Monitor instance status and connectivity.
+                    </p>
                 </div>
-                <button id="refresh-btn" class="flex items-center gap-2 px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg text-sm font-semibold transition-all">
-                    <span class="material-symbols-outlined text-lg">refresh</span>
-                    Refresh
-                </button>
             </div>
         </div>
 
         <!-- Status Banner -->
-        <div id="status-banner" class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
+        <div
+            id="status-banner"
+            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+        >
             <div class="flex items-center gap-4">
-                <div id="status-icon" class="w-3 h-3 rounded-full bg-cyan-500"></div>
+                <div id="status-icon" class="w-3 h-3 rounded-full bg-cyan-500">
+                </div>
                 <div>
-                    <p id="status-text" class="text-sm font-semibold text-slate-300">Loading...</p>
-                    <p id="status-time" class="text-xs text-slate-500 mt-1">Last checked: --</p>
+                    <p
+                        id="status-text"
+                        class="text-sm font-semibold text-slate-300"
+                    >
+                        Loading...
+                    </p>
+                    <p id="status-time" class="text-xs text-slate-500 mt-1">
+                        Last checked: --
+                    </p>
                 </div>
             </div>
         </div>
 
         <!-- Health Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
+        >
             <!-- Database -->
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
+            <div
+                class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+            >
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-semibold text-slate-300">Database</h3>
-                    <span class="material-symbols-outlined text-slate-400 text-xl">database</span>
+                    <h3 class="text-sm font-semibold text-slate-300">
+                        Database
+                    </h3>
+                    <span
+                        class="material-symbols-outlined text-slate-400 text-xl"
+                        >database</span
+                    >
                 </div>
                 <div id="db-status" class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-slate-500"></div>
@@ -45,10 +65,15 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </div>
 
             <!-- Redis -->
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
+            <div
+                class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+            >
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-semibold text-slate-300">Redis</h3>
-                    <span class="material-symbols-outlined text-slate-400 text-xl">data_usage</span>
+                    <span
+                        class="material-symbols-outlined text-slate-400 text-xl"
+                        >data_usage</span
+                    >
                 </div>
                 <div id="redis-status" class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-slate-500"></div>
@@ -58,10 +83,15 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </div>
 
             <!-- Worker -->
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
+            <div
+                class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+            >
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-semibold text-slate-300">Worker</h3>
-                    <span class="material-symbols-outlined text-slate-400 text-xl">factory</span>
+                    <span
+                        class="material-symbols-outlined text-slate-400 text-xl"
+                        >factory</span
+                    >
                 </div>
                 <div id="worker-status" class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-slate-500"></div>
@@ -71,10 +101,15 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
             </div>
 
             <!-- Disk -->
-            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
+            <div
+                class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+            >
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-semibold text-slate-300">Disk</h3>
-                    <span class="material-symbols-outlined text-slate-400 text-xl">hard_drive</span>
+                    <span
+                        class="material-symbols-outlined text-slate-400 text-xl"
+                        >hard_drive</span
+                    >
                 </div>
                 <div id="disk-status" class="flex items-center gap-2">
                     <div class="w-2 h-2 rounded-full bg-slate-500"></div>
@@ -82,12 +117,37 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 </div>
                 <p id="disk-message" class="text-xs text-slate-500 mt-2"></p>
             </div>
+
+            <!-- SSE -->
+            <div
+                class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+            >
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-semibold text-slate-300">SSE</h3>
+                    <span
+                        class="material-symbols-outlined text-slate-400 text-xl"
+                        >signal_cellular_alt</span
+                    >
+                </div>
+                <div id="sse-status" class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-500"></div>
+                    <span class="text-xs text-slate-400">Checking...</span>
+                </div>
+                <p id="sse-message" class="text-xs text-slate-500 mt-2"></p>
+            </div>
         </div>
 
         <!-- Version Info -->
-        <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6">
-            <h3 class="text-sm font-semibold text-slate-300 mb-4">Instance Information</h3>
-            <div id="version-info" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div
+            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6"
+        >
+            <h3 class="text-sm font-semibold text-slate-300 mb-4">
+                Instance Information
+            </h3>
+            <div
+                id="version-info"
+                class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"
+            >
                 <div>
                     <p class="text-xs text-slate-500">Version</p>
                     <p id="version" class="text-slate-300">--</p>
@@ -98,11 +158,15 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 </div>
                 <div>
                     <p class="text-xs text-slate-500">Commit</p>
-                    <p id="commit" class="text-slate-300 font-mono text-xs">--</p>
+                    <p id="commit" class="text-slate-300 font-mono text-xs">
+                        --
+                    </p>
                 </div>
                 <div>
                     <p class="text-xs text-slate-500">Go Version</p>
-                    <p id="go-version" class="text-slate-300 font-mono text-xs">--</p>
+                    <p id="go-version" class="text-slate-300 font-mono text-xs">
+                        --
+                    </p>
                 </div>
             </div>
         </div>
@@ -110,21 +174,22 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
     <script>
         import { api } from "../../lib/api";
+        import { getSSEClient } from "../../lib/sse";
 
         const STATUS_COLORS = {
-            ok: 'bg-emerald-500',
-            warning: 'bg-amber-500',
-            degraded: 'bg-amber-500',
-            down: 'bg-rose-500',
-            unknown: 'bg-slate-500'
+            ok: "bg-emerald-500",
+            warning: "bg-amber-500",
+            degraded: "bg-amber-500",
+            down: "bg-rose-500",
+            unknown: "bg-slate-500",
         };
 
         const STATUS_TEXT = {
-            ok: 'All systems operational',
-            warning: 'Some systems need attention',
-            degraded: 'Degraded performance',
-            down: 'Critical issues detected',
-            unknown: 'Unknown status'
+            ok: "All systems operational",
+            warning: "Some systems need attention",
+            degraded: "Degraded performance",
+            down: "Critical issues detected",
+            unknown: "Unknown status",
         };
 
         function getStatusColor(status) {
@@ -133,20 +198,20 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 
         function updateHealth(data) {
             // Update banner
-            const banner = document.getElementById('status-banner');
-            const icon = document.getElementById('status-icon');
-            const text = document.getElementById('status-text');
-            const time = document.getElementById('status-time');
+            const banner = document.getElementById("status-banner");
+            const icon = document.getElementById("status-icon");
+            const text = document.getElementById("status-text");
+            const time = document.getElementById("status-time");
 
             icon.className = `w-3 h-3 rounded-full ${getStatusColor(data.status)}`;
             text.textContent = STATUS_TEXT[data.status] || data.status;
             time.textContent = `Last checked: ${new Date(data.timestamp).toLocaleString()}`;
 
             // Update cards
-            updateCard('db', data.checks.database);
-            updateCard('redis', data.checks.redis);
-            updateCard('worker', data.checks.worker);
-            updateCard('disk', data.checks.disk);
+            updateCard("db", data.checks.database);
+            updateCard("redis", data.checks.redis);
+            updateCard("worker", data.checks.worker);
+            updateCard("disk", data.checks.disk);
         }
 
         function updateCard(prefix, check) {
@@ -163,31 +228,32 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 messageEl.textContent = check.message;
             } else if (check.error) {
                 messageEl.textContent = check.error;
-                messageEl.className = 'text-xs text-rose-400 mt-2';
+                messageEl.className = "text-xs text-rose-400 mt-2";
             } else {
-                messageEl.textContent = '';
+                messageEl.textContent = "";
             }
         }
 
         function updateVersion(data) {
-            document.getElementById('version').textContent = data.version;
-            document.getElementById('build-date').textContent = data.build_date;
-            document.getElementById('commit').textContent = data.commit;
-            document.getElementById('go-version').textContent = data.go_version;
+            document.getElementById("version").textContent = data.version;
+            document.getElementById("build-date").textContent = data.build_date;
+            document.getElementById("commit").textContent = data.commit;
+            document.getElementById("go-version").textContent = data.go_version;
         }
 
         async function fetchHealth() {
             try {
                 const [health, version] = await Promise.all([
-                    api.get('/api/health'),
-                    api.get('/api/version')
+                    api.get("/api/health"),
+                    api.get("/api/version"),
                 ]);
 
                 updateHealth(health);
                 updateVersion(version);
             } catch (err) {
-                console.error('Failed to fetch health:', err);
-                document.getElementById('status-text').textContent = 'Failed to load health status';
+                console.error("Failed to fetch health:", err);
+                document.getElementById("status-text").textContent =
+                    "Failed to load health status";
             }
         }
 
@@ -197,18 +263,36 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         // Auto-refresh every 30 seconds
         setInterval(fetchHealth, 30000);
 
-        // Manual refresh
-        document.getElementById('refresh-btn').addEventListener('click', () => {
-            const btn = document.getElementById('refresh-btn');
-            btn.disabled = true;
-            btn.innerHTML = '<span class="material-symbols-outlined text-lg animate-spin">refresh</span> Refreshing...';
+        // SSE connection status
+        function updateSSEStatus() {
+            const client = getSSEClient();
+            const stats = client.getStats();
+            const statusEl = document.getElementById("sse-status");
+            const messageEl = document.getElementById("sse-message");
 
-            fetchHealth().then(() => {
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<span class="material-symbols-outlined text-lg">refresh</span> Refresh';
-                }, 1000);
-            });
-        });
+            let color, text, message;
+            if (stats.connected) {
+                color = "bg-emerald-500";
+                text = "connected";
+                message = "Event stream active";
+            } else if (stats.reconnecting) {
+                color = "bg-amber-500";
+                text = "reconnecting";
+                message = `Attempt ${stats.reconnectAttempts}...`;
+            } else {
+                color = "bg-rose-500";
+                text = "disconnected";
+                message = "Not connected";
+            }
+
+            statusEl.innerHTML = `
+                <div class="w-2 h-2 rounded-full ${color}"></div>
+                <span class="text-xs text-slate-300 capitalize">${text}</span>
+            `;
+            messageEl.textContent = message;
+        }
+
+        updateSSEStatus();
+        setInterval(updateSSEStatus, 5000);
     </script>
 </DashboardLayout>

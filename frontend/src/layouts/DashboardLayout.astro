@@ -222,6 +222,7 @@ const navGroups = [
 
         <script>
             import { api } from "../lib/api";
+            import { getSSEClient } from "../lib/sse";
 
             let unreadCount = 0;
             let notificationsDropdownOpen = false;
@@ -353,7 +354,13 @@ const navGroups = [
             });
 
             loadUnreadCount();
-            setInterval(loadUnreadCount, 30000);
+
+            const sseClient = getSSEClient();
+            sseClient.connect();
+            sseClient.on("notification_created", () => {
+                unreadCount++;
+                updateNotificationBadge();
+            });
 
             (async () => {
                 try {
