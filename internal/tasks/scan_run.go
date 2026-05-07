@@ -148,7 +148,9 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				log.Warn("refresh batch correlation failed", "finding_id", findingID, "err", err)
 			}
 			if strings.TrimSpace(f.Description) == "" {
-				enqueueFindingSummary(ctx, findings, queue, findingID)
+				// Auto-summary disabled: summaries are only generated on explicit user request.
+				// To re-enable, uncomment: enqueueFindingSummary(ctx, findings, queue, findingID)
+				_ = findingID
 			}
 			if !suppressed {
 				applyPolicies(ctx, policies, findingID, sc.Name, norm, f.RuleID, f.FilePath)

@@ -3,6 +3,7 @@ package handlers
 import (
 	"log/slog"
 	"net/http"
+	"time"
 
 	"aspm/internal/tasks"
 
@@ -73,9 +74,37 @@ func (h *Handler) AnalyzeFinding(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) RequestFindingSummary(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	// Verify finding exists
-	if _, err := h.store.Findings.GetByID(r.Context(), id); err != nil {
+	finding, err := h.store.Findings.GetByID(r.Context(), id)
+	if err != nil {
 		writeError(w, http.StatusNotFound, "finding not found")
+		return
+	}
+
+	switch finding.SummaryState {
+	case "pending":
+		writeJSON(w, http.StatusAccepted, map[string]string{
+			"status":     "pending",
+			"finding_id": id,
+		})
+		return
+	case "ready":
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status":     "ready",
+			"finding_id": id,
+		})
+		return
+	}
+
+	// Mark summary_state as "pending" in DB so the frontend sees the state change immediately
+	prepared, prepareErr := h.store.Findings.PrepareAISummary(r.Context(), id)
+	if prepareErr != nil {
+		slog.Warn("prepare finding summary for enqueue", "finding_id", id, "err", prepareErr)
+	}
+	if prepared != nil && prepared.Summary != "" {
+		writeJSON(w, http.StatusOK, map[string]string{
+			"status":     "ready",
+			"finding_id": id,
+		})
 		return
 	}
 
@@ -85,7 +114,8 @@ func (h *Handler) RequestFindingSummary(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeFindingSummarize, payload)); err != nil {
+	task := asynq.NewTask(tasks.TypeFindingSummarize, payload)
+	if _, err := h.queue.EnqueueContext(r.Context(), task, asynq.Unique(5*time.Minute)); err != nil {
 		slog.Error("enqueue agent:summarize", "finding_id", id, "err", err)
 		writeError(w, http.StatusInternalServerError, "failed to enqueue summary")
 		return

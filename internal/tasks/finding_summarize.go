@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"aspm/internal/events"
 	"aspm/internal/findings"
 
 	"github.com/hibiken/asynq"
@@ -26,6 +27,12 @@ func HandleFindingSummarize(summaryAgent *findings.SummaryAgent) asynq.HandlerFu
 		}
 
 		log.Info("agent:summarize done", "summary_len", len(summary))
+
+		// Publish SSE event for real-time frontend updates
+		events.NewFindingSummaryCompleted(p.FindingID, summary).
+			WithFindingID(p.FindingID).
+			Publish()
+
 		return nil
 	}
 }

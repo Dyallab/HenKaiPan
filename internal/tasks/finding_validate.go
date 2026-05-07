@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"aspm/internal/events"
 	"aspm/internal/findings"
 
 	"github.com/hibiken/asynq"
@@ -29,6 +30,15 @@ func HandleFindingValidate(validator *findings.ValidationAgent) asynq.HandlerFun
 			"confidence", analysis.Confidence,
 			"fp_likelihood", analysis.FPLikelihood,
 		)
+
+		// Publish SSE event for real-time frontend updates
+		events.NewFindingValidationCompleted(
+			p.FindingID,
+			analysis.Confidence,
+			analysis.Reasoning,
+			string(analysis.FPLikelihood),
+		).WithFindingID(p.FindingID).Publish()
+
 		return nil
 	}
 }
