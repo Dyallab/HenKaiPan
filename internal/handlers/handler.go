@@ -14,15 +14,17 @@ import (
 )
 
 type Handler struct {
-	store        repository.Stores
-	queue        *asynq.Client
-	frontendURL  string
-	cookieSecure bool
-	license      *license.Service
+	store          repository.Stores
+	queue          *asynq.Client
+	frontendURL    string
+	cookieSecure   bool
+	cookieDomain   string
+	cookieSameSite string
+	license        *license.Service
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, lic *license.Service) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, license: lic}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, lic *license.Service) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, license: lic}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

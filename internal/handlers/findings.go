@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/events"
 	"aspm/internal/models"
 	"aspm/internal/pagination"
 	"aspm/internal/repository"
@@ -53,47 +54,12 @@ func (h *Handler) GetFinding(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "finding not found")
 		return
 	}
-	h.maybeQueueFindingSummary(r, finding)
-
 	h.normalizeFindingForDisplay(finding)
 	if scan, err := h.store.Scans.Get(r.Context(), finding.ScanID); err == nil {
 		h.enrichFindingCodeContext(r.Context(), scan.Target, finding)
 	}
 
 	writeJSON(w, http.StatusOK, finding)
-}
-
-func (h *Handler) maybeQueueFindingSummary(r *http.Request, finding *models.Finding) {
-	if finding == nil || strings.TrimSpace(finding.Description) != "" || strings.TrimSpace(finding.AISummary) != "" {
-		return
-	}
-
-	prepared, err := h.store.Findings.PrepareAISummary(r.Context(), finding.ID)
-	if err != nil {
-		slog.Warn("prepare finding summary failed", "finding_id", finding.ID, "err", err)
-		return
-	}
-	if prepared == nil {
-		return
-	}
-	if prepared.Summary != "" {
-		finding.AISummary = prepared.Summary
-	}
-	if prepared.State != "" {
-		finding.SummaryState = prepared.State
-	}
-	if !prepared.ShouldEnqueue {
-		return
-	}
-	payload, err := tasks.MarshalFindingSummarizePayload(tasks.FindingSummarizePayload{FindingID: finding.ID})
-	if err != nil {
-		slog.Warn("marshal finding summary payload failed", "finding_id", finding.ID, "err", err)
-		return
-	}
-	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeFindingSummarize, payload)); err != nil {
-		slog.Warn("enqueue finding summary failed", "finding_id", finding.ID, "err", err)
-	}
-	finding.SummaryState = "pending"
 }
 
 func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
@@ -341,7 +307,7 @@ func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingT
 	}
 
 	// Create web notification
-	_, err = h.store.Notifications.Create(ctx, repository.NotificationCreate{
+	notif, err := h.store.Notifications.Create(ctx, repository.NotificationCreate{
 		UserID:     targetUser.ID,
 		Title:      "New Finding Assigned",
 		Message:    "You have been assigned as owner of finding: " + findingTitle,
@@ -351,6 +317,19 @@ func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingT
 	})
 	if err != nil {
 		slog.Error("create notification failed", "err", err)
+	} else {
+		entityType := ""
+		if notif.EntityType != nil {
+			entityType = *notif.EntityType
+		}
+		entityID := ""
+		if notif.EntityID != nil {
+			entityID = *notif.EntityID
+		}
+		events.NewNotificationCreated(
+			notif.ID, targetUser.ID, notif.Title, notif.Type,
+			entityType, entityID,
+		).Publish()
 	}
 
 	// Queue email notification
