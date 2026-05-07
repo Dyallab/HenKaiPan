@@ -6,7 +6,7 @@
 - **Worker** (`cmd/worker/main.go`): Asynq server, recovers stuck scans on startup, runs scan/validation/summary/webhook/email jobs
 - **Frontend** (`frontend/`): Astro 6 + Tailwind v4, calls API via `frontend/src/lib/api.ts`
 - **Database**: PostgreSQL 17 (source of truth)
-- **Queue**: Redis 8 + Asynq (background job transport)
+- **Queue**: Redis 8 + Asynq (background job transport + SSE pub/sub relay between worker and API)
 
 ## Local dev commands
 

@@ -156,7 +156,9 @@ flowchart TD
 ### Queue Layer
 
 - Redis is used by Asynq for background job transport.
+- Redis pub/sub relays SSE events from the worker to the API process so browser clients receive real-time updates.
 - Queue bootstrap lives in `internal/queue/queue.go`.
+- SSE bridge lives in `internal/events/redis_bridge.go`.
 - The API enqueues work; the worker consumes it.
 
 ### AI Layer
