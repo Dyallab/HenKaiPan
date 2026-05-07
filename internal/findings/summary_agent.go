@@ -12,11 +12,10 @@ import (
 
 type SummaryAgent struct {
 	findings repository.FindingRepository
-	model    string
 }
 
-func NewSummaryAgent(findingRepo repository.FindingRepository, model string) *SummaryAgent {
-	return &SummaryAgent{findings: findingRepo, model: model}
+func NewSummaryAgent(findingRepo repository.FindingRepository) *SummaryAgent {
+	return &SummaryAgent{findings: findingRepo}
 }
 
 const summarySystemPrompt = `You are a security finding summarizer.
@@ -59,7 +58,7 @@ func (s *SummaryAgent) Summarize(ctx context.Context, findingID string) (string,
 
 	meta := summarymeta.Build(source.Scanner, source.RuleID, source.Title, source.Raw)
 	prompt := buildSummaryPrompt(source, meta)
-	text, err := ai.GenerateTextWithModel(ctx, summarySystemPrompt, prompt, 220, s.model)
+	text, err := ai.GenerateSummary(ctx, summarySystemPrompt, prompt)
 	if err != nil {
 		_ = s.findings.MarkAISummaryFailed(ctx, prepared.Fingerprint)
 		return "", fmt.Errorf("generate finding summary: %w", err)

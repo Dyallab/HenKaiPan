@@ -61,21 +61,27 @@ func JWTMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func SetAuthCookie(w http.ResponseWriter, token string, secure bool) {
-	slog.Debug("setting auth cookie", "token_len", len(token), "secure", secure, "samesite", "Lax")
-	http.SetCookie(w, &http.Cookie{
+func SetAuthCookie(w http.ResponseWriter, token string, secure bool, domain, sameSite string) {
+	sameSiteMode := parseSameSite(sameSite)
+	slog.Debug("setting auth cookie", "token_len", len(token), "secure", secure, "domain", domain, "samesite", sameSiteMode)
+	cookie := &http.Cookie{
 		Name:     authCookieName,
 		Value:    token,
 		Path:     "/",
 		MaxAge:   int((24 * time.Hour).Seconds()),
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	})
+		SameSite: sameSiteMode,
+	}
+	if domain != "" {
+		cookie.Domain = domain
+	}
+	http.SetCookie(w, cookie)
 }
 
-func ClearAuthCookie(w http.ResponseWriter, secure bool) {
-	http.SetCookie(w, &http.Cookie{
+func ClearAuthCookie(w http.ResponseWriter, secure bool, domain, sameSite string) {
+	sameSiteMode := parseSameSite(sameSite)
+	cookie := &http.Cookie{
 		Name:     authCookieName,
 		Value:    "",
 		Path:     "/",
@@ -83,8 +89,23 @@ func ClearAuthCookie(w http.ResponseWriter, secure bool) {
 		Expires:  time.Unix(0, 0),
 		HttpOnly: true,
 		Secure:   secure,
-		SameSite: http.SameSiteLaxMode,
-	})
+		SameSite: sameSiteMode,
+	}
+	if domain != "" {
+		cookie.Domain = domain
+	}
+	http.SetCookie(w, cookie)
+}
+
+func parseSameSite(s string) http.SameSite {
+	switch strings.ToLower(s) {
+	case "strict":
+		return http.SameSiteStrictMode
+	case "none":
+		return http.SameSiteNoneMode
+	default:
+		return http.SameSiteLaxMode
+	}
 }
 
 // RequireRole returns middleware that allows only the given roles.
@@ -165,8 +186,8 @@ func parseToken(r *http.Request) (jwt.MapClaims, error) {
 
 func tokenFromRequest(r *http.Request) string {
 	header := r.Header.Get("Authorization")
-	if strings.HasPrefix(header, "Bearer ") {
-		return strings.TrimPrefix(header, "Bearer ")
+	if prefix, after, ok := strings.Cut(header, " "); ok && prefix == "Bearer" {
+		return after
 	}
 	if cookie, err := r.Cookie(authCookieName); err == nil {
 		return cookie.Value
