@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"aspm/internal/repository"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -41,26 +42,25 @@ func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Name          string  `json:"name"`
-		Description   string  `json:"description"`
-		AppID         *string `json:"app_id"`
-		RepoURL       string  `json:"repo_url"`
-		Provider      string  `json:"provider"`
-		DefaultBranch string  `json:"default_branch"`
+	var req validation.CreateProjectRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		writeError(w, http.StatusBadRequest, "name required")
+
+	if validationErrs := validation.ValidateStruct(req); validationErrs != nil {
+		h.writeValidationErrors(w, r, validationErrs)
 		return
 	}
 
 	pc := repository.ProjectCreate{
-		Name: body.Name, Description: body.Description,
-		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
+		Name: req.Name, Description: req.Description,
+		RepoURL: req.RepoURL,
 	}
 
-	if body.AppID != nil && *body.AppID != "" {
-		project, err := h.store.Apps.CreateProject(r.Context(), *body.AppID, pc)
+	appID := r.URL.Query().Get("app_id")
+	if appID != "" {
+		project, err := h.store.Apps.CreateProject(r.Context(), appID, pc)
 		if err != nil {
 			writeError(w, http.StatusConflict, err.Error())
 			return
