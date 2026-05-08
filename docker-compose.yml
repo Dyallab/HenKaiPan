@@ -11,10 +11,10 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN      # Change file ownership for data directory
-      - SETUID     # Set user ID (postgres user)
-      - SETGID     # Set group ID (postgres group)
-      - DAC_OVERRIDE # Directory access control
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aspm}"]
       interval: 5s
@@ -31,9 +31,9 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN      # Change file ownership
-      - SETUID     # Set user ID
-      - SETGID     # Set group ID
+      - CHOWN
+      - SETUID
+      - SETGID
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -93,6 +93,13 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+    cap_add:
+      - FOWNER      # Override file ownership checks (git clone)
+      - FSETID      # Set file capabilities
+      - DAC_OVERRIDE # Bypass file permission checks
+      - CHOWN       # Change file ownership (git creates files)
+      - SETUID      # Set user ID
+      - SETGID      # Set group ID
     depends_on:
       postgres:
         condition: service_healthy
