@@ -9,6 +9,7 @@ import (
 	"aspm/internal/httperrors"
 	"aspm/internal/license"
 	"aspm/internal/repository"
+	"aspm/internal/validation"
 
 	"github.com/hibiken/asynq"
 )
@@ -67,6 +68,16 @@ func (h *Handler) writeNotFound(w http.ResponseWriter, r *http.Request, resource
 
 func (h *Handler) writeInternal(w http.ResponseWriter, r *http.Request, err error, message string) {
 	h.writeHTTPError(w, r, httperrors.Wrap(err, httperrors.ErrInternal, message), http.StatusInternalServerError)
+}
+
+func (h *Handler) writeValidationErrors(w http.ResponseWriter, r *http.Request, validationErrs []validation.ValidationError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(map[string]any{
+		"code":    httperrors.ErrValidation,
+		"message": "Validation failed",
+		"details": validationErrs,
+	})
 }
 
 func (h *Handler) writeLicenseRequired(w http.ResponseWriter, r *http.Request, feature string) {
