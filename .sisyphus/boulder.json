@@ -4,7 +4,8 @@
   "session_ids": ["ses_current"],
   "plan_name": "security-hardening-v1.4",
   "worktree_path": null,
-  "wave_completed": "WAVE 2",
   "wave_1_status": "✅ COMPLETE - 20/20 tasks, 2 commits",
-  "wave_2_status": "✅ COMPLETE - 9/9 tasks, 1 commit"
+  "wave_2_status": "✅ COMPLETE - 9/9 tasks, 1 commit",
+  "wave_3_status": "🔄 IN PROGRESS - T10✅, T11✅, T12🔄 (login done)",
+  "commits_total": 7
 }

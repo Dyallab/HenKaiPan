@@ -65,51 +65,23 @@ func (h *Handler) GetFinding(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	var body struct {
-		Status        *string `json:"status"`
-		AssignedTo    *string `json:"assigned_to"`
-		FalsePositive *bool   `json:"false_positive"`
-		Notes         *string `json:"notes"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var req validation.UpdateFindingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeBadRequest(w, r, "invalid body")
 		return
 	}
 
-	if body.Status != nil {
-		if !validation.IsValid(validation.FindingStatuses, *body.Status) {
-			h.writeBadRequest(w, r, "invalid status")
-			return
-		}
-	}
-
-	// Validate assigned_to if provided (empty string means remove owner)
-	if body.AssignedTo != nil {
-		owner := *body.AssignedTo
-		if owner != "" {
-			// Validate that owner exists as username or team name
-			valid, err := h.validateOwner(r.Context(), owner)
-			if err != nil {
-				slog.Error("validate owner failed", "owner", owner, "err", err)
-				h.writeInternal(w, r, err, "failed to validate owner")
-				return
-			}
-			if !valid {
-				h.writeBadRequest(w, r, fmt.Sprintf("owner '%s' not found. Must be a valid username or team name.", owner))
-				return
-			}
-		}
+	if validationErrs := validation.ValidateStruct(req); validationErrs != nil {
+		h.writeValidationErrors(w, r, validationErrs)
+		return
 	}
 
 	// Get old value for audit trail
 	oldFinding, _ := h.store.Findings.GetByID(r.Context(), id)
-	oldOwner := oldFinding.AssignedTo
 
 	f, err := h.store.Findings.Update(r.Context(), id, repository.FindingUpdate{
-		Status:        body.Status,
-		AssignedTo:    body.AssignedTo,
-		FalsePositive: body.FalsePositive,
-		Notes:         body.Notes,
+		Status: &req.Status,
+		Notes:  &req.Notes,
 	})
 	if err != nil {
 		h.writeNotFound(w, r, "finding")
@@ -117,11 +89,6 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.auditLog(r, "finding.update", "finding", id, oldFinding, f)
-
-	// Send notification if owner was assigned (and changed)
-	if body.AssignedTo != nil && *body.AssignedTo != "" && (oldOwner == nil || *body.AssignedTo != *oldOwner) {
-		h.notifyOwnerAssignment(r.Context(), f.ID, f.Title, *body.AssignedTo)
-	}
 
 	writeJSON(w, http.StatusOK, f)
 }
@@ -221,33 +188,21 @@ func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		FindingIDs   []string `json:"finding_ids"`
-		Status       *string  `json:"status,omitempty"`
-		AssignedTo   *string  `json:"assigned_to,omitempty"`
-		FalsePositive *bool   `json:"false_positive,omitempty"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	var req validation.BulkUpdateFindingsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if len(body.FindingIDs) == 0 {
-		writeError(w, http.StatusBadRequest, "finding_ids required")
+	if validationErrs := validation.ValidateStruct(req); validationErrs != nil {
+		h.writeValidationErrors(w, r, validationErrs)
 		return
 	}
 
 	updated := 0
-	for _, id := range body.FindingIDs {
-		upd := repository.FindingUpdate{}
-		if body.Status != nil {
-			upd.Status = body.Status
-		}
-		if body.AssignedTo != nil {
-			upd.AssignedTo = body.AssignedTo
-		}
-		if body.FalsePositive != nil {
-			upd.FalsePositive = body.FalsePositive
+	for _, id := range req.IDs {
+		upd := repository.FindingUpdate{
+			Status: &req.Status,
 		}
 		if _, err := h.store.Findings.Update(r.Context(), id, upd); err == nil {
 			updated++
