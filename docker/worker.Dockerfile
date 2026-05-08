@@ -16,12 +16,12 @@ RUN apk add --no-cache \
     curl \
     bash \
     git \
-    python3 \
-    py3-pip \
-    npm
+    python3
 
-# Install Semgrep (SAST)
-RUN pip install semgrep
+# Install Python-based scanners in isolated venv
+RUN python3 -m venv /opt/scanner-venv && \
+    . /opt/scanner-venv/bin/activate && \
+    pip install --no-cache-dir semgrep checkov
 
 # Install Trivy (SCA)
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
@@ -29,9 +29,6 @@ RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/
 # Install Gitleaks (Secrets)
 RUN curl -sL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_amd64.tar.gz | tar xz && \
     mv gitleaks /usr/local/bin/
-
-# Install Checkov (IaC)
-RUN pip install checkov
 
 # Install Grype (SCA)
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
@@ -70,10 +67,9 @@ RUN apk add --no-cache ca-certificates git
 COPY --from=builder /worker /worker
 
 # Copy scanner binaries from scanners stage
-COPY --from=scanners /usr/local/bin/semgrep /usr/local/bin/semgrep
+COPY --from=scanners /opt/scanner-venv /opt/scanner-venv
 COPY --from=scanners /usr/local/bin/trivy /usr/local/bin/trivy
 COPY --from=scanners /usr/local/bin/gitleaks /usr/local/bin/gitleaks
-COPY --from=scanners /usr/local/bin/checkov /usr/local/bin/checkov
 COPY --from=scanners /usr/local/bin/grype /usr/local/bin/grype
 COPY --from=scanners /usr/local/bin/osv-scanner /usr/local/bin/osv-scanner
 COPY --from=scanners /usr/local/bin/trufflehog /usr/local/bin/trufflehog
@@ -81,6 +77,8 @@ COPY --from=scanners /usr/local/bin/tfsec /usr/local/bin/tfsec
 COPY --from=scanners /usr/local/bin/kics /usr/local/bin/kics
 COPY --from=scanners /usr/local/bin/nuclei /usr/local/bin/nuclei
 COPY --from=scanners /usr/local/bin/gosec /usr/local/bin/gosec
+
+ENV PATH="/opt/scanner-venv/bin:$PATH"
 
 # Create non-root user and group
 RUN addgroup -g 1000 worker && \
