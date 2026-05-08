@@ -4,15 +4,16 @@
   "session_ids": ["ses_current"],
   "plan_name": "security-hardening-v1.4",
   "worktree_path": null,
-  "commits_total": 12,
+  "commits_total": 13,
   "plan_status": "COMPLETE",
   "deployment_status": "✅ All services running",
-  "security_posture": "🛡️ cap_drop ALL + minimal cap_add per service",
-  "capabilities_summary": {
-    "postgres": "CHOWN, SETUID, SETGID, DAC_OVERRIDE",
-    "redis": "CHOWN, SETUID, SETGID",
-    "worker": "FOWNER, FSETID, DAC_OVERRIDE, CHOWN, SETUID, SETGID (git operations)",
-    "api": "NONE (HTTP + DB only)",
-    "mailpit": "NONE"
+  "security_posture": "🛡️ Defense in Depth - Multiple security layers",
+  "security_layers": {
+    "layer1_syscall": "seccomp profile (worker) - 150+ allowed syscalls only",
+    "layer2_capabilities": "cap_drop ALL + minimal cap_add per service",
+    "layer3_privileges": "no-new-privileges on all services",
+    "layer4_user": "non-root user (1000:1000) on worker",
+    "layer5_filesystem": "read-only root filesystem (Kubernetes)",
+    "layer6_network": "Docker socket removed, isolated networks"
   }
 }
