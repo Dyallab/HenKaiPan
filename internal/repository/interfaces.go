@@ -180,6 +180,12 @@ type AppRepository interface {
 	GetFindingComments(ctx context.Context, findingID string) ([]FindingComment, error)
 	CreateFindingComment(ctx context.Context, c CommentCreate) (*FindingComment, error)
 	DeleteFindingComment(ctx context.Context, commentID int64) error
+	// Ownership checks for IDOR prevention
+	CheckProjectOwnership(ctx context.Context, userID, projectID string) (bool, error)
+	CheckAppOwnership(ctx context.Context, userID, appID string) (bool, error)
+	CheckScanOwnership(ctx context.Context, userID, scanID string) (bool, error)
+	CheckFindingOwnership(ctx context.Context, userID, findingID string) (bool, error)
+	CheckRiskAcceptanceOwnership(ctx context.Context, userID, riskAcceptanceID string) (bool, error)
 }
 
 // ── Users ─────────────────────────────────────────────────────────────────────
