@@ -1,7 +1,9 @@
 {
   "active_plan": "/home/dyallo/Documents/Proyectos/henkaipan/HenKaiPan-app/.sisyphus/plans/security-hardening-v1.4.md",
   "started_at": "2026-05-08T00:00:00Z",
-  "session_ids": ["SESSION_ID_PLACEHOLDER"],
+  "session_ids": ["ses_current"],
   "plan_name": "security-hardening-v1.4",
-  "worktree_path": null
+  "worktree_path": null,
+  "wave_completed": "WAVE 1",
+  "wave_1_status": "✅ COMPLETE - 20/20 tasks, 2 commits"
 }
