@@ -1,7 +1,6 @@
 package tasks
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -21,6 +20,8 @@ import (
 
 	"github.com/hibiken/asynq"
 )
+
+var scannerExecutor = scanner.NewExecutor()
 
 const maxLogBytes = 100 * 1024 // 100 KB per stream
 
@@ -89,10 +90,20 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				return err
 			}
 			defer os.RemoveAll(dir)
-			result = runDocker(sc, dir)
+			execResult := scannerExecutor.RunScanner(ctx, sc, dir)
+			result = runResult{
+				stdout: execResult.Stdout,
+				log:    execResult.Log,
+				err:    execResult.Err,
+			}
 
 		case scanner.TargetURL:
-			result = runDockerURL(sc, p.Target)
+			execResult := runScannerURL(sc, p.Target)
+			result = runResult{
+				stdout: execResult.stdout,
+				log:    execResult.log,
+				err:    execResult.err,
+			}
 		}
 
 		if result.err != nil && len(result.stdout) == 0 {
@@ -234,7 +245,18 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	return dir, execLog, nil
 }
 
+func runScannerURL(sc scanner.Scanner, target string) runResult {
+	execResult := scannerExecutor.RunScanner(context.Background(), sc, target)
+	return runResult{
+		stdout: execResult.Stdout,
+		log:    execResult.Log,
+		err:    execResult.Err,
+	}
+}
+
 func buildDockerCmd(sc scanner.Scanner, args []string) *exec.Cmd {
+	// DEPRECATED: Docker execution replaced by binary execution in scanner.Executor
+	// This function kept for backward compatibility reference only
 	base := []string{"run", "--rm"}
 	for k, v := range sc.Env {
 		base = append(base, "-e", k+"="+v)
@@ -247,43 +269,6 @@ func buildDockerCmd(sc scanner.Scanner, args []string) *exec.Cmd {
 	}
 	base = append(base, args...)
 	return exec.Command("docker", base...)
-}
-
-func runDocker(sc scanner.Scanner, mountSrc string) runResult {
-	args := []string{}
-	if sc.MountDst != "" {
-		args = append(args, "-v", fmt.Sprintf("%s:%s", mountSrc, sc.MountDst))
-	}
-	if sc.WorkDir != "" {
-		args = append(args, "-w", sc.WorkDir)
-	}
-	args = append(args, sc.Image)
-	args = append(args, sc.BuildArgs(sc.MountDst)...)
-	return execute(sc, args)
-}
-
-func runDockerURL(sc scanner.Scanner, target string) runResult {
-	args := []string{sc.Image}
-	args = append(args, sc.BuildArgs(target)...)
-	return execute(sc, args)
-}
-
-func execute(sc scanner.Scanner, dockerArgs []string) runResult {
-	cmd := buildDockerCmd(sc, dockerArgs)
-	cmdStr := "docker " + strings.Join(cmd.Args[1:], " ")
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	start := time.Now()
-	runErr := cmd.Run()
-
-	return runResult{
-		stdout: stdout.Bytes(),
-		log:    buildSimpleLog(cmdStr, stdout.Bytes(), stderr.Bytes(), runErr, time.Since(start)),
-		err:    runErr,
-	}
 }
 
 func buildSimpleLog(cmdStr string, stdout, stderr []byte, err error, elapsed time.Duration) string {
