@@ -213,6 +213,9 @@ Critical items that must be completed before v1.0 release.
 - [ ] Versioned release artifacts for self-hosted deployments
 - [ ] Environment/config model that works cleanly in both cloud and self-hosted modes
 - [ ] Upgrade path and release notes flow for self-hosted operators
+- [ ] **Automatic Update Check**: API detects new version in GHCR and notifies admin in UI
+- [ ] **Safe-Update Flow**: Sequence for updating (DB Backup $\rightarrow$ Pull $\rightarrow$ Migrate $\rightarrow$ Restart)
+
 - [ ] Data export / import strategy to support migration between cloud and self-hosted
 - [ ] Minimal telemetry model for self-hosted (opt-in)
 

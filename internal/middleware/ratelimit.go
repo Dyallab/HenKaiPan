@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"aspm/internal/auth"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -19,6 +20,7 @@ const (
 )
 
 var rdb *redis.Client
+var rateLimitFailClosed = true
 
 // InitRateLimiter initializes the Redis client for rate limiting
 func InitRateLimiter(addr string) {
@@ -90,20 +92,22 @@ func RateLimiter(next http.Handler) http.Handler {
 
 // checkRateLimit checks if the request is within rate limits
 // Returns: allowed, remaining, resetTime
+// Fails closed (blocks request) on Redis errors for security
 func checkRateLimit(ctx context.Context, key string, limit int) (bool, int, int64) {
 	now := time.Now()
 	windowStart := now.Unix() / rateLimitWindow
 	windowKey := fmt.Sprintf("%s:%d", key, windowStart)
 
-	// Increment counter
 	pipe := rdb.Pipeline()
 	incr := pipe.Incr(ctx, windowKey)
 	pipe.Expire(ctx, windowKey, time.Duration(rateLimitWindow)*time.Second)
 	_, err := pipe.Exec(ctx)
 
 	if err != nil {
-		slog.ErrorContext(ctx, "redis rate limit error", "err", err)
-		// Fail open - allow request but log error
+		slog.ErrorContext(ctx, "redis rate limit error - failing closed", "err", err)
+		if rateLimitFailClosed {
+			return false, 0, now.Add(time.Duration(rateLimitWindow) * time.Second).Unix()
+		}
 		return true, limit, now.Add(time.Duration(rateLimitWindow) * time.Second).Unix()
 	}
 
@@ -147,9 +151,11 @@ func getClientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// getUserID extracts user ID from request context (if authenticated)
+// getUserID extracts user ID from JWT claims in request context (if authenticated)
 func getUserID(r *http.Request) string {
-	// This would need to be implemented based on your auth middleware
-	// For now, return empty string - rate limiter will fall back to IP
+	claims := auth.GetClaims(r)
+	if claims != nil && claims.UserID != "" {
+		return claims.UserID
+	}
 	return ""
 }
