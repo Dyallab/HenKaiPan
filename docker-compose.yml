@@ -112,15 +112,16 @@ services:
       - /tmp:/tmp
     security_opt:
       - no-new-privileges:true
+      - seccomp:docker/seccomp-worker.json
     cap_drop:
       - ALL
     cap_add:
-      - FOWNER      # Override file ownership checks (git clone)
-      - FSETID      # Set file capabilities
-      - DAC_OVERRIDE # Bypass file permission checks
-      - CHOWN       # Change file ownership (git creates files)
-      - SETUID      # Set user ID
-      - SETGID      # Set group ID
+      - FOWNER
+      - FSETID
+      - DAC_OVERRIDE
+      - CHOWN
+      - SETUID
+      - SETGID
     depends_on:
       postgres:
         condition: service_healthy
