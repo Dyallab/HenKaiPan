@@ -8,14 +8,13 @@ services:
       - pgdata:/var/lib/postgresql/data
     security_opt:
       - no-new-privileges:true
-      - seccomp:unconfined
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-      - DAC_OVERRIDE
+      - CHOWN      # Change file ownership for data directory
+      - SETUID     # Set user ID (postgres user)
+      - SETGID     # Set group ID (postgres group)
+      - DAC_OVERRIDE # Directory access control
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aspm}"]
       interval: 5s
@@ -29,32 +28,12 @@ services:
       - "6379:6379"
     security_opt:
       - no-new-privileges:true
-      - seccomp:unconfined
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-
-  redis:
-    image: redis:8-alpine
-    env_file: .env
-    ports:
-      - "6379:6379"
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
+      - CHOWN      # Change file ownership
+      - SETUID     # Set user ID
+      - SETGID     # Set group ID
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
