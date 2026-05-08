@@ -4,13 +4,15 @@
   "session_ids": ["ses_current"],
   "plan_name": "security-hardening-v1.4",
   "worktree_path": null,
-  "wave_1_status": "✅ COMPLETE - 20/20 tasks, 2 commits",
-  "wave_2_status": "✅ COMPLETE - 9/9 tasks, 1 commit",
-  "wave_3_status": "✅ COMPLETE - 3/3 tasks, 3 commits",
-  "wave_4_status": "✅ COMPLETE - All verifications PASSED",
-  "commits_total": 11,
-  "waves_completed": ["WAVE 1", "WAVE 2", "WAVE 3", "WAVE 4"],
+  "commits_total": 12,
   "plan_status": "COMPLETE",
-  "deployment_status": "✅ All services running with cap_drop ALL + minimal cap_add",
-  "security_posture": "🛡️ Production-hardened with least-privilege capabilities"
+  "deployment_status": "✅ All services running",
+  "security_posture": "🛡️ cap_drop ALL + minimal cap_add per service",
+  "capabilities_summary": {
+    "postgres": "CHOWN, SETUID, SETGID, DAC_OVERRIDE",
+    "redis": "CHOWN, SETUID, SETGID",
+    "worker": "FOWNER, FSETID, DAC_OVERRIDE, CHOWN, SETUID, SETGID (git operations)",
+    "api": "NONE (HTTP + DB only)",
+    "mailpit": "NONE"
+  }
 }
