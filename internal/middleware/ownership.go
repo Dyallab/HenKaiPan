@@ -8,6 +8,7 @@ import (
 
 	"aspm/internal/auth"
 	"aspm/internal/httperrors"
+	"aspm/internal/repository"
 )
 
 type ownershipStore interface {
@@ -18,9 +19,9 @@ type ownershipStore interface {
 	CheckRiskAcceptanceOwnership(ctx context.Context, userID, riskAcceptanceID string) (bool, error)
 }
 
-func RequireOwnership(store ownershipStore, resourceType string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func RequireOwnership(store repository.AppRepository, resourceType string) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
 			claims := auth.GetClaims(r)
 			if claims == nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -28,7 +29,7 @@ func RequireOwnership(store ownershipStore, resourceType string) func(http.Handl
 			}
 
 			if claims.Role == "admin" {
-				next.ServeHTTP(w, r)
+				next(w, r)
 				return
 			}
 
@@ -67,8 +68,8 @@ func RequireOwnership(store ownershipStore, resourceType string) func(http.Handl
 				return
 			}
 
-			next.ServeHTTP(w, r)
-		})
+			next(w, r)
+		}
 	}
 }
 

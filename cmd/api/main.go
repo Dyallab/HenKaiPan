@@ -133,19 +133,19 @@ func main() {
 
 		r.Get("/api/scans", h.ListScans)
 		r.Post("/api/scans", h.CreateScan)
-		r.Get("/api/scans/{id}", h.GetScan)
-		r.Get("/api/scans/{id}/findings", h.GetScanFindings)
+		r.Get("/api/scans/{id}", appmw.RequireOwnership(store.Apps, "scan")(h.GetScan))
+		r.Get("/api/scans/{id}/findings", appmw.RequireOwnership(store.Apps, "scan")(h.GetScanFindings))
 
 		r.Get("/api/findings", h.ListFindings)
-		r.Get("/api/findings/{id}", h.GetFinding)
-		r.Patch("/api/findings/{id}", h.UpdateFinding)
-		r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
-		r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
+		r.Get("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.GetFinding))
+		r.Patch("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.UpdateFinding))
+		r.Get("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingJiraIssue))
+		r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingJiraIssue))
 		r.Get("/api/findings/sla", h.GetSLASummary)
-		r.Get("/api/findings/{id}/correlations", h.GetFindingCorrelations)
-		r.Post("/api/findings/{id}/summary", h.RequestFindingSummary)
+		r.Get("/api/findings/{id}/correlations", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingCorrelations))
+		r.Post("/api/findings/{id}/summary", appmw.RequireOwnership(store.Apps, "finding")(h.RequestFindingSummary))
 		r.Get("/api/findings/files", h.GetUniqueFiles)
-		r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
+		r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
 		r.With(auth.RequireRole("admin", "analyst")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
 
 		// ── SSE Events ──
@@ -160,9 +160,9 @@ func main() {
 
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/comments", h.GetFindingComments)
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", h.CreateFindingComment)
-			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", h.DeleteFindingComment)
+			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
+			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
+			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
 		})
 
 		// ── Paid: Audit Log ──
@@ -172,11 +172,18 @@ func main() {
 
 		// ── Paid: Risk Acceptance ──
 		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/risk-acceptance", h.GetRiskAcceptanceByFinding)
+			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.GetRiskAcceptanceByFinding)))
 			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
 			r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", h.ApproveRiskAcceptance)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", h.RejectRiskAcceptance)
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.ApproveRiskAcceptance)))
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.RejectRiskAcceptance)))
+		})
+
+		// ── Paid: Comments ──
+		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
+			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.GetFindingComments)))
+			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.CreateFindingComment)))
+			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.DeleteFindingComment)))
 		})
 
 		// ── Paid: Reports & Advanced Metrics ──
@@ -194,36 +201,41 @@ func main() {
 		// ── Free: Apps ──
 		r.Get("/api/apps", h.ListApps)
 		r.Post("/api/apps", h.CreateApp)
-		r.Get("/api/apps/{id}", h.GetApp)
-		r.Patch("/api/apps/{id}", h.UpdateApp)
-		r.Delete("/api/apps/{id}", h.DeleteApp)
-		r.Get("/api/apps/{id}/projects", h.ListProjects)
-		r.Post("/api/apps/{id}/projects", h.CreateProject)
+		r.Get("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.GetApp))
+		r.Patch("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.UpdateApp))
+		r.Delete("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.DeleteApp))
+		r.Get("/api/apps/{id}/projects", appmw.RequireOwnership(store.Apps, "app")(h.ListProjects))
+		r.Post("/api/apps/{id}/projects", appmw.RequireOwnership(store.Apps, "app")(h.CreateProject))
 
 		// ── Free: Projects ──
 		r.Get("/api/projects", h.ListProjects)
 		r.Post("/api/projects", h.CreateProject)
-		r.Get("/api/projects/{projectID}", h.GetProject)
-		r.Patch("/api/projects/{projectID}", h.UpdateProject)
-		r.Put("/api/projects/{projectID}/github-token", h.UpdateProjectGitHubToken)
-		r.Delete("/api/projects/{projectID}", h.DeleteProject)
+		r.Get("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.GetProject))
+		r.Patch("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProject))
+		r.Put("/api/projects/{projectID}/github-token", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProjectGitHubToken))
+		r.Delete("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.DeleteProject))
 
-		// ── Free: Coverage ──
-		r.Get("/api/coverage", h.GetCoverageReport)
+		// ── Paid: Risk Acceptance ──
+		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
+			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
+			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
+			r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.ApproveRiskAcceptance))
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.RejectRiskAcceptance))
+		})
 
-		// ── Free: Scanners ──
-		r.Get("/api/scanners", h.ListScanners)
-		r.Get("/api/scanner-packs", h.ListScannerPacks)
-
-		// ── Free: Vulnerabilities ──
-		r.Get("/api/vulnerabilities", h.ListVulnerabilities)
-		r.Get("/api/vulnerabilities/{vulnID}/affected", h.GetVulnerabilityAffected)
+		// ── Paid: Comments ──
+		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
+			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
+			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
+			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
+		})
 
 		// ── Paid: AI Remediation ──
 		r.With(licSvc.RequireFeature(license.FeatureAIRemediation)).Group(func(r chi.Router) {
 			r.Post("/api/knowledge/ai-remediate", h.AIRemediate)
-			r.Post("/api/findings/{id}/analyze", h.AnalyzeFinding)
-			r.Get("/api/findings/{id}/analysis", h.GetFindingAnalysis)
+			r.Post("/api/findings/{id}/analyze", appmw.RequireOwnership(store.Apps, "finding")(h.AnalyzeFinding))
+			r.Get("/api/findings/{id}/analysis", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingAnalysis))
 		})
 
 		// ── Free: Knowledge (read) ──
