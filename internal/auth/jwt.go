@@ -10,12 +10,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var secret = "dev-secret"
+var secret string
 
 const authCookieName = "aspm_token"
 
 // SetSecret must be called at startup with the value from config.
-func SetSecret(s string) { secret = s }
+// Calling IssueToken or Parse before SetSecret will panic.
+func SetSecret(s string) {
+	if s == "" {
+		panic("JWT secret cannot be empty")
+	}
+	secret = s
+}
 
 type ctxKey string
 
@@ -29,6 +35,9 @@ type Claims struct {
 }
 
 func IssueToken(username, role, userID string) (string, error) {
+	if secret == "" {
+		panic("JWT secret not initialized. Call SetSecret() before IssueToken()")
+	}
 	secret := []byte(jwtSecret())
 	claims := jwt.MapClaims{
 		"sub":     username,
@@ -145,6 +154,9 @@ func GetClaims(r *http.Request) *Claims {
 }
 
 func parseToken(r *http.Request) (jwt.MapClaims, error) {
+	if secret == "" {
+		panic("JWT secret not initialized. Call SetSecret() before parsing tokens")
+	}
 	tokenStr := strings.TrimSpace(tokenFromRequest(r))
 	if tokenStr == "" {
 		slog.Debug("no token found in request")
@@ -157,7 +169,7 @@ func parseToken(r *http.Request) (jwt.MapClaims, error) {
 			return nil, jwt.ErrSignatureInvalid
 		}
 		return []byte(jwtSecret()), nil
-	})
+	}, jwt.WithExpirationRequired())
 	if err != nil {
 		slog.Warn("JWT parse error", "error", err.Error())
 		return nil, err
@@ -170,14 +182,6 @@ func parseToken(r *http.Request) (jwt.MapClaims, error) {
 	if !ok {
 		slog.Warn("failed to extract claims")
 		return nil, jwt.ErrSignatureInvalid
-	}
-	
-	// Explicit expiration check
-	if exp, ok := claims["exp"].(float64); ok {
-		if time.Now().Unix() > int64(exp) {
-			slog.Warn("JWT expired")
-			return nil, jwt.ErrSignatureInvalid
-		}
 	}
 	
 	slog.Debug("JWT parsed successfully", "subject", claims["sub"])

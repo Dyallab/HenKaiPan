@@ -1,0 +1,80 @@
+package validation
+
+import (
+	"fmt"
+
+	"github.com/go-playground/validator/v10"
+)
+
+var validate = validator.New()
+
+type LoginRequest struct {
+	Email    string `validate:"required,email"`
+	Password string `validate:"required,min=8"`
+}
+
+type CreateProjectRequest struct {
+	Name        string `validate:"required,max=255"`
+	Description string `validate:"max=1000"`
+	RepoURL     string `validate:"omitempty,url"`
+}
+
+type UpdateFindingRequest struct {
+	Status string `validate:"required,oneof=open in_review accepted_risk fixed verified"`
+	Notes  string `validate:"max=5000"`
+}
+
+type CreateScanRequest struct {
+	ProjectID  string `validate:"required,uuid"`
+	ScannerType string `validate:"required"`
+}
+
+type BulkUpdateFindingsRequest struct {
+	IDs    []string `validate:"required,min=1,dive,uuid"`
+	Status string   `validate:"required,oneof=open in_review accepted_risk fixed verified"`
+}
+
+type ValidationError struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
+}
+
+func ValidateStruct(s interface{}) []ValidationError {
+	err := validate.Struct(s)
+	if err == nil {
+		return nil
+	}
+
+	var errors []ValidationError
+	for _, err := range err.(validator.ValidationErrors) {
+		ve := ValidationError{
+			Field:   err.Field(),
+			Message: getErrorMessage(err),
+		}
+		errors = append(errors, ve)
+	}
+	return errors
+}
+
+func getErrorMessage(err validator.FieldError) string {
+	switch err.Tag() {
+	case "required":
+		return fmt.Sprintf("%s is required", err.Field())
+	case "email":
+		return fmt.Sprintf("%s must be a valid email", err.Field())
+	case "min":
+		return fmt.Sprintf("%s must be at least %s characters", err.Field(), err.Param())
+	case "max":
+		return fmt.Sprintf("%s must not exceed %s characters", err.Field(), err.Param())
+	case "uuid":
+		return fmt.Sprintf("%s must be a valid UUID", err.Field())
+	case "url":
+		return fmt.Sprintf("%s must be a valid URL", err.Field())
+	case "oneof":
+		return fmt.Sprintf("%s must be one of: %s", err.Field(), err.Param())
+	case "dive":
+		return fmt.Sprintf("%s contains invalid value", err.Field())
+	default:
+		return fmt.Sprintf("%s is invalid", err.Field())
+	}
+}

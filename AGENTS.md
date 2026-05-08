@@ -18,6 +18,8 @@ make dev-frontend  # cd frontend && pnpm dev
 make up            # Full docker compose stack (api, worker, postgres, redis, mailpit)
 make down          # Stop docker compose stack
 make build         # Builds bin/api and bin/worker
+make migrate       # Manual migration: make migrate MIGRATION=migrations/xxx.sql
+make sync-migrations # Sync root /migrations to internal/db/migrations/
 ```
 
 ## Required setup
@@ -29,7 +31,7 @@ make build         # Builds bin/api and bin/worker
 ## Frontend gotchas
 
 - Use `pnpm` inside `frontend/`; no root Node workspace
-- `frontend/src/lib/api.ts` hardcodes `http://localhost:8080` — changing API host requires code edit
+- `frontend/src/lib/api.ts` uses `PUBLIC_API_BASE` env var; defaults to current origin if unset
 - Auth: bearer token stored in `localStorage` as `aspm_token`
 - CORS allows: `http://localhost:4321`, `http://localhost:4322`, `http://localhost:3000`
 

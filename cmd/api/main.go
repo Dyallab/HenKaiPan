@@ -118,6 +118,7 @@ func main() {
 	r.Use(appmw.RequestLogger)
 	r.Use(appmw.RateLimiter)
 	r.Use(middleware.Recoverer)
+	r.Use(appmw.SecurityHeaders(cfg.CookieSecure))
 
 	r.Get("/api/health", h.GetHealth)
 	r.Get("/api/version", h.GetVersion)
