@@ -45,17 +45,13 @@ type Scanner struct {
 	Name        string
 	Category    Category
 	Description string
-	Image       string
-	// BuildArgs receives the effective target (mount dst for git, URL for dast).
-	BuildArgs    func(target string) []string
-	WorkDir      string            // container working directory, empty = default
-	MountDst     string            // where the cloned repo is mounted inside the container
-	Entrypoint   []string          // override container ENTRYPOINT (--entrypoint)
-	Env          map[string]string // extra env vars passed to docker run (-e KEY=VAL)
-	ExtraVolumes []string          // extra volume mounts ("host:container")
-	Format       OutputFormat
-	TargetType   TargetType
-	Parse        ParserFunc
+	// BuildArgs receives the effective target (cloned repo dir for git, URL for dast).
+	BuildArgs  func(target string) []string
+	WorkDir    string            // working directory for the scanner process, empty = default
+	Env        map[string]string // extra env vars for the scanner process
+	Format     OutputFormat
+	TargetType TargetType
+	Parse      ParserFunc
 }
 
 // Info is the serialisable, public view of a Scanner.
@@ -69,27 +65,21 @@ type Info struct {
 var Registry = map[string]Scanner{
 	// ── SAST ─────────────────────────────────────────────────────────────────
 
-	// semgrep/semgrep:latest uses CMD (no ENTRYPOINT), so "semgrep" must be the first arg.
 	"semgrep": {
 		Name:        "semgrep",
 		Category:    CategorySAST,
 		Description: "Static analysis for 30+ languages",
-		Image:       "aspm-semgrep:latest",
-		MountDst:    "/src",
 		BuildArgs: func(t string) []string {
-			return []string{"semgrep", "--sarif", "--config=auto", "--no-rewrite-rule-ids", t}
+			return []string{"--sarif", "--config=auto", "--no-rewrite-rule-ids", t}
 		},
 		Format:     FormatSARIF,
 		TargetType: TargetGit,
 		Parse:      ParseSARIF,
 	},
-	// gosec entrypoint is "gosec"; WorkDir must be set so ./... resolves correctly.
 	"gosec": {
 		Name:        "gosec",
 		Category:    CategorySAST,
 		Description: "Go security checker (Go projects only)",
-		Image:       "aspm-gosec:latest",
-		MountDst:    "/src",
 		WorkDir:     "/src",
 		BuildArgs: func(_ string) []string {
 			return []string{"-fmt=sarif", "-stdout", "./..."}
@@ -105,13 +95,10 @@ var Registry = map[string]Scanner{
 	// TLS inspection (corporate proxy) the cert verification fails. TRIVY_INSECURE
 	// skips TLS for all trivy HTTP calls. Cache persists on the host at /tmp/trivy-cache.
 	"trivy": {
-		Name:         "trivy",
-		Category:     CategorySCA,
-		Description:  "Vulnerability scanner for packages and containers",
-		Image:        "aquasec/trivy:latest",
-		MountDst:     "/src",
-		Env:          map[string]string{"TRIVY_INSECURE": "true"},
-		ExtraVolumes: []string{"/tmp/trivy-cache:/root/.cache/trivy"},
+		Name:        "trivy",
+		Category:    CategorySCA,
+		Description: "Vulnerability scanner for packages and containers",
+		Env:         map[string]string{"TRIVY_INSECURE": "true"},
 		BuildArgs: func(t string) []string {
 			return []string{"fs", "--format", "sarif", "--exit-code", "0", "--no-progress", t}
 		},
@@ -120,13 +107,10 @@ var Registry = map[string]Scanner{
 		Parse:      ParseSARIF,
 	},
 	"grype": {
-		Name:         "grype",
-		Category:     CategorySCA,
-		Description:  "Vulnerability scanner for filesystems (Anchore)",
-		Image:        "anchore/grype:latest",
-		MountDst:     "/src",
-		Env:          map[string]string{"GRYPE_DB_AUTO_UPDATE": "true"},
-		ExtraVolumes: []string{"/tmp/grype-cache:/root/.cache/grype"},
+		Name:        "grype",
+		Category:    CategorySCA,
+		Description: "Vulnerability scanner for filesystems (Anchore)",
+		Env:         map[string]string{"GRYPE_DB_AUTO_UPDATE": "true"},
 		BuildArgs: func(t string) []string {
 			return []string{fmt.Sprintf("dir:%s", t), "-o", "json"}
 		},
@@ -138,8 +122,6 @@ var Registry = map[string]Scanner{
 		Name:        "osv-scanner",
 		Category:    CategorySCA,
 		Description: "Open Source Vulnerabilities scanner (Google)",
-		Image:       "ghcr.io/google/osv-scanner:latest",
-		MountDst:    "/src",
 		BuildArgs: func(t string) []string {
 			return []string{"--format", "json", "-r", t}
 		},
@@ -153,8 +135,6 @@ var Registry = map[string]Scanner{
 		Name:        "trufflehog",
 		Category:    CategorySecrets,
 		Description: "Detect secrets in git history",
-		Image:       "trufflesecurity/trufflehog:latest",
-		MountDst:    "/repo",
 		BuildArgs: func(t string) []string {
 			return []string{"git", "--json", "--no-update", fmt.Sprintf("file://%s", t)}
 		},
@@ -166,8 +146,6 @@ var Registry = map[string]Scanner{
 		Name:        "gitleaks",
 		Category:    CategorySecrets,
 		Description: "Detect hardcoded secrets in git repos",
-		Image:       "zricethezav/gitleaks:latest",
-		MountDst:    "/repo",
 		BuildArgs: func(t string) []string {
 			return []string{"detect", "--source", t, "--report-format", "json", "--exit-code", "0"}
 		},
@@ -181,8 +159,6 @@ var Registry = map[string]Scanner{
 		Name:        "checkov",
 		Category:    CategoryIaC,
 		Description: "IaC security analysis (Terraform, K8s, Dockerfile, ARM…)",
-		Image:       "aspm-checkov:latest",
-		MountDst:    "/tf",
 		BuildArgs: func(t string) []string {
 			return []string{"-d", t, "-o", "json", "--compact"}
 		},
@@ -190,13 +166,10 @@ var Registry = map[string]Scanner{
 		TargetType: TargetGit,
 		Parse:      ParseCheckov,
 	},
-	// tfsec entrypoint is "tfsec".
 	"tfsec": {
 		Name:        "tfsec",
 		Category:    CategoryIaC,
 		Description: "Terraform security scanner",
-		Image:       "aquasec/tfsec:latest",
-		MountDst:    "/src",
 		BuildArgs: func(t string) []string {
 			return []string{"--format", "sarif", "--no-color", t}
 		},
@@ -204,15 +177,10 @@ var Registry = map[string]Scanner{
 		TargetType: TargetGit,
 		Parse:      ParseSARIF,
 	},
-	// kics writes JSON to a file and logs to stdout; --silent suppresses logs,
-	// then we cat the results file so stdout is pure JSON for the parser.
 	"kics": {
 		Name:        "kics",
 		Category:    CategoryIaC,
 		Description: "IaC security analysis for 20+ platforms (Checkmarx)",
-		Image:       "checkmarx/kics:latest",
-		MountDst:    "/path",
-		Entrypoint:  []string{"/bin/sh"},
 		BuildArgs: func(t string) []string {
 			return []string{"-c", fmt.Sprintf("kics scan -p %s --report-formats json --silent -o /tmp/kicsout; cat /tmp/kicsout/results.json 2>/dev/null || echo '{\"queries\":[]}'", t)}
 		},
@@ -224,12 +192,10 @@ var Registry = map[string]Scanner{
 	// ── Containers ───────────────────────────────────────────────────────────
 	// Target = container image ref (e.g. nginx:latest), NOT a git URL.
 	"trivy-image": {
-		Name:         "trivy-image",
-		Category:     CategoryContainers,
-		Description:  "Container image vulnerability scanner — target: image ref (e.g. nginx:latest)",
-		Image:        "aquasec/trivy:latest",
-		Env:          map[string]string{"TRIVY_INSECURE": "true"},
-		ExtraVolumes: []string{"/tmp/trivy-cache:/root/.cache/trivy"},
+		Name:        "trivy-image",
+		Category:    CategoryContainers,
+		Description: "Container image vulnerability scanner — target: image ref (e.g. nginx:latest)",
+		Env:         map[string]string{"TRIVY_INSECURE": "true"},
 		BuildArgs: func(t string) []string {
 			return []string{"image", "--format", "sarif", "--exit-code", "0", "--no-progress", t}
 		},
@@ -238,11 +204,9 @@ var Registry = map[string]Scanner{
 		Parse:      ParseSARIF,
 	},
 	"grype-image": {
-		Name:         "grype-image",
-		Category:     CategoryContainers,
-		Description:  "Container image vulnerability scanner (Anchore) — target: image ref",
-		Image:        "anchore/grype:latest",
-		ExtraVolumes: []string{"/tmp/grype-cache:/root/.cache/grype"},
+		Name:        "grype-image",
+		Category:    CategoryContainers,
+		Description: "Container image vulnerability scanner (Anchore) — target: image ref",
 		BuildArgs: func(t string) []string {
 			return []string{t, "-o", "json"}
 		},
@@ -257,7 +221,6 @@ var Registry = map[string]Scanner{
 		Name:        "nuclei",
 		Category:    CategoryDAST,
 		Description: "Template-based web vulnerability scanner — target: web URL",
-		Image:       "projectdiscovery/nuclei:latest",
 		BuildArgs: func(t string) []string {
 			return []string{"-u", t, "-jsonl", "-silent", "-no-color"}
 		},

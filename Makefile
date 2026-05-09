@@ -1,4 +1,4 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license build-scanner-slim build-all
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license
 
 ifneq (,$(wildcard .env))
   include .env
@@ -53,10 +53,3 @@ sync-migrations:
 
 gen-license:
 	./scripts/generate-license.sh $(EMAIL) $(DAYS)
-
-build-scanner-slim:
-	docker build -f docker/scanners/semgrep.Dockerfile -t aspm-semgrep:latest .
-	docker build -f docker/scanners/gosec.Dockerfile -t aspm-gosec:latest .
-	docker build -f docker/scanners/checkov.Dockerfile -t aspm-checkov:latest .
-
-build-all: build build-scanner-slim

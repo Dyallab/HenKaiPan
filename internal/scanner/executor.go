@@ -82,12 +82,8 @@ func (e *Executor) RunScanner(ctx context.Context, sc Scanner, mountSrc string) 
 	}
 }
 
-func (e *Executor) buildArgs(sc Scanner, mountSrc string) []string {
-	target := mountSrc
-	if sc.MountDst != "" {
-		target = mountSrc
-	}
-	return sc.BuildArgs(target)
+func (e *Executor) buildArgs(sc Scanner, targetDir string) []string {
+	return sc.BuildArgs(targetDir)
 }
 
 func (e *Executor) buildLog(cmdStr string, stdout, stderr []byte, err error, elapsed time.Duration) string {

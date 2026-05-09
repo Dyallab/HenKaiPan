@@ -37,7 +37,7 @@ License is validated offline via JWT. Configure with `LICENSE_KEY` and `LICENSE_
 - **API:** Go + chi
 - **Database:** PostgreSQL 17 + pgx v5
 - **Background jobs:** Redis 8 + Asynq
-- **Scanners:** Dockerized tools (Semgrep, Trivy, Gitleaks, Checkov, Nuclei, and more)
+- **Scanners:** Bundled binaries (Semgrep, Trivy, Gitleaks, Checkov, Nuclei, and more)
 - **AI features:** OpenRouter and Cloudflare Workers AI for remediation generation and finding validation
 
 ## Architecture Overview
@@ -46,7 +46,7 @@ HenKaiPan is split into three main runtime layers:
 
 - **Frontend (`/frontend`)**: renders the UI and calls the backend API.
 - **API (`/cmd/api`)**: exposes REST endpoints, authenticates users, reads/writes data, and enqueues async work.
-- **Worker (`/cmd/worker`)**: consumes queued jobs, runs scanners in Docker containers, parses results, stores findings, and triggers AI validation.
+- **Worker (`/cmd/worker`)**: consumes queued jobs, runs scanner binaries, parses results, stores findings, and triggers AI validation.
 
 PostgreSQL stores the platform state, while Redis/Asynq is used as the job queue between the API and the worker.
 
@@ -62,7 +62,7 @@ flowchart LR
 
     Q --> W[Worker]
     W -->|read / write| DB
-    W -->|docker run| S[Security Scanners]
+    W -->|exec binary| S[Scanner Binaries]
     S -->|normalized findings| W
 
     API -->|AI requests| AI[AI Providers]
@@ -100,14 +100,14 @@ sequenceDiagram
     participant API as Go API
     participant Queue as Redis + Asynq
     participant Worker as Worker
-    participant Scanner as Dockerized Scanner
+    participant Scanner as Scanner Binary
     participant DB as PostgreSQL
 
     Frontend->>API: POST /api/scans
     API->>DB: Create scan record(s) for the selected target
     API->>Queue: Enqueue scan job per scanner
     Queue->>Worker: Deliver TypeScanRun job
-    Worker->>Scanner: Run scanner in Docker
+    Worker->>Scanner: Execute scanner binary
     Scanner-->>Worker: Raw scan output
     Worker->>Worker: Parse + normalize findings
     Worker->>DB: Insert findings + update scan status
@@ -136,7 +136,7 @@ flowchart TD
 - **Frontend** — Astro 6 + Tailwind v4; UI lives in `frontend/` and uses `frontend/src/lib/api.ts`.
 - **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, job enqueueing, and license validation.
 - **Worker** — `cmd/worker/main.go` runs queued scans, validations, summaries, webhooks, emails, and periodic tasks (scan scheduler, digest generator).
-- **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`). Dockerfiles for scanner execution live in `docker/scanners/`.
+- **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`). Scanner binaries are bundled in the worker image.
 - **Scheduling** — cron-based periodic scans managed by `internal/tasks/scan_scheduler.go`, configurable from the UI.
 - **Deduplication** — findings deduplicated across scans via SHA256 fingerprints (`scanner:rule_id:file_path:line`) with `ON CONFLICT DO NOTHING`.
 - **Digest** — weekly executive email digest (`internal/tasks/digest.go`) with severity breakdown, SLA report, and 7-day trend.
@@ -211,7 +211,7 @@ frontend/      # Astro app and browser API client
 internal/      # Auth, handlers, repository, scanner, tasks, integrations, license, db
 migrations/    # Database schema and changes (auto-run on startup)
 scripts/       # Demo workspace seed and utility scripts
-docker/        # Dockerfiles for API, worker, and scanners
+docker/        # Dockerfiles for API and worker (scanner binaries bundled in worker image)
 docs/          # User guides and documentation
 ```
 
@@ -223,7 +223,7 @@ docs/          # User guides and documentation
 - Node.js 24+
 - PostgreSQL 17+
 - Redis 8+
-- Docker (for running scanners)
+- Scanner binaries installed on PATH (or use the worker Docker image which bundles them)
 
 ### Start infrastructure only
 
