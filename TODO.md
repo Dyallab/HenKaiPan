@@ -39,7 +39,7 @@ New target product model:
 
 - [x] Go API (chi + pgx v5 + JWT auth)
 - [x] Asynq worker + Redis queue
-- [x] Docker-based scanner execution (semgrep, trivy, trufflehog, gosec, grype, gitleaks, checkov, nuclei)
+- [x] Scanner binary execution (semgrep, trivy, trufflehog, gosec, grype, gitleaks, checkov, nuclei, osv-scanner, tfsec, kics)
 - [x] Postgres schema (`001_init.sql`, `002_container_log.sql`)
 - [x] Astro 4 + Tailwind v4 frontend (dark theme, Stitch design system)
 - [x] Landing page (scanner showcase, feature bento grid)
@@ -122,6 +122,38 @@ New target product model:
 - [x] User notifications system (in-app, unread tracking)
 - [x] Database migration framework
 - [x] Finding summary endpoint (`POST /api/findings/{id}/summary`)
+
+### v1.3.0 — Defense in Depth ✅
+
+- [x] Security hardening: `cap_drop ALL` + minimal `cap_add`, `no-new-privileges`, seccomp profiles
+- [x] Input validation: backend (go-playground/validator) + frontend (Zod)
+- [x] Rate limiting (Redis-based, fails closed)
+- [x] JWT hardening: no default secret, expiration required
+- [x] Security headers: CSP, X-Frame-Options, HSTS
+- [x] IDOR prevention: ownership middleware with admin bypass
+
+### v1.4.0 — Docker Socket Removed ✅
+
+- [x] Worker no longer mounts `/var/run/docker.sock` — scanners run as binaries via `os/exec`
+- [x] All scanner binaries bundled in worker Docker image (multi-stage build)
+- [x] Non-root user (uid 1000) in worker container
+- [x] Go 1.26 runtime seccomp compatibility (`clone`, `clone3`, `arch_prctl`, `mbind`)
+
+### v1.4.1 — Scanner Build Fixes ✅
+
+- [x] Checkov pip installation (Alpine musl compat)
+- [x] Semgrep pysemgrep wrapper for Python module execution
+- [x] GitHub release URL fixes for scanner binaries
+
+### v1.5.0 — Scanner Registry Cleanup ✅
+
+- [x] Removed `Image`, `MountDst`, `Entrypoint`, `ExtraVolumes` fields from Scanner struct (dead code from Docker era)
+- [x] Deleted standalone scanner Dockerfiles (`docker/scanners/`)
+- [x] Fixed semgrep exit code 2 (target path argument bug)
+- [x] Removed `build-scanner-slim` and `build-all` Makefile targets
+- [x] Deleted `buildDockerCmd()` dead code
+- [x] Removed Docker socket mount from Kubernetes manifests
+- [x] Updated all documentation to reflect embedded binary execution model
 
 ---
 
@@ -256,8 +288,8 @@ Critical items that must be completed before v1.0 release.
 ### Scanner Extensions
 
 - [ ] SBOM generation and tracking
-- [ ] Container image scanning target type
-- [ ] DAST target type (URL-based nuclei scans)
+- [x] Container image scanning target type (trivy-image, grype-image)
+- [x] DAST target type (URL-based nuclei scans)
 - [ ] Custom scanner plugins
 
 ### Platform Health
@@ -301,7 +333,9 @@ Before tagging v1.0:
 
 ## Notes
 
+- **Scanner execution**: Scanners run as binaries via `os/exec` in the worker process — no Docker socket, no container isolation per scan
 - **Repos page**: Legacy, superseded by Projects
 - **Legacy repo references**: Some API endpoints still use "repo" terminology — migrate to "project"
 - **PDF reports**: Browser print stylesheet exists, verify it works correctly
 - **Credibility UI**: Backend done, frontend pending
+- **pnpm 11**: Frontend Docker build requires `--ignore-scripts` + explicit `pnpm rebuild esbuild sharp`
