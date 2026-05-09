@@ -109,8 +109,8 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 		if result.err != nil && len(result.stdout) == 0 {
 			scans.MarkFailed(ctx, p.ScanID, result.err.Error(), result.log)
 			enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.failed", result.err.Error(), time.Now())
-			log.Error("docker run failed", "err", result.err)
-			return fmt.Errorf("%s docker run: %w", sc.Name, result.err)
+		log.Error("scanner execution failed", "err", result.err)
+		return fmt.Errorf("%s scanner execution: %w", sc.Name, result.err)
 		}
 
 		parsed, parseErr := sc.Parse(result.stdout)
@@ -252,23 +252,6 @@ func runScannerURL(sc scanner.Scanner, target string) runResult {
 		log:    execResult.Log,
 		err:    execResult.Err,
 	}
-}
-
-func buildDockerCmd(sc scanner.Scanner, args []string) *exec.Cmd {
-	// DEPRECATED: Docker execution replaced by binary execution in scanner.Executor
-	// This function kept for backward compatibility reference only
-	base := []string{"run", "--rm"}
-	for k, v := range sc.Env {
-		base = append(base, "-e", k+"="+v)
-	}
-	for _, vol := range sc.ExtraVolumes {
-		base = append(base, "-v", vol)
-	}
-	if len(sc.Entrypoint) > 0 {
-		base = append(base, "--entrypoint", sc.Entrypoint[0])
-	}
-	base = append(base, args...)
-	return exec.Command("docker", base...)
 }
 
 func buildSimpleLog(cmdStr string, stdout, stderr []byte, err error, elapsed time.Duration) string {

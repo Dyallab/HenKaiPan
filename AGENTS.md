@@ -26,7 +26,7 @@ make sync-migrations # Sync root /migrations to internal/db/migrations/
 
 1. **Copy `.env.example` to `.env`** — app exits if `DATABASE_URL`, `JWT_SECRET`, or `SECRET_ENCRYPTION_KEY` missing
 2. **Default ports**: API `8080`, Frontend `4321`, Postgres `5432`, Redis `6379`, Mailpit `8025/1025`
-3. **Docker socket**: Worker mounts `/var/run/docker.sock` — scanner execution requires Docker
+3. **Scanner binaries**: Bundled in worker image — no Docker socket required
 
 ## Frontend gotchas
 
@@ -76,7 +76,7 @@ No CI workflows or meaningful tests checked in. Fastest verification:
 |------|---------|
 | `README.md` | Architecture diagrams, runtime flows, screenshots |
 | `Makefile` | Canonical dev/build commands |
-| `docker-compose.yml` | Service wiring, migration mount, Docker socket mount |
+| `docker-compose.yml` | Service wiring, migration mount |
 | `internal/config/config.go` | Env var validation, AI provider resolution |
 | `TODO.md` | Roadmap, legacy markers, commercialization context |
 | `docs/queue-architecture.md` | Retry strategies, DLQ handling, monitoring setup |
