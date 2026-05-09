@@ -9,8 +9,9 @@ import (
 var validate = validator.New()
 
 type LoginRequest struct {
-	Email    string `validate:"required,email"`
-	Password string `validate:"required,min=8"`
+	Username string `validate:"required,min=1"`
+	Email    string `validate:"omitempty,email"`
+	Password string `validate:"required"`
 }
 
 type CreateProjectRequest struct {

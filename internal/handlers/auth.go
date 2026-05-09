@@ -24,41 +24,41 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.InfoContext(r.Context(), "login attempt", "username", req.Email)
+	slog.InfoContext(r.Context(), "login attempt", "username", req.Username)
 
-	id, hash, role, err := h.store.Users.GetCredentials(r.Context(), req.Email)
+	id, hash, role, err := h.store.Users.GetCredentials(r.Context(), req.Username)
 	if err != nil {
-		slog.WarnContext(r.Context(), "login: user not found or db error", "username", req.Email, "error", err)
+		slog.WarnContext(r.Context(), "login: user not found or db error", "username", req.Username, "error", err)
 		h.writeUnauthorized(w, r)
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
-		slog.WarnContext(r.Context(), "login: password mismatch", "username", req.Email)
+		slog.WarnContext(r.Context(), "login: password mismatch", "username", req.Username)
 		h.writeUnauthorized(w, r)
 		return
 	}
 
 	h.store.Users.UpdateLastLogin(r.Context(), id)
 
-	token, err := auth.IssueToken(req.Email, role, id)
+	token, err := auth.IssueToken(req.Username, role, id)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "login: token generation failed", "error", err)
 		h.writeInternal(w, r, err, "token generation failed")
 		return
 	}
-	slog.InfoContext(r.Context(), "login: token issued", "username", req.Email, "token_len", len(token))
+	slog.InfoContext(r.Context(), "login: token issued", "username", req.Username, "token_len", len(token))
 
 	auth.SetAuthCookie(w, token, h.cookieSecure, h.cookieDomain, h.cookieSameSite)
-	slog.InfoContext(r.Context(), "login: cookie set", "username", req.Email, "secure", h.cookieSecure, "domain", h.cookieDomain, "samesite", h.cookieSameSite)
+	slog.InfoContext(r.Context(), "login: cookie set", "username", req.Username, "secure", h.cookieSecure, "domain", h.cookieDomain, "samesite", h.cookieSameSite)
 
 	w.Header().Set("Cache-Control", "no-store")
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"role":     role,
-		"username": req.Email,
+		"username": req.Username,
 	})
-	slog.InfoContext(r.Context(), "login: success", "username", req.Email)
+	slog.InfoContext(r.Context(), "login: success", "username", req.Username)
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
