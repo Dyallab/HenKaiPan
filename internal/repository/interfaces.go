@@ -159,6 +159,14 @@ type ProjectUpdate struct {
 	Provider       *string
 	DefaultBranch  *string
 	ExternalRepoID *string
+	AppID          *string // nil = no change, "" = unassign, UUID = assign to app
+}
+
+type BulkCreateResult struct {
+	Name      string
+	RepoURL   string
+	ProjectID string
+	Created   bool
 }
 
 type AppRepository interface {
@@ -169,13 +177,16 @@ type AppRepository interface {
 	Delete(ctx context.Context, id string) error
 	ListProjects(ctx context.Context, appID string) ([]models.Project, error)
 	ListAllProjects(ctx context.Context, appFilter string) ([]models.Project, error)
+	ListStandaloneByPattern(ctx context.Context, pattern string) ([]models.Project, error)
 	GetProjectByID(ctx context.Context, id string) (*models.Project, error)
 	CreateProject(ctx context.Context, appID string, p ProjectCreate) (*models.Project, error)
 	CreateStandaloneProject(ctx context.Context, p ProjectCreate) (*models.Project, error)
+	BulkCreateProjects(ctx context.Context, appID string, projects []ProjectCreate) ([]BulkCreateResult, error)
 	UpdateProject(ctx context.Context, id string, upd ProjectUpdate) error
 	UpdateProjectGitHubToken(ctx context.Context, id, token string) error
 	GetProjectGitHubToken(ctx context.Context, id string) (string, error)
 	DeleteProject(ctx context.Context, id string) error
+	AssignProjectsToApp(ctx context.Context, appID string, projectIDs []string) (int64, error)
 	GetCoverageReport(ctx context.Context, days int) (*models.CoverageReport, error)
 	GetFindingComments(ctx context.Context, findingID string) ([]FindingComment, error)
 	CreateFindingComment(ctx context.Context, c CommentCreate) (*FindingComment, error)
@@ -414,6 +425,7 @@ type AgentRepository interface {
 
 type ScanScheduleCreate struct {
 	ProjectID   string
+	AppID       *string
 	Scanner     string
 	ScannerType *string
 	CronExpr    string

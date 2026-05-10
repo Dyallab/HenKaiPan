@@ -14,9 +14,15 @@ type scheduleRepo struct {
 	db *pgxpool.Pool
 }
 
+const scheduleCols = "id, project_id, app_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at"
+
+func scanSchedule(s *models.ScanSchedule, row interface{ Scan(...interface{}) error }) error {
+	return row.Scan(&s.ID, &s.ProjectID, &s.AppID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt)
+}
+
 func (r *scheduleRepo) ListByProject(ctx context.Context, projectID string) ([]models.ScanSchedule, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at
+		SELECT `+scheduleCols+`
 		FROM scan_schedules
 		WHERE project_id = $1
 		ORDER BY created_at DESC`, projectID)
@@ -28,7 +34,7 @@ func (r *scheduleRepo) ListByProject(ctx context.Context, projectID string) ([]m
 	var out []models.ScanSchedule
 	for rows.Next() {
 		var s models.ScanSchedule
-		if err := rows.Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt); err != nil {
+		if err := scanSchedule(&s, rows); err != nil {
 			continue
 		}
 		out = append(out, s)
@@ -38,7 +44,7 @@ func (r *scheduleRepo) ListByProject(ctx context.Context, projectID string) ([]m
 
 func (r *scheduleRepo) ListEnabled(ctx context.Context) ([]models.ScanSchedule, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at
+		SELECT `+scheduleCols+`
 		FROM scan_schedules
 		WHERE enabled = TRUE
 		ORDER BY next_run ASC NULLS FIRST`)
@@ -50,7 +56,7 @@ func (r *scheduleRepo) ListEnabled(ctx context.Context) ([]models.ScanSchedule, 
 	var out []models.ScanSchedule
 	for rows.Next() {
 		var s models.ScanSchedule
-		if err := rows.Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt); err != nil {
+		if err := scanSchedule(&s, rows); err != nil {
 			continue
 		}
 		out = append(out, s)
@@ -60,10 +66,9 @@ func (r *scheduleRepo) ListEnabled(ctx context.Context) ([]models.ScanSchedule, 
 
 func (r *scheduleRepo) GetByID(ctx context.Context, id string) (*models.ScanSchedule, error) {
 	var s models.ScanSchedule
-	err := r.db.QueryRow(ctx, `
-		SELECT id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at
-		FROM scan_schedules WHERE id = $1`, id).
-		Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt)
+	err := scanSchedule(&s, r.db.QueryRow(ctx, `
+		SELECT `+scheduleCols+`
+		FROM scan_schedules WHERE id = $1`, id))
 	if err != nil {
 		return nil, fmt.Errorf("get schedule: %w", err)
 	}
@@ -71,13 +76,16 @@ func (r *scheduleRepo) GetByID(ctx context.Context, id string) (*models.ScanSche
 }
 
 func (r *scheduleRepo) Create(ctx context.Context, s ScanScheduleCreate) (*models.ScanSchedule, error) {
+	var projectID *string
+	if s.ProjectID != "" {
+		projectID = &s.ProjectID
+	}
 	var out models.ScanSchedule
-	err := r.db.QueryRow(ctx, `
-		INSERT INTO scan_schedules (project_id, scanner, scanner_type, cron_expr)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at`,
-		s.ProjectID, s.Scanner, s.ScannerType, s.CronExpr).
-		Scan(&out.ID, &out.ProjectID, &out.Scanner, &out.ScannerType, &out.CronExpr, &out.Enabled, &out.LastRun, &out.NextRun, &out.CreatedAt)
+	err := scanSchedule(&out, r.db.QueryRow(ctx, `
+		INSERT INTO scan_schedules (project_id, app_id, scanner, scanner_type, cron_expr)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING `+scheduleCols,
+		projectID, s.AppID, s.Scanner, s.ScannerType, s.CronExpr))
 	if err != nil {
 		return nil, fmt.Errorf("create schedule: %w", err)
 	}
@@ -120,7 +128,7 @@ func (r *scheduleRepo) Update(ctx context.Context, id string, upd ScanScheduleUp
 	for i := 1; i < len(sets); i++ {
 		query += ", " + sets[i]
 	}
-	query += fmt.Sprintf(" WHERE id = $1 RETURNING id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at")
+	query += fmt.Sprintf(" WHERE id = $1 RETURNING "+scheduleCols)
 
 	err := r.db.QueryRow(ctx, query, args...).
 		Scan(&out.ID, &out.ProjectID, &out.Scanner, &out.ScannerType, &out.CronExpr, &out.Enabled, &out.LastRun, &out.NextRun, &out.CreatedAt)
@@ -136,7 +144,7 @@ func (r *scheduleRepo) Delete(ctx context.Context, id string) error {
 
 func (r *scheduleRepo) ListDue(ctx context.Context) ([]models.ScanSchedule, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, project_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at
+		SELECT `+scheduleCols+`
 		FROM scan_schedules
 		WHERE enabled = TRUE AND (next_run IS NULL OR next_run <= NOW())
 		ORDER BY next_run ASC NULLS FIRST
@@ -149,7 +157,7 @@ func (r *scheduleRepo) ListDue(ctx context.Context) ([]models.ScanSchedule, erro
 	var out []models.ScanSchedule
 	for rows.Next() {
 		var s models.ScanSchedule
-		if err := rows.Scan(&s.ID, &s.ProjectID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt); err != nil {
+		if err := scanSchedule(&s, rows); err != nil {
 			continue
 		}
 		out = append(out, s)

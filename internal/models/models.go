@@ -148,7 +148,7 @@ type App struct {
 	TeamID      *string   `json:"team_id,omitempty"`
 	TeamName    *string   `json:"team_name,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
-	Projects    []Project `json:"projects,omitempty"`
+	Projects    []Project `json:"projects"`
 }
 
 type Project struct {
@@ -304,6 +304,7 @@ type AuditLog struct {
 type ScanSchedule struct {
 	ID           string     `json:"id"`
 	ProjectID    string     `json:"project_id"`
+	AppID        *string    `json:"app_id,omitempty"`
 	Scanner      string     `json:"scanner"`
 	ScannerType  *string    `json:"scanner_type,omitempty"`
 	CronExpr     string     `json:"cron_expr"`

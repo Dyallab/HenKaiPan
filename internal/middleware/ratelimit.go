@@ -81,8 +81,10 @@ func RateLimiter(next http.Handler) http.Handler {
 
 		if !allowed {
 			w.Header().Set("Retry-After", strconv.Itoa(int(resetTime-time.Now().Unix())))
+			w.Header().Set("Content-Type", "application/json")
 			slog.WarnContext(r.Context(), "rate limit exceeded", "ip", ip, "path", r.URL.Path, "limit", limit)
-			http.Error(w, `{"code":"rate_limited","message":"Too many requests. Please try again later."}`, http.StatusTooManyRequests)
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"code":"rate_limited","message":"Too many requests. Please try again later."}`))
 			return
 		}
 

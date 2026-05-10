@@ -79,6 +79,12 @@ export const api = {
       body: JSON.stringify({ target, scanner, project_id }),
     }),
 
+  createAppScan: (app_id: string, scanner: string) =>
+    req<{ ids: string[] }>("/api/scans", {
+      method: "POST",
+      body: JSON.stringify({ app_id, scanner }),
+    }),
+
   getScan: (id: string) => req<Scan>(`/api/scans/${id}`),
 
   getScanFindings: (id: string) => req<Finding[]>(`/api/scans/${id}/findings`),
@@ -296,6 +302,7 @@ export const api = {
       repo_url?: string;
       provider?: string;
       default_branch?: string;
+      app_id?: string | null;
     },
   ) =>
     req<void>(`/api/projects/${id}`, {
@@ -311,6 +318,34 @@ export const api = {
 
   deleteProject: (id: string) =>
     req<void>(`/api/projects/${id}`, { method: "DELETE" }),
+
+  bulkCreateProjects: (data: {
+    pattern: string;
+    app_id?: string | null;
+    github_token?: string;
+    limit?: number;
+  }) =>
+    req<{
+      created: number;
+      skipped: number;
+      errors: number;
+      projects: Array<{
+        name: string;
+        repo_url: string;
+        status: string;
+        error?: string;
+        project_id?: string;
+      }>;
+    }>("/api/projects/bulk", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  bulkAssignProjects: (appId: string, projectIds: string[]) =>
+    req<{ assigned: number }>("/api/projects/bulk-assign", {
+      method: "POST",
+      body: JSON.stringify({ app_id: appId, project_ids: projectIds }),
+    }),
 
   getCoverageReport: (days?: number) =>
     req<CoverageReport>(`/api/coverage${days ? `?days=${days}` : ""}`),
@@ -468,7 +503,7 @@ export const api = {
     req<ScanSchedule[]>(`/api/schedules${projectID ? `?project_id=${projectID}` : ''}`),
   getSchedule: (id: string) =>
     req<ScanSchedule>(`/api/schedules/${id}`),
-  createSchedule: (data: { project_id: string; scanner: string; scanner_type?: string | null; cron_expr: string }) =>
+  createSchedule: (data: { project_id?: string; app_id?: string; scanner: string; scanner_type?: string | null; cron_expr: string }) =>
     req<ScanSchedule>("/api/schedules", {
       method: "POST",
       body: JSON.stringify(data),
@@ -842,6 +877,7 @@ export interface ScannerPack {
 export interface ScanSchedule {
   id: string;
   project_id: string;
+  app_id?: string;
   scanner: string;
   scanner_type?: string | null;
   cron_expr: string;

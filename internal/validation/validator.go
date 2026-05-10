@@ -15,9 +15,11 @@ type LoginRequest struct {
 }
 
 type CreateProjectRequest struct {
-	Name        string `validate:"required,max=255"`
-	Description string `validate:"max=1000"`
-	RepoURL     string `validate:"omitempty,url"`
+	Name          string `json:"name" validate:"required,max=255"`
+	Description   string `json:"description" validate:"max=1000"`
+	RepoURL       string `json:"repo_url" validate:"omitempty,url"`
+	Provider      string `json:"provider" validate:"omitempty"`
+	DefaultBranch string `json:"default_branch" validate:"omitempty"`
 }
 
 type UpdateFindingRequest struct {

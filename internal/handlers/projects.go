@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"aspm/internal/github"
 	"aspm/internal/repository"
 	"aspm/internal/validation"
 
@@ -24,6 +25,19 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	filter := r.URL.Query().Get("filter")
+	pattern := r.URL.Query().Get("pattern")
+
+	// If pattern is set, delegate to pattern-based lookup
+	if pattern != "" {
+		projects, err := h.store.Apps.ListStandaloneByPattern(r.Context(), pattern)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to list projects")
+			return
+		}
+		writeJSON(w, http.StatusOK, projects)
+		return
+	}
+
 	projects, err := h.store.Apps.ListAllProjects(r.Context(), filter)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list projects")
@@ -55,7 +69,8 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	pc := repository.ProjectCreate{
 		Name: req.Name, Description: req.Description,
-		RepoURL: req.RepoURL,
+		RepoURL: req.RepoURL, Provider: req.Provider,
+		DefaultBranch: req.DefaultBranch,
 	}
 
 	appID := r.URL.Query().Get("app_id")
@@ -84,6 +99,7 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		Provider       *string `json:"provider"`
 		DefaultBranch  *string `json:"default_branch"`
 		ExternalRepoID *string `json:"external_repo_id"`
+		AppID          *string `json:"app_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid body")
@@ -93,6 +109,7 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		Name: body.Name, Description: body.Description,
 		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
 		ExternalRepoID: body.ExternalRepoID,
+		AppID: body.AppID,
 	})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -133,4 +150,136 @@ func (h *Handler) GetCoverageReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
+}
+
+type bulkCreateRequest struct {
+	Pattern     string `json:"pattern"`
+	AppID       string `json:"app_id,omitempty"`
+	GitHubToken string `json:"github_token,omitempty"`
+	Limit       int    `json:"limit,omitempty"`
+	Preview     bool   `json:"preview,omitempty"`
+}
+
+type bulkProjectResult struct {
+	Name        string `json:"name"`
+	RepoURL     string `json:"repo_url"`
+	Status      string `json:"status"`
+	Error       string `json:"error,omitempty"`
+	ProjectID   string `json:"project_id,omitempty"`
+}
+
+type bulkCreateResponse struct {
+	Created  int                  `json:"created"`
+	Skipped  int                  `json:"skipped"`
+	Errors   int                  `json:"errors"`
+	Projects []bulkProjectResult `json:"projects"`
+}
+
+func (h *Handler) BulkCreateProjects(w http.ResponseWriter, r *http.Request) {
+	var req bulkCreateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	if req.Pattern == "" {
+		writeError(w, http.StatusBadRequest, "pattern is required")
+		return
+	}
+	if req.Limit <= 0 {
+		req.Limit = 50
+	}
+	if req.Limit > 500 {
+		req.Limit = 500
+	}
+
+	repos, err := github.ResolvePattern(r.Context(), req.Pattern, req.GitHubToken, req.Limit)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(repos) == 0 {
+		writeJSON(w, http.StatusOK, bulkCreateResponse{
+			Projects: []bulkProjectResult{},
+		})
+		return
+	}
+
+	var resp bulkCreateResponse
+
+	if req.Preview {
+		resp.Projects = make([]bulkProjectResult, len(repos))
+		for i, repo := range repos {
+			resp.Projects[i] = bulkProjectResult{
+				Name:    repo.Name,
+				RepoURL: repo.RepoURL,
+				Status:  "found",
+			}
+		}
+		writeJSON(w, http.StatusOK, resp)
+		return
+	}
+
+	projects := make([]repository.ProjectCreate, len(repos))
+	for i, repo := range repos {
+		projects[i] = repository.ProjectCreate{
+			Name:          repo.Name,
+			Description:   repo.Description,
+			RepoURL:       repo.RepoURL,
+			Provider:      "github",
+			DefaultBranch: repo.DefaultBranch,
+		}
+	}
+
+	results, err := h.store.Apps.BulkCreateProjects(r.Context(), req.AppID, projects)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	resp.Projects = make([]bulkProjectResult, len(results))
+	for i, r := range results {
+		resp.Projects[i] = bulkProjectResult{
+			Name:    r.Name,
+			RepoURL: r.RepoURL,
+		}
+		if r.Created {
+			resp.Projects[i].Status = "created"
+			resp.Projects[i].ProjectID = r.ProjectID
+			resp.Created++
+		} else {
+			resp.Projects[i].Status = "skipped"
+			resp.Skipped++
+		}
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *Handler) BulkAssignProjects(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		AppID      string   `json:"app_id"`
+		ProjectIDs []string `json:"project_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+	if req.AppID == "" {
+		writeError(w, http.StatusBadRequest, "app_id is required")
+		return
+	}
+	if len(req.ProjectIDs) == 0 {
+		writeError(w, http.StatusBadRequest, "project_ids is required")
+		return
+	}
+
+	count, err := h.store.Apps.AssignProjectsToApp(r.Context(), req.AppID, req.ProjectIDs)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"assigned": count,
+	})
 }
