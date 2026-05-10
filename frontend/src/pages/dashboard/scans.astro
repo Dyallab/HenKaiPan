@@ -6,72 +6,129 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   <!-- New scan form -->
   <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5 mb-5">
     <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">New Scan</h2>
-    <form id="scan-form" class="flex gap-3 flex-wrap">
-      <div class="relative flex-1 min-w-48">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">folder_open</span>
-        <select
-          id="scan-project"
-          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all appearance-none"
-        >
-          <option value="">Select project...</option>
-        </select>
-      </div>
-      <div class="relative flex-1 min-w-64">
-        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
-        <input
-          id="scan-target"
-          type="text"
-          placeholder="Or enter URL directly"
-          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600"
-        />
-      </div>
-      <select
-        id="scan-scanner"
-        class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all"
-      >
-        <option value="all">⚡ All Git Scanners</option>
-        <option value="sast">🔒 SAST (semgrep + gosec)</option>
-        <option value="sca">📦 SCA (trivy + grype + osv)</option>
-        <option value="secrets">🔑 Secrets (trufflehog + gitleaks)</option>
-        <option value="iac">🏗️ IaC (checkov + tfsec + kics)</option>
-        <option value="containers">🐳 Containers (trivy + grype)</option>
-        <optgroup label="── Individual Scanners ──">
-          <optgroup label="&nbsp;&nbsp;SAST">
-            <option value="semgrep">semgrep</option>
-            <option value="gosec">gosec (Go)</option>
-          </optgroup>
-          <optgroup label="&nbsp;&nbsp;SCA">
-            <option value="trivy">trivy</option>
-            <option value="grype">grype</option>
-            <option value="osv-scanner">osv-scanner</option>
-          </optgroup>
-          <optgroup label="&nbsp;&nbsp;Secrets">
-            <option value="trufflehog">trufflehog</option>
-            <option value="gitleaks">gitleaks</option>
-          </optgroup>
-          <optgroup label="&nbsp;&nbsp;IaC">
-            <option value="checkov">checkov</option>
-            <option value="tfsec">tfsec</option>
-            <option value="kics">kics</option>
-          </optgroup>
-          <optgroup label="&nbsp;&nbsp;Containers">
-            <option value="trivy-image">trivy image</option>
-            <option value="grype-image">grype image</option>
-          </optgroup>
-          <optgroup label="&nbsp;&nbsp;DAST">
-            <option value="nuclei">nuclei</option>
-          </optgroup>
-        </optgroup>
-      </select>
-      <button
-        type="submit"
-        id="scan-btn"
-        class="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-cyan-400 transition-all active:scale-95"
-      >
-        <span class="material-symbols-outlined text-lg">add</span>
-        Run New Scan
+
+    <!-- Tab bar -->
+    <div class="flex gap-2 mb-5">
+      <button data-tab-trigger="target" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80">
+        <span class="material-symbols-outlined text-base align-middle mr-1.5">search</span>
+        Target
       </button>
+      <button data-tab-trigger="scanner" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">
+        <span class="material-symbols-outlined text-base align-middle mr-1.5">security</span>
+        Scanner &amp; Run
+      </button>
+    </div>
+
+    <form id="scan-form">
+      <!-- Panel: Target -->
+      <div data-tab-panel="target" class="tab-panel space-y-4">
+        <div class="flex gap-3 flex-wrap">
+          <!-- Combobox: search apps & projects -->
+          <div class="relative flex-1 min-w-56" id="target-combobox">
+            <div class="relative">
+              <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">search</span>
+              <input
+                id="scan-target-search"
+                type="text"
+                placeholder="Search app or project..."
+                autocomplete="off"
+                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600"
+              />
+              <button
+                id="scan-target-clear"
+                type="button"
+                class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-ghost-white transition-colors p-0.5"
+              >
+                <span class="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            <!-- Dropdown -->
+            <div
+              id="scan-target-dropdown"
+              class="hidden absolute z-50 mt-1 w-full bg-surface-container border border-outline-variant/30 rounded-xl shadow-2xl max-h-72 overflow-auto"
+            ></div>
+
+            <!-- Selection badge (shown inline under combobox) -->
+            <div id="scan-target-badge" class="hidden mt-2"></div>
+          </div>
+
+          <!-- Target URL -->
+          <div class="relative w-72" id="target-url-group">
+            <span id="target-url-icon" class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">link</span>
+            <input
+              id="scan-target"
+              type="text"
+              placeholder="Or enter URL directly"
+              class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel: Scanner & Run -->
+      <div data-tab-panel="scanner" class="tab-panel hidden space-y-4">
+        <!-- Selection summary -->
+        <div id="scanner-selection-summary" class="text-sm text-slate-400">
+          No target selected. Go to <strong>Target</strong> tab first.
+        </div>
+
+        <div class="flex gap-3 flex-wrap items-end">
+          <!-- Scanner select -->
+          <div class="relative w-72">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">tune</span>
+            <select
+              id="scan-scanner"
+              class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all appearance-none"
+            >
+              <option value="all">⚡ All Git Scanners</option>
+              <option value="sast">🔒 SAST (semgrep + gosec)</option>
+              <option value="sca">📦 SCA (trivy + grype + osv)</option>
+              <option value="secrets">🔑 Secrets (trufflehog + gitleaks)</option>
+              <option value="iac">🏗️ IaC (checkov + tfsec + kics)</option>
+              <option value="containers">🐳 Containers (trivy + grype)</option>
+              <optgroup label="── Individual Scanners ──">
+                <optgroup label="&nbsp;&nbsp;SAST">
+                  <option value="semgrep">semgrep</option>
+                  <option value="gosec">gosec (Go)</option>
+                </optgroup>
+                <optgroup label="&nbsp;&nbsp;SCA">
+                  <option value="trivy">trivy</option>
+                  <option value="grype">grype</option>
+                  <option value="osv-scanner">osv-scanner</option>
+                </optgroup>
+                <optgroup label="&nbsp;&nbsp;Secrets">
+                  <option value="trufflehog">trufflehog</option>
+                  <option value="gitleaks">gitleaks</option>
+                </optgroup>
+                <optgroup label="&nbsp;&nbsp;IaC">
+                  <option value="checkov">checkov</option>
+                  <option value="tfsec">tfsec</option>
+                  <option value="kics">kics</option>
+                </optgroup>
+                <optgroup label="&nbsp;&nbsp;Containers">
+                  <option value="trivy-image">trivy image</option>
+                  <option value="grype-image">grype image</option>
+                </optgroup>
+                <optgroup label="&nbsp;&nbsp;DAST">
+                  <option value="nuclei">nuclei</option>
+                </optgroup>
+              </optgroup>
+            </select>
+          </div>
+
+          <button
+            type="submit"
+            id="scan-btn"
+            class="flex items-center gap-2 px-6 py-2.5 bg-cyan-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-cyan-400 transition-all active:scale-95"
+          >
+            <span class="material-symbols-outlined text-lg">rocket_launch</span>
+            Run New Scan
+          </button>
+        </div>
+      </div>
     </form>
+
     <div id="scan-msg" class="hidden mt-3 text-sm"></div>
   </div>
 
@@ -137,10 +194,57 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     failed:    'text-red-400',
   };
 
+  // ── Combobox state ──
+  interface ComboboxItem {
+    type: 'app' | 'project';
+    id: string;
+    name: string;
+    subtitle: string;
+    projectCount?: number;
+    repoUrl?: string;
+  }
+
+  let allItems: ComboboxItem[] = [];
+  let selectedApp: { id: string; name: string; projectCount: number } | null = null;
+  let selectedProject: { id: string; name: string; repoUrl: string } | null = null;
+  let highlightedIdx = -1;
+  let dropdownOpen = false;
+
+  // ── Helpers ──
   function scannerType(scanner: string) {
     return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
   }
 
+  function escapeHtml(s: string): string {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  // ── Tabs ──
+  function setupTabs() {
+    const triggers = Array.from(document.querySelectorAll<HTMLElement>('[data-tab-trigger]'));
+    const panels = Array.from(document.querySelectorAll<HTMLElement>('[data-tab-panel]'));
+
+    function activate(tab: string) {
+      triggers.forEach(trigger => {
+        const active = trigger.dataset.tabTrigger === tab;
+        trigger.className = active
+          ? 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80'
+          : 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors';
+      });
+      panels.forEach(panel =>
+        panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab),
+      );
+    }
+
+    triggers.forEach(trigger =>
+      trigger.addEventListener('click', () => activate(trigger.dataset.tabTrigger!)),
+    );
+    activate('target');
+  }
+
+  // ── Scans table ──
   async function loadScans() {
     const { scans, total } = await api.getScans(1, 50);
     document.getElementById('scans-total')!.textContent = `${total} total`;
@@ -205,47 +309,311 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </table>`;
   }
 
-  async function loadProjects() {
-    const projects = await api.getProjects().catch(() => []);
-    const sel = document.getElementById('scan-project') as HTMLSelectElement;
-    sel.innerHTML = '<option value="">Select project...</option>' +
-      projects.map(p => `<option value="${p.id}" data-url="${p.repo_url || ''}">${p.name}${p.repo_url ? ` (${p.repo_url})` : ''}</option>`).join('');
-
-    sel.addEventListener('change', () => {
-      const opt = sel.options[sel.selectedIndex];
-      const url = opt.dataset.url || '';
-      const targetInput = document.getElementById('scan-target') as HTMLInputElement;
-      if (url) targetInput.value = url;
-    });
+  // ── Combobox ──
+  function filterItems(q: string): ComboboxItem[] {
+    if (!q.trim()) return allItems.slice(0, 50);
+    const lower = q.toLowerCase();
+    return allItems.filter(i =>
+      i.name.toLowerCase().includes(lower) || i.subtitle.toLowerCase().includes(lower)
+    ).slice(0, 100);
   }
 
+  function renderDropdown(items: ComboboxItem[]) {
+    const dd = document.getElementById('scan-target-dropdown')!;
+    if (!items.length) {
+      dd.innerHTML = '<div class="p-4 text-sm text-slate-500 text-center">No results</div>';
+      dd.classList.remove('hidden');
+      return;
+    }
+
+    dd.innerHTML = items.map((item, idx) => {
+      const hl = highlightedIdx === idx;
+      if (item.type === 'app') {
+        return `<button type="button" data-index="${idx}" class="w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${hl ? 'bg-cyan-500/10' : 'hover:bg-white/[0.04]'} border-b border-white/5 last:border-0">
+          <span class="material-symbols-outlined text-cyan-400 text-lg">folder</span>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium text-ghost-white truncate">${escapeHtml(item.name)}</div>
+            <div class="text-[10px] text-slate-500">${item.projectCount} project${item.projectCount !== 1 ? 's' : ''}</div>
+          </div>
+          <span class="text-[10px] uppercase tracking-wider text-cyan-500 font-semibold shrink-0">App</span>
+        </button>`;
+      }
+      return `<button type="button" data-index="${idx}" class="w-full text-left px-4 py-3 flex items-center gap-3 transition-colors ${hl ? 'bg-cyan-500/10' : 'hover:bg-white/[0.04]'} border-b border-white/5 last:border-0">
+        <span class="material-symbols-outlined text-slate-400 text-lg">description</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-medium text-ghost-white truncate">${escapeHtml(item.name)}</div>
+          <div class="text-[10px] text-slate-500 truncate">${escapeHtml(item.subtitle)}</div>
+        </div>
+        <span class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold shrink-0">Project</span>
+      </button>`;
+    }).join('');
+    dd.classList.remove('hidden');
+  }
+
+  function updateScannerSummary() {
+    const summary = document.getElementById('scanner-selection-summary')!;
+    if (selectedApp) {
+      summary.innerHTML = `<div class="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-2">
+        <span class="material-symbols-outlined text-sm">folder</span>
+        Scanning all <strong>${selectedApp.projectCount}</strong> project${selectedApp.projectCount !== 1 ? 's' : ''} in <strong>${escapeHtml(selectedApp.name)}</strong>
+      </div>`;
+    } else if (selectedProject) {
+      summary.innerHTML = `<div class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+        <span class="material-symbols-outlined text-sm">description</span>
+        Scanning project <strong>${escapeHtml(selectedProject.name)}</strong>
+        <span class="text-slate-500 ml-1">${escapeHtml(selectedProject.repoUrl)}</span>
+      </div>`;
+    } else {
+      const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
+      if (target) {
+        summary.innerHTML = `<div class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
+          <span class="material-symbols-outlined text-sm">link</span>
+          Scanning URL: <span class="font-mono text-slate-400">${escapeHtml(target)}</span>
+        </div>`;
+      } else {
+        summary.innerHTML = 'No target selected. Go to <strong>Target</strong> tab first.';
+      }
+    }
+  }
+
+  function selectItem(item: ComboboxItem) {
+    const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
+    const clearBtn = document.getElementById('scan-target-clear')!;
+    const badge = document.getElementById('scan-target-badge')!;
+    const urlInput = document.getElementById('scan-target') as HTMLInputElement;
+    const urlIcon = document.getElementById('target-url-icon')!;
+    const urlGroup = document.getElementById('target-url-group')!;
+
+    closeDropdown();
+
+    if (item.type === 'app') {
+      selectedApp = { id: item.id, name: item.name, projectCount: item.projectCount || 0 };
+      selectedProject = null;
+      searchInput.value = item.name;
+      // Hide URL input when app is selected
+      urlGroup.classList.add('hidden');
+      badge.innerHTML = `<div class="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-1.5">
+        <span class="material-symbols-outlined text-sm">folder</span>
+        Scanning all <strong>${item.projectCount}</strong> project${item.projectCount !== 1 ? 's' : ''} in <strong>${escapeHtml(item.name)}</strong>
+      </div>`;
+      badge.classList.remove('hidden');
+    } else {
+      selectedProject = { id: item.id, name: item.name, repoUrl: item.repoUrl || '' };
+      selectedApp = null;
+      searchInput.value = item.name;
+      urlGroup.classList.remove('hidden');
+      urlInput.disabled = false;
+      urlInput.value = item.repoUrl || '';
+      urlInput.placeholder = 'Or enter URL directly';
+      badge.classList.add('hidden');
+    }
+
+    clearBtn.classList.remove('hidden');
+    updateScannerSummary();
+  }
+
+  function clearSelection() {
+    selectedApp = null;
+    selectedProject = null;
+    const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
+    const urlInput = document.getElementById('scan-target') as HTMLInputElement;
+    const urlGroup = document.getElementById('target-url-group')!;
+    const badge = document.getElementById('scan-target-badge')!;
+    const clearBtn = document.getElementById('scan-target-clear')!;
+
+    searchInput.value = '';
+    urlGroup.classList.remove('hidden');
+    urlInput.disabled = false;
+    urlInput.value = '';
+    urlInput.placeholder = 'Or enter URL directly';
+    badge.classList.add('hidden');
+    clearBtn.classList.add('hidden');
+    searchInput.focus();
+    updateScannerSummary();
+  }
+
+  function openDropdown() {
+    const dd = document.getElementById('scan-target-dropdown')!;
+    dd.classList.remove('hidden');
+    dropdownOpen = true;
+  }
+
+  function closeDropdown() {
+    const dd = document.getElementById('scan-target-dropdown')!;
+    dd.classList.add('hidden');
+    dropdownOpen = false;
+    highlightedIdx = -1;
+  }
+
+  function handleSearchInput() {
+    const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
+    const q = searchInput.value;
+
+    if (selectedApp || selectedProject) {
+      const selectedName = selectedApp?.name || selectedProject?.name || '';
+      if (q !== selectedName) {
+        clearSelection();
+      } else {
+        return;
+      }
+    }
+
+    const items = filterItems(q);
+    highlightedIdx = -1;
+    if (items.length > 0) {
+      renderDropdown(items);
+      openDropdown();
+    } else {
+      closeDropdown();
+    }
+  }
+
+  function handleDropdownClick(e: MouseEvent) {
+    const target = (e.target as HTMLElement).closest('[data-index]') as HTMLElement;
+    if (!target) return;
+    const idx = parseInt(target.dataset.index!, 10);
+    const q = (document.getElementById('scan-target-search') as HTMLInputElement).value;
+    const items = filterItems(q);
+    if (idx >= 0 && idx < items.length) {
+      selectItem(items[idx]);
+    }
+  }
+
+  function handleDropdownKeydown(e: KeyboardEvent) {
+    const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
+    const q = searchInput.value;
+    const items = filterItems(q);
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!dropdownOpen) {
+        renderDropdown(items);
+        openDropdown();
+      }
+      highlightedIdx = Math.min(highlightedIdx + 1, items.length - 1);
+      renderDropdown(items);
+      const dd = document.getElementById('scan-target-dropdown')!;
+      const btn = dd.querySelector(`[data-index="${highlightedIdx}"]`) as HTMLElement;
+      btn?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!dropdownOpen) return;
+      highlightedIdx = Math.max(highlightedIdx - 1, 0);
+      renderDropdown(items);
+      const dd = document.getElementById('scan-target-dropdown')!;
+      const btn = dd.querySelector(`[data-index="${highlightedIdx}"]`) as HTMLElement;
+      btn?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && dropdownOpen && highlightedIdx >= 0 && highlightedIdx < items.length) {
+      e.preventDefault();
+      selectItem(items[highlightedIdx]);
+    } else if (e.key === 'Escape') {
+      closeDropdown();
+    }
+  }
+
+  // ── Load combobox data ──
+  async function loadComboboxData() {
+    const [apps, projects] = await Promise.all([
+      api.getApps().catch(() => []),
+      api.getProjects().catch(() => []),
+    ]);
+
+    const projectAppMap = new Map<string, string>();
+    for (const app of apps) {
+      for (const p of app.projects || []) {
+        projectAppMap.set(p.id, app.name);
+      }
+    }
+
+    for (const app of apps) {
+      const count = (app.projects || []).length;
+      allItems.push({
+        type: 'app',
+        id: app.id,
+        name: app.name,
+        subtitle: `${count} project${count !== 1 ? 's' : ''}`,
+        projectCount: count,
+      });
+    }
+
+    const knownProjectIds = new Set(projectAppMap.keys());
+
+    for (const p of projects) {
+      if (knownProjectIds.has(p.id)) continue;
+      allItems.push({
+        type: 'project',
+        id: p.id,
+        name: p.name,
+        subtitle: p.repo_url || 'No repository URL',
+        repoUrl: p.repo_url || undefined,
+      });
+    }
+  }
+
+  // ── Form submit ──
   document.getElementById('scan-form')!.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const projectId = (document.getElementById('scan-project') as HTMLSelectElement).value;
-    const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
     const scanner = (document.getElementById('scan-scanner') as HTMLSelectElement).value;
     const btn = document.getElementById('scan-btn') as HTMLButtonElement;
     const msg = document.getElementById('scan-msg')!;
-
-    if (!target && !projectId) return;
 
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined text-lg" style="animation:spin 1s linear infinite">sync</span> Queuing...';
     msg.className = 'hidden mt-3 text-sm';
 
     try {
-      await api.createScan(target, scanner, projectId || undefined);
-      msg.textContent = 'Scan queued successfully.';
-      msg.className = 'mt-3 text-sm text-emerald-400';
-      (document.getElementById('scan-target') as HTMLInputElement).value = '';
-      (document.getElementById('scan-project') as HTMLSelectElement).value = '';
+      if (selectedApp) {
+        await api.createAppScan(selectedApp.id, scanner);
+        msg.textContent = `Scan queued for all ${selectedApp.projectCount} projects in ${selectedApp.name}.`;
+        msg.className = 'mt-3 text-sm text-emerald-400';
+        clearSelection();
+      } else {
+        const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
+        if (!target) {
+          msg.textContent = 'Enter a target URL or select an app/project.';
+          msg.className = 'mt-3 text-sm text-red-400';
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined text-lg">rocket_launch</span> Run New Scan';
+          return;
+        }
+        await api.createScan(target, scanner, selectedProject?.id || undefined);
+        msg.textContent = 'Scan queued successfully.';
+        msg.className = 'mt-3 text-sm text-emerald-400';
+        (document.getElementById('scan-target') as HTMLInputElement).value = '';
+        clearSelection();
+      }
       setTimeout(loadScans, 500);
     } catch (err: any) {
       msg.textContent = err.message;
       msg.className = 'mt-3 text-sm text-red-400';
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<span class="material-symbols-outlined text-lg">add</span> Run New Scan';
+      btn.innerHTML = '<span class="material-symbols-outlined text-lg">rocket_launch</span> Run New Scan';
+    }
+  });
+
+  // ── Event wiring ──
+  const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
+  const dropdown = document.getElementById('scan-target-dropdown')!;
+  const clearBtn = document.getElementById('scan-target-clear')!;
+
+  searchInput.addEventListener('input', handleSearchInput);
+  searchInput.addEventListener('keydown', handleDropdownKeydown);
+  searchInput.addEventListener('focus', () => {
+    if (searchInput.value && !selectedApp && !selectedProject) {
+      handleSearchInput();
+    }
+  });
+  dropdown.addEventListener('click', handleDropdownClick);
+  clearBtn.addEventListener('click', clearSelection);
+
+  // Update scanner summary when URL changes
+  document.getElementById('scan-target')!.addEventListener('input', updateScannerSummary);
+
+  document.addEventListener('click', (e) => {
+    const container = document.getElementById('target-combobox')!;
+    if (!container.contains(e.target as Node)) {
+      closeDropdown();
     }
   });
 
@@ -258,6 +626,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   });
 
-  loadProjects();
+  // ── Init ──
+  setupTabs();
+  loadComboboxData();
   loadScans();
 </script>

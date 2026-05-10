@@ -9,11 +9,18 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     <h1 class="text-xl font-bold text-white">Projects</h1>
     <p class="text-slate-400 text-sm mt-0.5">Manage your scanned projects and connections</p>
   </div>
-  <button id="open-create-project"
-    class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
-    <span class="material-symbols-outlined text-lg">add</span>
-    New Project
-  </button>
+  <div class="flex items-center gap-2">
+    <button id="open-bulk-add"
+      class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors border border-slate-700/50">
+      <span class="material-symbols-outlined text-lg">download</span>
+      Bulk Add
+    </button>
+    <button id="open-create-project"
+      class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
+      <span class="material-symbols-outlined text-lg">add</span>
+      New Project
+    </button>
+  </div>
 </div>
 
 <!-- Filter tabs -->
@@ -123,6 +130,96 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 </div>
 
+<!-- Bulk Add Modal -->
+<div id="modal-bulk-add" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-2xl p-6 shadow-2xl max-h-[90vh] flex flex-col">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="text-lg font-bold text-white">Bulk Add Projects from GitHub</h3>
+      <button id="close-bulk-add" class="text-slate-400 hover:text-slate-200">
+        <span class="material-symbols-outlined text-xl">close</span>
+      </button>
+    </div>
+    <p class="text-slate-500 text-xs mb-5">Import multiple repos from GitHub using a pattern</p>
+
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Pattern *</label>
+        <input id="bulk-pattern" type="text" placeholder="e.g. facebook/* or @torvalds/* or org/repo-* or https://github.com/org/repo"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono" />
+        <p class="text-xs text-slate-500 mt-1">
+          Examples: <code class="text-cyan-400">facebook/*</code> (all org repos),
+          <code class="text-cyan-400">@torvalds/*</code> (all user repos),
+          <code class="text-cyan-400">go-gitea/gitea-*</code> (prefix match),
+          or any GitHub search query
+        </p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">GitHub Token (optional)</label>
+        <input id="bulk-token" type="password" placeholder="ghp_... for higher rate limits and private repos"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Max repos</label>
+        <input id="bulk-limit" type="number" value="50" min="1" max="500"
+          class="w-24 bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500" />
+      </div>
+    </div>
+
+    <!-- Preview area -->
+    <div id="bulk-preview" class="hidden mt-4 flex-1 min-h-0">
+      <div class="flex items-center justify-between mb-2">
+        <p id="bulk-preview-count" class="text-sm font-bold text-white"></p>
+        <button id="bulk-select-all" class="text-xs text-cyan-400 hover:underline hidden">Select all</button>
+      </div>
+      <div id="bulk-preview-list" class="max-h-48 overflow-y-auto bg-slate-950 rounded-lg border border-slate-800 divide-y divide-slate-800">
+      </div>
+    </div>
+
+    <div id="bulk-error" class="hidden mt-3 text-red-400 text-xs"></div>
+
+    <div class="flex gap-3 mt-5">
+      <button id="cancel-bulk-add" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
+      <button id="bulk-preview-btn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-bold uppercase tracking-widest px-4 py-2.5 rounded transition-colors">Preview</button>
+      <button id="submit-bulk-add" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Project Modal -->
+<div id="modal-edit-project" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+    <h3 class="text-lg font-bold text-white mb-1">Edit Project</h3>
+    <p id="edit-project-name-label" class="text-cyan-400 text-xs mb-5"></p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
+        <input id="edit-project-name" type="text"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
+        <input id="edit-project-desc" type="text" placeholder="Optional"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository URL</label>
+        <input id="edit-project-repo" type="text" placeholder="https://github.com/org/repo"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
+        <input id="edit-project-branch" type="text" placeholder="main"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+      </div>
+    </div>
+    <div id="edit-project-error" class="hidden mt-3 text-red-400 text-xs"></div>
+    <div class="flex gap-3 mt-6">
+      <button id="cancel-edit-project" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
+      <button id="submit-edit-project" class="flex-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 </DashboardLayout>
 
 <script>
@@ -140,6 +237,16 @@ async function loadCoverage() {
   if (report) {
     coverageData = new Map(report.projects.map(p => [p.project_id, p]));
   }
+}
+
+function openEditProjectModal(name: string, desc: string, repo: string, branch: string) {
+  document.getElementById('edit-project-name-label')!.textContent = name;
+  (document.getElementById('edit-project-name') as HTMLInputElement).value = name;
+  (document.getElementById('edit-project-desc') as HTMLInputElement).value = desc;
+  (document.getElementById('edit-project-repo') as HTMLInputElement).value = repo;
+  (document.getElementById('edit-project-branch') as HTMLInputElement).value = branch;
+  document.getElementById('edit-project-error')!.classList.add('hidden');
+  document.getElementById('modal-edit-project')!.classList.remove('hidden');
 }
 
 async function loadProjects() {
@@ -234,6 +341,18 @@ function renderProjects() {
           </button>
           <button
             type="button"
+            data-edit-project="${p.id}"
+            data-project-name="${p.name}"
+            data-project-desc="${p.description || ''}"
+            data-project-repo="${p.repo_url || ''}"
+            data-project-branch="${p.default_branch || ''}"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 text-slate-300 border border-slate-600/30 rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-700 transition-colors"
+          >
+            <span class="material-symbols-outlined text-sm">edit</span>
+            Edit
+          </button>
+          <button
+            type="button"
             data-delete-project="${p.id}"
             data-project-name="${p.name}"
             class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors"
@@ -268,6 +387,19 @@ function renderProjects() {
       msg.textContent = '';
 
       document.getElementById('token-modal')!.classList.remove('hidden');
+    });
+  });
+
+  // Edit project buttons
+  container.querySelectorAll('[data-edit-project]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const el = btn as HTMLElement;
+      currentProjectId = el.dataset.editProject || null;
+      const name = el.dataset.projectName || '';
+      const desc = el.dataset.projectDesc || '';
+      const repo = el.dataset.projectRepo || '';
+      const branch = el.dataset.projectBranch || '';
+      openEditProjectModal(name, desc, repo, branch);
     });
   });
 
@@ -378,11 +510,36 @@ document.getElementById('remove-github-token')!.addEventListener('click', async 
   }
 });
 
-// Close modal on backdrop click
+// Close modals on backdrop click
 document.getElementById('token-modal')!.addEventListener('click', (e) => {
   if (e.target === e.currentTarget) {
     document.getElementById('token-modal')!.classList.add('hidden');
     currentProjectId = null;
+  }
+});
+document.getElementById('modal-edit-project')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) document.getElementById('modal-edit-project')!.classList.add('hidden');
+});
+
+// Edit Project modal
+document.getElementById('cancel-edit-project')!.addEventListener('click', () => {
+  document.getElementById('modal-edit-project')!.classList.add('hidden');
+});
+document.getElementById('submit-edit-project')!.addEventListener('click', async () => {
+  const pid = currentProjectId;
+  if (!pid) return;
+  const name = (document.getElementById('edit-project-name') as HTMLInputElement).value.trim();
+  const desc = (document.getElementById('edit-project-desc') as HTMLInputElement).value.trim();
+  const repo = (document.getElementById('edit-project-repo') as HTMLInputElement).value.trim();
+  const branch = (document.getElementById('edit-project-branch') as HTMLInputElement).value.trim();
+  const errEl = document.getElementById('edit-project-error')!;
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+  try {
+    await api.updateProject(pid, { name, description: desc, repo_url: repo, default_branch: branch || 'main' });
+    document.getElementById('modal-edit-project')!.classList.add('hidden');
+    await loadProjects();
+  } catch (e: any) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
   }
 });
 
@@ -420,6 +577,128 @@ document.getElementById('submit-create-project')!.addEventListener('click', asyn
 // Close create modal on backdrop click
 document.getElementById('modal-create-project')!.addEventListener('click', (e) => {
   if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).classList.add('hidden');
+});
+
+// ── Bulk Add Modal ──
+let bulkRepos: Array<{ name: string; repo_url: string }> = [];
+
+document.getElementById('open-bulk-add')!.addEventListener('click', () => {
+  (document.getElementById('bulk-pattern') as HTMLInputElement).value = '';
+  (document.getElementById('bulk-token') as HTMLInputElement).value = '';
+  (document.getElementById('bulk-limit') as HTMLInputElement).value = '50';
+  document.getElementById('bulk-error')!.classList.add('hidden');
+  document.getElementById('bulk-preview')!.classList.add('hidden');
+  document.getElementById('submit-bulk-add')!.setAttribute('disabled', 'disabled');
+  document.getElementById('modal-bulk-add')!.classList.remove('hidden');
+  bulkRepos = [];
+});
+
+function closeBulkAdd() {
+  document.getElementById('modal-bulk-add')!.classList.add('hidden');
+}
+
+document.getElementById('close-bulk-add')!.addEventListener('click', closeBulkAdd);
+document.getElementById('cancel-bulk-add')!.addEventListener('click', closeBulkAdd);
+document.getElementById('modal-bulk-add')!.addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeBulkAdd();
+});
+
+// Preview: resolve pattern without creating
+document.getElementById('bulk-preview-btn')!.addEventListener('click', async () => {
+  const pattern = (document.getElementById('bulk-pattern') as HTMLInputElement).value.trim();
+  const token = (document.getElementById('bulk-token') as HTMLInputElement).value.trim();
+  const limit = parseInt((document.getElementById('bulk-limit') as HTMLInputElement).value) || 50;
+  const errEl = document.getElementById('bulk-error')!;
+
+  if (!pattern) {
+    errEl.textContent = 'Pattern is required';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  // Show loading state
+  const previewBtn = document.getElementById('bulk-preview-btn')!;
+  previewBtn.textContent = 'Searching...';
+  previewBtn.setAttribute('disabled', 'disabled');
+
+  errEl.classList.add('hidden');
+
+  try {
+    const result = await api.bulkCreateProjects({ pattern, github_token: token || undefined, limit, preview: true });
+    bulkRepos = result.projects.map(p => ({ name: p.name, repo_url: p.repo_url }));
+
+    const previewDiv = document.getElementById('bulk-preview')!;
+    const previewList = document.getElementById('bulk-preview-list')!;
+    const countEl = document.getElementById('bulk-preview-count')!;
+
+    if (bulkRepos.length === 0) {
+      errEl.textContent = 'No repos found matching that pattern';
+      errEl.classList.remove('hidden');
+      previewDiv.classList.add('hidden');
+      (document.getElementById('submit-bulk-add') as HTMLButtonElement).disabled = true;
+      return;
+    }
+
+    countEl.textContent = `${bulkRepos.length} repositor${bulkRepos.length === 1 ? 'y' : 'ies'} found`;
+    previewList.innerHTML = bulkRepos.map(r => `
+      <div class="flex items-center gap-2 px-3 py-2">
+        <span class="material-symbols-outlined text-slate-500 text-base">inventory_2</span>
+        <span class="text-sm text-white font-mono">${r.name}</span>
+        <span class="text-xs text-slate-500 ml-auto truncate max-w-xs">${r.repo_url}</span>
+      </div>
+    `).join('');
+
+    previewDiv.classList.remove('hidden');
+    (document.getElementById('submit-bulk-add') as HTMLButtonElement).disabled = false;
+  } catch (err: any) {
+    errEl.textContent = err.message || 'Failed to fetch repos';
+    errEl.classList.remove('hidden');
+  } finally {
+    previewBtn.textContent = 'Preview';
+    previewBtn.removeAttribute('disabled');
+  }
+});
+
+// Submit: actually create projects
+document.getElementById('submit-bulk-add')!.addEventListener('click', async () => {
+  const pattern = (document.getElementById('bulk-pattern') as HTMLInputElement).value.trim();
+  const token = (document.getElementById('bulk-token') as HTMLInputElement).value.trim();
+  const limit = parseInt((document.getElementById('bulk-limit') as HTMLInputElement).value) || 50;
+  const submitBtn = document.getElementById('submit-bulk-add') as HTMLButtonElement;
+  const errEl = document.getElementById('bulk-error')!;
+
+  if (!pattern || bulkRepos.length === 0) return;
+
+  submitBtn.textContent = 'Importing...';
+  submitBtn.disabled = true;
+  errEl.classList.add('hidden');
+
+  try {
+    const result = await api.bulkCreateProjects({ pattern, github_token: token || undefined, limit });
+    closeBulkAdd();
+
+    // Show summary
+    const parts: string[] = [];
+    if (result.created > 0) parts.push(`${result.created} created`);
+    if (result.skipped > 0) parts.push(`${result.skipped} skipped (already exist)`);
+    if (result.errors > 0) parts.push(`${result.errors} errors`);
+
+    // Reload project list
+    await loadProjects();
+
+    // Brief toast-like feedback
+    const msg = parts.join(', ') || 'No changes';
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-4 right-4 z-50 bg-slate-800 border border-slate-700 text-white text-sm px-4 py-3 rounded-xl shadow-2xl animate-fade-in';
+    toast.textContent = `Import complete: ${msg}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 4000);
+  } catch (err: any) {
+    errEl.textContent = err.message || 'Import failed';
+    errEl.classList.remove('hidden');
+    submitBtn.textContent = 'Import';
+    submitBtn.disabled = false;
+  }
 });
 
 loadProjects();

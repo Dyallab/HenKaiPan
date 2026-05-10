@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"aspm/internal/models"
 	"aspm/internal/repository"
 	"aspm/internal/scanner"
 
@@ -43,90 +44,118 @@ func runDueSchedules(ctx context.Context, store repository.Stores, queue *asynq.
 	}
 
 	for _, s := range schedules {
-		project, err := store.Apps.GetProjectByID(ctx, s.ProjectID)
-		if err != nil {
-			slog.Error("get schedule project", "schedule_id", s.ID, "project_id", s.ProjectID, "err", err)
-			continue
-		}
-		if project.RepoURL == nil || *project.RepoURL == "" {
-			slog.Warn("schedule project has no repo URL, skipping", "schedule_id", s.ID, "project_id", s.ProjectID)
+		scannersToRun := resolveScanners(s)
+		if len(scannersToRun) == 0 {
 			continue
 		}
 
-		target := *project.RepoURL
-
-		// Resolve scanners to run: if scanner_type is set, expand to all scanners in pack
-		scannersToRun := []string{s.Scanner}
-		if s.ScannerType != nil && *s.ScannerType != "" {
-			if packScanners, ok := scanner.ResolvePack(*s.ScannerType); ok {
-				scannersToRun = packScanners
-				slog.Info("schedule uses scanner pack",
-					"schedule_id", s.ID,
-					"scanner_type", *s.ScannerType,
-					"scanners", scannersToRun,
-				)
-			} else {
-				slog.Warn("unknown scanner pack, falling back to individual scanner",
-					"schedule_id", s.ID,
-					"scanner_type", *s.ScannerType,
-				)
-			}
-		}
-
-		// Enqueue a scan job for each scanner
-		for _, scannerName := range scannersToRun {
-			scanID, err := store.Scans.Insert(ctx, target, scannerName, "scheduled", &s.ProjectID)
-			if err != nil {
-				slog.Error("create scheduled scan", "schedule_id", s.ID, "scanner", scannerName, "err", err)
-				continue
-			}
-
-			payload, err := MarshalScanPayload(ScanPayload{
-				ScanID:    scanID,
-				ProjectID: s.ProjectID,
-				Target:    target,
-				Scanner:   scannerName,
-			})
-			if err != nil {
-				slog.Error("marshal scan payload", "schedule_id", s.ID, "scanner", scannerName, "err", err)
-				continue
-			}
-
-			if _, err := queue.EnqueueContext(ctx,
-				asynq.NewTask(TypeScanRun, payload),
-				asynq.MaxRetry(3),
-				asynq.Timeout(30*time.Minute),
-			); err != nil {
-				slog.Error("enqueue scheduled scan", "schedule_id", s.ID, "scanner", scannerName, "err", err)
-				continue
-			}
-
-			slog.Info("scheduled scan enqueued",
-				"schedule_id", s.ID,
-				"scan_id", scanID,
-				"project_id", s.ProjectID,
-				"scanner", scannerName,
-			)
-		}
-
-		// Update schedule after all scanners enqueued
-		var nextRun *time.Time
-		sched, err := parser.Parse(s.CronExpr)
-		if err == nil {
-			n := sched.Next(time.Now())
-			nextRun = &n
+		if s.AppID != nil && *s.AppID != "" {
+			processAppSchedule(ctx, store, queue, s, scannersToRun)
 		} else {
-			slog.Warn("invalid cron expression", "schedule_id", s.ID, "cron_expr", s.CronExpr, "err", err)
+			processProjectSchedule(ctx, store, queue, s, scannersToRun)
 		}
 
-		if err := store.Schedules.MarkRun(ctx, s.ID, nextRun); err != nil {
-			slog.Error("mark schedule run", "schedule_id", s.ID, "err", err)
-		}
+		updateScheduleNextRun(ctx, store, parser, s)
+	}
+}
 
-		slog.Info("schedule processed",
+func resolveScanners(s models.ScanSchedule) []string {
+	scannersToRun := []string{s.Scanner}
+	if s.ScannerType != nil && *s.ScannerType != "" {
+		if packScanners, ok := scanner.ResolvePack(*s.ScannerType); ok {
+			return packScanners
+		}
+		slog.Warn("unknown scanner pack, falling back to individual scanner",
 			"schedule_id", s.ID,
-			"scanners_enqueued", len(scannersToRun),
-			"next_run", nextRun,
+			"scanner_type", *s.ScannerType,
 		)
 	}
+	return scannersToRun
+}
+
+func processProjectSchedule(ctx context.Context, store repository.Stores, queue *asynq.Client, s models.ScanSchedule, scannersToRun []string) {
+	project, err := store.Apps.GetProjectByID(ctx, s.ProjectID)
+	if err != nil {
+		slog.Error("get schedule project", "schedule_id", s.ID, "project_id", s.ProjectID, "err", err)
+		return
+	}
+	if project.RepoURL == nil || *project.RepoURL == "" {
+		slog.Warn("schedule project has no repo URL, skipping", "schedule_id", s.ID, "project_id", s.ProjectID)
+		return
+	}
+
+	enqueueScansForProject(ctx, store, queue, s, *project.RepoURL, s.ProjectID, scannersToRun)
+}
+
+func processAppSchedule(ctx context.Context, store repository.Stores, queue *asynq.Client, s models.ScanSchedule, scannersToRun []string) {
+	app, err := store.Apps.Get(ctx, *s.AppID)
+	if err != nil {
+		slog.Error("get schedule app", "schedule_id", s.ID, "app_id", *s.AppID, "err", err)
+		return
+	}
+
+	for _, project := range app.Projects {
+		if project.RepoURL == nil || *project.RepoURL == "" {
+			slog.Warn("app project has no repo URL, skipping", "schedule_id", s.ID, "project_id", project.ID)
+			continue
+		}
+		enqueueScansForProject(ctx, store, queue, s, *project.RepoURL, project.ID, scannersToRun)
+	}
+}
+
+func enqueueScansForProject(ctx context.Context, store repository.Stores, queue *asynq.Client, s models.ScanSchedule, target, projectID string, scannersToRun []string) {
+	for _, scannerName := range scannersToRun {
+		scanID, err := store.Scans.Insert(ctx, target, scannerName, "scheduled", &projectID)
+		if err != nil {
+			slog.Error("create scheduled scan", "schedule_id", s.ID, "scanner", scannerName, "err", err)
+			continue
+		}
+
+		payload, err := MarshalScanPayload(ScanPayload{
+			ScanID:    scanID,
+			ProjectID: projectID,
+			Target:    target,
+			Scanner:   scannerName,
+		})
+		if err != nil {
+			slog.Error("marshal scan payload", "schedule_id", s.ID, "scanner", scannerName, "err", err)
+			continue
+		}
+
+		if _, err := queue.EnqueueContext(ctx,
+			asynq.NewTask(TypeScanRun, payload),
+			asynq.MaxRetry(3),
+			asynq.Timeout(30*time.Minute),
+		); err != nil {
+			slog.Error("enqueue scheduled scan", "schedule_id", s.ID, "scanner", scannerName, "err", err)
+			continue
+		}
+
+		slog.Info("scheduled scan enqueued",
+			"schedule_id", s.ID,
+			"scan_id", scanID,
+			"project_id", projectID,
+			"scanner", scannerName,
+		)
+	}
+}
+
+func updateScheduleNextRun(ctx context.Context, store repository.Stores, parser cron.Parser, s models.ScanSchedule) {
+	var nextRun *time.Time
+	sched, err := parser.Parse(s.CronExpr)
+	if err == nil {
+		n := sched.Next(time.Now())
+		nextRun = &n
+	} else {
+		slog.Warn("invalid cron expression", "schedule_id", s.ID, "cron_expr", s.CronExpr, "err", err)
+	}
+
+	if err := store.Schedules.MarkRun(ctx, s.ID, nextRun); err != nil {
+		slog.Error("mark schedule run", "schedule_id", s.ID, "err", err)
+	}
+
+	slog.Info("schedule processed",
+		"schedule_id", s.ID,
+		"next_run", nextRun,
+	)
 }

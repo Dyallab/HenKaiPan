@@ -158,6 +158,10 @@ func main() {
 		r.Patch("/api/notifications/{id}/read", h.MarkNotificationAsRead)
 		r.Patch("/api/notifications/read-all", h.MarkAllNotificationsAsRead)
 
+		// ── Free: Vulnerability Inventory ──
+		r.Get("/api/vulnerabilities", h.ListVulnerabilities)
+		r.Get("/api/vulnerabilities/{vulnID}/affected", h.GetVulnerabilityAffected)
+
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
@@ -214,6 +218,8 @@ func main() {
 		r.Patch("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProject))
 		r.Put("/api/projects/{projectID}/github-token", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProjectGitHubToken))
 		r.Delete("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.DeleteProject))
+		r.Post("/api/projects/bulk", h.BulkCreateProjects)
+		r.Post("/api/projects/bulk-assign", h.BulkAssignProjects)
 
 		// ── Paid: Risk Acceptance ──
 		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {

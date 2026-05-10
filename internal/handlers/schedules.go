@@ -21,6 +21,7 @@ func validateCronExpr(expr string) error {
 
 type scheduleCreateReq struct {
 	ProjectID   string  `json:"project_id"`
+	AppID       string  `json:"app_id"`
 	Scanner     string  `json:"scanner"`
 	ScannerType *string `json:"scanner_type,omitempty"`
 	CronExpr    string  `json:"cron_expr"`
@@ -74,8 +75,12 @@ func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid JSON")
 		return
 	}
-	if req.ProjectID == "" || req.CronExpr == "" {
-		writeError(w, http.StatusBadRequest, "project_id and cron_expr are required")
+	if req.ProjectID == "" && req.AppID == "" {
+		writeError(w, http.StatusBadRequest, "project_id or app_id is required")
+		return
+	}
+	if req.CronExpr == "" {
+		writeError(w, http.StatusBadRequest, "cron_expr is required")
 		return
 	}
 	if req.Scanner == "" && req.ScannerType == nil {
@@ -89,8 +94,14 @@ func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var appID *string
+	if req.AppID != "" {
+		appID = &req.AppID
+	}
+
 	schedule, err := h.store.Schedules.Create(r.Context(), repository.ScanScheduleCreate{
 		ProjectID:   req.ProjectID,
+		AppID:       appID,
 		Scanner:     req.Scanner,
 		ScannerType: req.ScannerType,
 		CronExpr:    req.CronExpr,

@@ -52,6 +52,13 @@ func (r *appRepo) List(ctx context.Context, teamFilter string) ([]models.App, er
 		}
 	}
 
+	// Ensure no app has nil Projects (defensive)
+	for i := range apps {
+		if apps[i].Projects == nil {
+			apps[i].Projects = []models.Project{}
+		}
+	}
+
 	return apps, nil
 }
 
