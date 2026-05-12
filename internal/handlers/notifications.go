@@ -40,7 +40,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 		Limit:  limit,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get notifications")
+		h.writeInternal(w, r, err, "failed to get notifications")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := h.store.Notifications.MarkAllAsRead(r.Context(), claims.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to mark all as read")
+		h.writeInternal(w, r, err, "failed to mark all as read")
 		return
 	}
 
@@ -90,7 +90,7 @@ func (h *Handler) GetUnreadNotificationCount(w http.ResponseWriter, r *http.Requ
 
 	count, err := h.store.Notifications.GetUnreadCount(r.Context(), claims.UserID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get unread count")
+		h.writeInternal(w, r, err, "failed to get unread count")
 		return
 	}
 
