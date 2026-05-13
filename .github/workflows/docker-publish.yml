@@ -20,7 +20,33 @@ env:
   ORG: dyallab
 
 jobs:
+  # Fast check that migration directories are in sync before building anything.
+  # If this fails, run: make sync-migrations
+  check-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify migrations are in sync
+        run: |
+          if diff -rq migrations/ internal/db/migrations/ > /dev/null 2>&1; then
+            echo "✅ migrations are in sync"
+          else
+            echo ""
+            echo "❌ ERROR: Migration directories are out of sync!"
+            echo ""
+            echo "    The 'migrations/' and 'internal/db/migrations/' directories differ."
+            echo "    The embedded directory (internal/db/migrations/) is what gets compiled"
+            echo "    into the binary and used at startup."
+            echo ""
+            echo "    To fix, run:  make sync-migrations"
+            echo "    Then commit both directories."
+            echo ""
+            diff -rq migrations/ internal/db/migrations/
+            exit 1
+          fi
+
   api:
+    needs: [check-migrations]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -62,6 +88,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   worker:
+    needs: [check-migrations]
     runs-on: ubuntu-latest
     permissions:
       contents: read

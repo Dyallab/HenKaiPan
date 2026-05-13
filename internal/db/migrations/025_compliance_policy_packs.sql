@@ -26,7 +26,7 @@ VALUES
         ARRAY['CC6.1', 'A.9.4.1', 'REQ 3.5'],
         NOW()
     ),
-    
+
     -- CC7.1: Vulnerability Management - Auto-triage criticals
     (
         gen_random_uuid(),
@@ -39,7 +39,7 @@ VALUES
         ARRAY['CC7.1', 'A.12.6.1', 'REQ 6.3.3'],
         NOW()
     ),
-    
+
     -- CC6.3: Secure Coding Practices - SAST findings
     (
         gen_random_uuid(),
@@ -52,7 +52,7 @@ VALUES
         ARRAY['CC6.3', 'A.14.2.1', 'REQ 6.2.4'],
         NOW()
     ),
-    
+
     -- CC8.1: Change Management - IaC security
     (
         gen_random_uuid(),
@@ -65,7 +65,7 @@ VALUES
         ARRAY['CC8.1', 'A.12.1.2', 'REQ 6.4'],
         NOW()
     ),
-    
+
     -- A1.2: Availability Monitoring - DAST findings
     (
         gen_random_uuid(),
