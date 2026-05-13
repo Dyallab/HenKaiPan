@@ -297,6 +297,7 @@ Critical items that must be completed before v1.0 release.
 - [ ] Scanner Health Dashboard — scanner failure rates, avg duration, success % table
 - [ ] Queue monitoring dashboard (Asynq metrics)
 - [ ] Performance profiling + optimization
+- [ ] **Cache scanners in CI**: Worker Docker build is slow because it downloads all scanner binaries (semgrep, trivy, gitleaks, grype, etc.) from scratch each time. Add GitHub Actions caching for downloaded tarballs to reduce build time from ~10min to <2min
 
 ### Workflow Enhancements
 
