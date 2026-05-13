@@ -3,6 +3,13 @@ name: Publish Docker Images
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '.agents/**'
+      - '.sisyphus/**'
+      - 'data/**'
+      - 'tmp/**'
+  push:
     tags: [v*]
 
 concurrency:
