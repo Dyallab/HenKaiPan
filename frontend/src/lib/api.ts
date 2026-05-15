@@ -35,7 +35,12 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
       console.error(`API Error [${res.status}]:`, errorMsg, "Path:", path);
       window.dispatchEvent(
         new CustomEvent("api-error", {
-          detail: { message: friendlyError(errorMsg), status: res.status, path, silent: res.status === 404 },
+          detail: {
+            message: friendlyError(errorMsg),
+            status: res.status,
+            path,
+            silent: res.status === 404,
+          },
         }),
       );
       throw new Error(errorMsg);
@@ -277,16 +282,14 @@ export const api = {
   getAppProjects: (appId: string) =>
     req<Project[]>(`/api/apps/${appId}/projects`),
 
-  createProject: (
-    data: {
-      name: string;
-      description?: string;
-      app_id?: string | null;
-      repo_url?: string;
-      provider?: string;
-      default_branch?: string;
-    },
-  ) =>
+  createProject: (data: {
+    name: string;
+    description?: string;
+    app_id?: string | null;
+    repo_url?: string;
+    provider?: string;
+    default_branch?: string;
+  }) =>
     req<Project>("/api/projects", {
       method: "POST",
       body: JSON.stringify(data),
@@ -362,11 +365,14 @@ export const api = {
   deleteFindingComment: (commentId: number) =>
     req<void>(`/api/findings/comments/${commentId}`, { method: "DELETE" }),
 
-  bulkUpdateFindings: (findingIds: string[], updates: {
-    status?: string;
-    assigned_to?: string;
-    false_positive?: boolean;
-  }) =>
+  bulkUpdateFindings: (
+    findingIds: string[],
+    updates: {
+      status?: string;
+      assigned_to?: string;
+      false_positive?: boolean;
+    },
+  ) =>
     req<{ updated: number }>(`/api/findings/bulk`, {
       method: "PATCH",
       body: JSON.stringify({ finding_ids: findingIds, ...updates }),
@@ -432,7 +438,11 @@ export const api = {
     req<{ acceptances: RiskAcceptance[]; total: number }>(
       `/api/risk-acceptances?status=${encodeURIComponent(status)}&finding_id=${encodeURIComponent(findingId)}`,
     ),
-  createRiskAcceptance: (data: { finding_id: string; rationale: string; expires_at: string }) =>
+  createRiskAcceptance: (data: {
+    finding_id: string;
+    rationale: string;
+    expires_at: string;
+  }) =>
     req<RiskAcceptance>("/api/risk-acceptances", {
       method: "POST",
       body: JSON.stringify(data),
@@ -500,15 +510,30 @@ export const api = {
   getScannerPacks: () => req<ScannerPack[]>("/api/scanner-packs"),
 
   getSchedules: (projectID?: string) =>
-    req<ScanSchedule[]>(`/api/schedules${projectID ? `?project_id=${projectID}` : ''}`),
-  getSchedule: (id: string) =>
-    req<ScanSchedule>(`/api/schedules/${id}`),
-  createSchedule: (data: { project_id?: string; app_id?: string; scanner: string; scanner_type?: string | null; cron_expr: string }) =>
+    req<ScanSchedule[]>(
+      `/api/schedules${projectID ? `?project_id=${projectID}` : ""}`,
+    ),
+  getSchedule: (id: string) => req<ScanSchedule>(`/api/schedules/${id}`),
+  createSchedule: (data: {
+    project_id?: string;
+    app_id?: string;
+    scanner: string;
+    scanner_type?: string | null;
+    cron_expr: string;
+  }) =>
     req<ScanSchedule>("/api/schedules", {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  updateSchedule: (id: string, data: { scanner?: string; scanner_type?: string | null; cron_expr?: string; enabled?: boolean }) =>
+  updateSchedule: (
+    id: string,
+    data: {
+      scanner?: string;
+      scanner_type?: string | null;
+      cron_expr?: string;
+      enabled?: boolean;
+    },
+  ) =>
     req<ScanSchedule>(`/api/schedules/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
@@ -525,16 +550,44 @@ export const api = {
   markAllNotificationsAsRead: () =>
     req<void>("/api/notifications/read-all", { method: "PATCH" }),
 
-  getNotifications: (params?: { page?: number; limit?: number; read?: boolean }) => {
+  getNotifications: (params?: {
+    page?: number;
+    limit?: number;
+    read?: boolean;
+  }) => {
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", params.page.toString());
     if (params?.limit) qs.set("limit", params.limit.toString());
     if (params?.read !== undefined) qs.set("read", params.read.toString());
-    return req<{ notifications: any[]; total: number }>(`/api/notifications?${qs}`);
+    return req<{ notifications: any[]; total: number }>(
+      `/api/notifications?${qs}`,
+    );
   },
 
   getLicense: () => req<License>("/api/license"),
+
+  // ── API Tokens (CI/CD integration) ───────────────────────────────────
+  getTokens: () => req<{ tokens: any[] }>("/api/v1/tokens"),
+  createToken: (data: { name: string; project_id?: string }) =>
+    req<{ token: string; id: string; name: string; prefix: string }>(
+      "/api/v1/tokens",
+      { method: "POST", body: JSON.stringify(data) },
+    ),
+  deleteToken: (id: string) =>
+    req<void>(`/api/v1/tokens/${id}`, { method: "DELETE" }),
 };
+
+export interface Token {
+  id: string;
+  name: string;
+  prefix: string;
+  project_id?: string;
+  created_by?: string;
+  last_used_at?: string;
+  expires_at?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface MetricsSummary {
   total_scans: number;
@@ -810,21 +863,21 @@ export interface Webhook {
 }
 
 export interface WebhookCreate {
-	label: string;
-	url: string;
-	delivery_type: "generic" | "slack" | "discord";
-	events: string[];
-	enabled?: boolean;
+  label: string;
+  url: string;
+  delivery_type: "generic" | "slack" | "discord";
+  events: string[];
+  enabled?: boolean;
 }
 
 export interface FindingComment {
-	id: number;
-	finding_id: string;
-	user_id: string;
-	username: string;
-	content: string;
-	created_at: string;
-	updated_at: string;
+  id: number;
+  finding_id: string;
+  user_id: string;
+  username: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface WebhookUpdate {
@@ -897,23 +950,23 @@ export interface JiraIssueLink {
 }
 
 export interface License {
-	valid: boolean;
-	status: string;
-	expires_at?: string;
-	features?: string[];
+  valid: boolean;
+  status: string;
+  expires_at?: string;
+  features?: string[];
 }
 
 export interface ProjectCoverage {
-	project_id: string;
-	project_name: string;
-	last_scan_at?: string;
-	days_since_scan?: number;
-	never_scanned: boolean;
+  project_id: string;
+  project_name: string;
+  last_scan_at?: string;
+  days_since_scan?: number;
+  never_scanned: boolean;
 }
 
 export interface CoverageReport {
-	total_projects: number;
-	covered_projects: number;
-	uncovered_projects: number;
-	projects: ProjectCoverage[];
+  total_projects: number;
+  covered_projects: number;
+  uncovered_projects: number;
+  projects: ProjectCoverage[];
 }

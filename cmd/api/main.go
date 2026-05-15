@@ -15,8 +15,8 @@ import (
 	"aspm/internal/handlers"
 	"aspm/internal/license"
 	"aspm/internal/logger"
-	appmw "aspm/internal/middleware"
 	"aspm/internal/metrics"
+	appmw "aspm/internal/middleware"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
 	"aspm/internal/secrets"
@@ -126,8 +126,22 @@ func main() {
 	r.Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
 
+	// ── /api/v1/scans — External CI/CD endpoints (API key auth, no JWT) ────
+	r.Route("/api/v1/scans", func(r chi.Router) {
+		r.Use(handlers.APIKeyAuth(store))
+		r.Post("/external", h.CreateExternalScan)
+		r.Get("/{id}/status", h.GetExternalScanStatus)
+	})
+
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware)
+
+		// ── /api/v1/ — Token management (JWT auth) ──────────────────────────
+		r.Route("/api/v1", func(r chi.Router) {
+			r.Get("/tokens", h.ListTokens)
+			r.Post("/tokens", h.CreateToken)
+			r.Delete("/tokens/{id}", h.DeleteToken)
+		})
 
 		r.Get("/api/license", h.GetLicense)
 
@@ -322,7 +336,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Webhook-Signature", "X-Webhook-Timestamp"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Webhook-Signature", "X-Webhook-Timestamp", "X-API-Key"},
 		AllowCredentials: true,
 	})
 

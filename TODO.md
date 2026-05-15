@@ -33,127 +33,108 @@ New target product model:
 
 ---
 
-## Completed Versions
+## Version History
 
-### v0.1 — Core Platform ✅
+Version numbering follows the **self-hosted public release line**. The complete release history lives in the self-hosted CHANGELOG — this file only tracks planned work.
 
-- [x] Go API (chi + pgx v5 + JWT auth)
-- [x] Asynq worker + Redis queue
-- [x] Scanner binary execution (semgrep, trivy, trufflehog, gosec, grype, gitleaks, checkov, nuclei, osv-scanner, tfsec, kics)
-- [x] Postgres schema (`001_init.sql`, `002_container_log.sql`)
-- [x] Astro 4 + Tailwind v4 frontend (dark theme, Stitch design system)
-- [x] Landing page (scanner showcase, feature bento grid)
-- [x] Login page (JWT auth)
-- [x] Dashboard — metrics cards, severity bars, scanner bars, recent scans
-- [x] Scans page — scanner type badges, status dots, glow effects
-- [x] Scan detail page — execution log, severity summary cards, findings table + modal
-- [x] Findings page — severity/scanner filters, type badges
-- [x] Compliance page — SOC2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
-- [x] Settings page — General, Integrations, Notifications, Security tabs
+📖 **Full CHANGELOG:** [`HenKaiPan-self-hosted/CHANGELOG.md`](../HenKaiPan-self-hosted/CHANGELOG.md)
 
-### v0.2 — Finding Lifecycle + SLA ✅
+**Latest public release:** v1.7.0
+**Next planned release:** v1.8.0
 
-- [x] Migration `003_lifecycle.sql` — adds `status`, `assigned_to`, `false_positive`, `notes`, `resolved_at`, `sla_deadline`
-- [x] SLA deadlines auto-computed on finding insert (critical=24h, high=72h, medium=30d, low=90d)
-- [x] `FindingStatus` constants (`open | in_review | accepted_risk | fixed | verified`)
-- [x] `PATCH /api/findings/:id` — update status, assigned_to, false_positive, notes
-- [x] Findings page — SLA summary bar, status filter, triage modal
+### Completed Releases (summary)
 
-### v0.3 — Executive Reports & Trends ✅
+| Version | Key Changes |
+|---------|-------------|
+| v1.7.0 | `--skip-ollama` flag, auto-start stack, IP detection in summary |
+| v1.6.0 | Per-app scan scheduling, GitHub repo discovery, bulk project import, vuln inventory |
+| v1.5.1 | API Docker build fix (pnpm 11 compat) |
+| v1.5.0 | Scanner binary execution (no Docker socket) |
+| v1.4.0 | Defense-in-depth hardening, security headers, rate limiting |
+| v1.3.0 | SSE real-time updates, AI summary dedup |
+| v1.2.0 | Production docs, Kubernetes manifests, monitoring |
+| v1.1.0 | Rate limiting, Ollama AI provider, Prometheus metrics |
+| v1.0.0 | Initial self-hosted release |
 
-- [x] `GET /api/metrics/trends`, `/api/metrics/risk`, `/api/metrics/sla-compliance`
-- [x] Reports page — SVG line chart, status distribution, risk score bars
-- [x] CSV export with filters
-- [x] PDF report generation (browser print stylesheet)
+> ⚠️ **Note:** The private repo had internal tags up to v1.6.2 that don't align with the public release line. Those tags are kept for Docker image references but are not considered official releases. Official releases follow the self-hosted CHANGELOG.
 
-### v0.4 — Team & User Management ✅
+---
 
-- [x] Users table with roles (admin/analyst/viewer)
-- [x] Teams + team_members join table
-- [x] Role-based auth middleware
-- [x] Settings page — Users and Teams tabs
 
-### v0.5 — Policies & Auto-Triage ✅
 
-- [x] Policies + suppressions tables
-- [x] Policy engine: conditions + actions on finding insert
-- [x] Settings page — Policies and Suppressions tabs
+## v1.8.0 — GitHub Action: CI/CD Security Scanning
 
-### v0.6 — Notifications & Integrations ✅
+### Implementation Status
 
-- [x] Slack webhook integration
-- [x] GitHub App integration (PR comments with findings)
-- [x] Webhook system with retries
-- [x] Jira integration
-- [x] Email notifications (Brevo/Mailpit with provider abstraction)
+| Component | Status |
+|-----------|--------|
+| Migration (`035_api_tokens.sql`) | ✅ Done |
+| Token repository + interfaces | ✅ Done |
+| Token CRUD API (`/api/v1/tokens`) | ✅ Done |
+| External scan API (`/api/v1/scans/external`, `/status`) | ✅ Done |
+| `APIKeyAuth` middleware | ✅ Done |
+| Shared scan helpers (`resolveScanners`, `createScanRecords`) | ✅ Done |
+| Documentation (`ci-cd-integration.md`) | ✅ Done |
+| **UI: Settings → Tokens** | ✅ Done |
+| **New repo: `henkaipan-action`** | ✅ Done |
+| PR comments, fail-on-severity, Marketplace | 🔜 Marketplace pending |
 
-### v0.7 — Finding Correlation & Credibility ✅
+### Features
 
-- [x] `scan_batch_id` for grouping scanners
-- [x] Cross-scanner correlation (same family, same batch)
-- [x] `confidence_score` + `corroboration_count` on findings
+- [x] **New repository** `Dyallab/henkaipan-action` (standalone repo, semver versioning)
+- [x] **Docker-based GitHub Action** (Checkmarx-style)
+  - [x] Action definition (`action.yml`) with `runs: using: 'docker'`
+  - [x] Dockerfile with curl + jq (API communication)
+  - [x] `entrypoint.sh` — main logic (trigger → poll → report → exit code)
+  - [x] `cleanup.sh` — cleanup on cancellation
+  - [x] Inputs: `api-url`, `api-key`, `project-id`, `scanners`, `fail-on-severity`, `scan-branch`, `post-pr-comment`
+  - [x] Outputs: `scan-id`, `finding-count`, `finding-critical/high/medium/low`
+  - [x] `fail-on-severity` blocks pipeline (exit code 1 when findings >= threshold)
+  - [x] **Automatic PR comments** — posts a findings summary table to GitHub PRs; updates existing comment on re-run
+- [x] `POST /api/v1/scans/external` — trigger scan from external CI/CD
+  - [x] Auth via API key (header `X-API-Key`)
+  - [x] Payload: `{ project_id, repo_url, scanners, branch }`
+  - [x] Returns 202 Accepted + `scan_id`
+  - [x] Worker clones the repo and runs the scans
+- [x] `GET /api/v1/scans/{id}/status` — poll scan status
+  - [x] States: `pending`, `running`, `completed`, `failed`
+  - [x] Returns finding summary when completed
+- [x] **Token management** (`/api/v1/tokens`)
+  - [x] `POST /api/v1/tokens` — create token
+  - [x] `GET /api/v1/tokens` — list tokens
+  - [x] `DELETE /api/v1/tokens/{id}` — revoke token
+  - [x] Per-project scope
+  - [x] Hashed in DB (bcrypt), only shown on creation
+  - [x] `hkp_` prefix for identification
+- [x] **UI: Settings → Tokens**
+  - [x] Token table with name, project, date, last used
+  - [x] Revoke button with confirmation
+  - [x] Creation modal with token copy
 
-### v0.8 — First Paying Customers (SMB-ready) ✅
+### Improvements
 
-- [x] Scan scheduling (cron-based per project)
-- [x] Finding deduplication (SHA256 fingerprint)
-- [x] Scanner packs (`all`, `sast`, `sca`, `secrets`, `iac`, `containers`)
-- [x] In-product onboarding wizard
-- [x] Weekly executive digest email
-- [x] Demo workspace seed script
+- [x] Automatic PR comments with finding summary
+- [x] `fail-on-severity` to block CI (critical/high/medium)
+- [x] README with quick start (< 2 minutes)
+- [ ] Publish to GitHub Marketplace
+- [x] Setup guides: GitHub Actions, GitLab CI, Jenkins, CircleCI
+- [x] Workflow examples: Node, Go, Python, Docker
 
-### v0.8.a — Domain Reset: Apps -> Projects ✅
+### Security Considerations
 
-- [x] Schema reset: projects with `app_id NULL`, `repos` table dropped
-- [x] Global Projects view with app filters
-- [x] Scans belong to `project_id` directly
+- [x] Tokens with minimal scope (create scans only, no read access)
+- [ ] Per-token rate limiting
+- [x] Never log tokens in requests or responses
+- [ ] Token rotation (optional)
+- [ ] Validate repo_url is accessible before enqueuing
 
-### v0.9 — Compliance Readiness Path ✅
+### Connectivity Scenarios
 
-- [x] Compliance starter mode (SOC 2 / ISO 27001 readiness)
-- [x] Guided policy packs
-- [x] Audit log + risk acceptance workflow (license-gated)
-- [x] Asset inventory view
-
-### v0.10 — Commercial Features ✅
-
-- [x] License system with offline JWT validation
-- [x] Feature gates for paid functionality (Comments, Audit Log, Risk Acceptance, Reports)
-- [x] User notifications system (in-app, unread tracking)
-- [x] Database migration framework
-- [x] Finding summary endpoint (`POST /api/findings/{id}/summary`)
-
-### v1.3.0 — Defense in Depth ✅
-
-- [x] Security hardening: `cap_drop ALL` + minimal `cap_add`, `no-new-privileges`, seccomp profiles
-- [x] Input validation: backend (go-playground/validator) + frontend (Zod)
-- [x] Rate limiting (Redis-based, fails closed)
-- [x] JWT hardening: no default secret, expiration required
-- [x] Security headers: CSP, X-Frame-Options, HSTS
-- [x] IDOR prevention: ownership middleware with admin bypass
-
-### v1.4.0 — Docker Socket Removed ✅
-
-- [x] Worker no longer mounts `/var/run/docker.sock` — scanners run as binaries via `os/exec`
-- [x] All scanner binaries bundled in worker Docker image (multi-stage build)
-- [x] Non-root user (uid 1000) in worker container
-- [x] Go 1.26 runtime seccomp compatibility (`clone`, `clone3`, `arch_prctl`, `mbind`)
-
-### v1.4.1 — Scanner Build Fixes ✅
-
-- [x] Checkov pip installation (Alpine musl compat)
-- [x] Semgrep pysemgrep wrapper for Python module execution
-- [x] GitHub release URL fixes for scanner binaries
-
-### v1.5.0 — Scanner Registry Cleanup ✅
-
-- [x] Removed `Image`, `MountDst`, `Entrypoint`, `ExtraVolumes` fields from Scanner struct (dead code from Docker era)
-- [x] Deleted standalone scanner Dockerfiles (`docker/scanners/`)
-- [x] Fixed semgrep exit code 2 (target path argument bug)
-- [x] Removed `build-scanner-slim` and `build-all` Makefile targets
-- [x] Deleted `buildDockerCmd()` dead code
-- [x] Removed Docker socket mount from Kubernetes manifests
-- [x] Updated all documentation to reflect embedded binary execution model
+| Scenario | Description | Solution |
+|----------|-------------|----------|
+| **Public SaaS** | Managed instance (`app.henkaipan.com`) | Action points to public URL ✅ |
+| **Self-hosted (public URL)** | User exposes HenKaiPan at `henkaipan.company.com` | Action points to configured URL ✅ |
+| **Self-hosted (VPN/private)** | HenKaiPan on internal network (`10.0.0.5`, `.internal`) | Requires **self-hosted runner** inside the network |
 
 ---
 
@@ -284,6 +265,15 @@ Critical items that must be completed before v1.0 release.
 - [ ] Multi-tenant support (organizations)
 - [ ] Advanced RBAC (custom roles, granular permissions)
 - [ ] Audit log export + SIEM integration
+
+### Tech Debt
+
+- [ ] **API versioning**: Migrate existing endpoints to `/api/v1/...`
+  - [ ] Define migration strategy (co-locate `/api/` and `/api/v1/` during transition)
+  - [ ] Migrate routes one by one (start with auth, then projects/scans/findings)
+  - [ ] Update frontend to point to `/api/v1/`
+  - [ ] Deprecate old `/api/` routes with `Deprecation` header
+  - [ ] Rollback strategy
 
 ### Scanner Extensions
 

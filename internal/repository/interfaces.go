@@ -535,6 +535,34 @@ type SettingsRepository interface {
 	DeleteJiraIssueLink(ctx context.Context, findingID string) error
 }
 
+type Token struct {
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	Prefix     string     `json:"prefix"`
+	Hash       string     `json:"-"` // bcrypt hash — never serialized
+	ProjectID  *string    `json:"project_id,omitempty"`
+	CreatedBy  *string    `json:"created_by,omitempty"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
+	CreatedAt  time.Time  `json:"created_at"`
+	UpdatedAt  time.Time  `json:"updated_at"`
+}
+
+type TokenCreate struct {
+	Name      string
+	ProjectID *string
+	CreatedBy string
+	ExpiresAt *time.Time
+}
+
+type TokenRepository interface {
+	Create(ctx context.Context, tok TokenCreate, hash, prefix string) (*Token, error)
+	List(ctx context.Context, userID string) ([]Token, error)
+	GetByPrefix(ctx context.Context, prefix string) (*Token, error)
+	Delete(ctx context.Context, id, userID string) error
+	UpdateLastUsed(ctx context.Context, id string) error
+}
+
 type HealthRepository interface {
 	CheckDB(ctx context.Context) error
 	CheckRedis(ctx context.Context) error
@@ -558,5 +586,6 @@ type Stores struct {
 	Audit          AuditRepository
 	RiskAcceptance RiskAcceptanceRepository
 	Notifications  NotificationRepository
+	Tokens         TokenRepository
 	Health         HealthRepository
 }
