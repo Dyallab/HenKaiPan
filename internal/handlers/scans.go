@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -26,15 +28,58 @@ func (h *Handler) ListScans(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"scans": scans, "total": total})
 }
 
-func resolveScanner(reqScanner string) ([]string, bool) {
-	if names, ok := scanner.ResolvePack(reqScanner); ok {
-		return names, true
+// ── Shared scan helpers ────────────────────────────────────────────────────
+
+// resolveScanners resolves a list of scanner names (which may include pack
+// aliases like "all", "sast", etc.) into concrete scanner names.
+func resolveScanners(names []string) ([]string, error) {
+	var resolved []string
+	for _, s := range names {
+		if packNames, ok := scanner.ResolvePack(s); ok {
+			resolved = append(resolved, packNames...)
+		} else if _, ok := scanner.Get(s); ok {
+			resolved = append(resolved, s)
+		} else {
+			return nil, fmt.Errorf("unknown scanner: %s", s)
+		}
 	}
-	if _, ok := scanner.Get(reqScanner); ok {
-		return []string{reqScanner}, true
-	}
-	return nil, false
+	return resolved, nil
 }
+
+// createScanRecords inserts a row in the scans table and enqueues a scan-run
+// task for each scanner name. If batchID is empty, a new one is generated.
+// Returns the created scan IDs, the batch ID used, and an error.
+func (h *Handler) createScanRecords(ctx context.Context, target string, scannerNames []string, projectID *string, batchID string) (ids []string, outBatchID string, err error) {
+	if batchID == "" {
+		batchID = uuid.NewString()
+	}
+	for _, name := range scannerNames {
+		scanID, err := h.store.Scans.Insert(ctx, target, name, batchID, projectID)
+		if err != nil {
+			return nil, "", fmt.Errorf("insert scan: %w", err)
+		}
+
+		pid := ""
+		if projectID != nil {
+			pid = *projectID
+		}
+		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{
+			ScanID:    scanID,
+			ProjectID: pid,
+			Target:    target,
+			Scanner:   name,
+		})
+		h.queue.Enqueue(
+			asynq.NewTask(tasks.TypeScanRun, payload),
+			asynq.MaxRetry(3),
+			asynq.Timeout(30*time.Minute),
+		)
+		ids = append(ids, scanID)
+	}
+	return ids, batchID, nil
+}
+
+// ── Scan handlers ──────────────────────────────────────────────────────────
 
 func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -61,9 +106,9 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 		req.Scanner = "semgrep"
 	}
 
-	scannerNames, ok := resolveScanner(req.Scanner)
-	if !ok {
-		writeError(w, http.StatusBadRequest, "unknown scanner: "+req.Scanner)
+	scannerNames, err := resolveScanners([]string{req.Scanner})
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -71,23 +116,11 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	if req.ProjectID != "" {
 		projectID = &req.ProjectID
 	}
-	batchID := uuid.NewString()
 
-	var ids []string
-	for _, name := range scannerNames {
-		scanID, err := h.store.Scans.Insert(r.Context(), req.Target, name, batchID, projectID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to create scan")
-			return
-		}
-
-		projectIDStr := ""
-		if projectID != nil {
-			projectIDStr = *projectID
-		}
-		payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{ScanID: scanID, ProjectID: projectIDStr, Target: req.Target, Scanner: name})
-		h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload), asynq.MaxRetry(3), asynq.Timeout(30*time.Minute))
-		ids = append(ids, scanID)
+	ids, _, err := h.createScanRecords(r.Context(), req.Target, scannerNames, projectID, "")
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to create scans")
+		return
 	}
 
 	writeJSON(w, http.StatusCreated, map[string]any{"ids": ids})
@@ -100,13 +133,10 @@ func (h *Handler) createAppScans(w http.ResponseWriter, r *http.Request, appID, 
 		return
 	}
 
-	scannerNames, ok := scanner.ResolvePack(scannerName)
-	if !ok {
-		if _, ok := scanner.Get(scannerName); !ok {
-			writeError(w, http.StatusBadRequest, "unknown scanner: "+scannerName)
-			return
-		}
-		scannerNames = []string{scannerName}
+	scannerNames, err := resolveScanners([]string{scannerName})
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	batchID := uuid.NewString()
@@ -117,24 +147,12 @@ func (h *Handler) createAppScans(w http.ResponseWriter, r *http.Request, appID, 
 			slog.Warn("project has no repo_url, skipping", "project_id", project.ID, "project_name", project.Name)
 			continue
 		}
-		target := *project.RepoURL
-
-		for _, sName := range scannerNames {
-			scanID, err := h.store.Scans.Insert(r.Context(), target, sName, batchID, &project.ID)
-			if err != nil {
-				slog.Error("failed to insert scan for project", "project_id", project.ID, "scanner", sName, "err", err)
-				continue
-			}
-
-			payload, _ := tasks.MarshalScanPayload(tasks.ScanPayload{
-				ScanID:    scanID,
-				ProjectID: project.ID,
-				Target:    target,
-				Scanner:   sName,
-			})
-			h.queue.Enqueue(asynq.NewTask(tasks.TypeScanRun, payload), asynq.MaxRetry(3), asynq.Timeout(30*time.Minute))
-			allIDs = append(allIDs, scanID)
+		ids, _, err := h.createScanRecords(r.Context(), *project.RepoURL, scannerNames, &project.ID, batchID)
+		if err != nil {
+			slog.Error("failed to create scans for project", "project_id", project.ID, "err", err)
+			continue
 		}
+		allIDs = append(allIDs, ids...)
 	}
 
 	if len(allIDs) == 0 {

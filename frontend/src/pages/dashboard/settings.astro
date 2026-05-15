@@ -34,6 +34,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             label: "Security",
                             icon: "shield_lock",
                         },
+                        {
+                            id: "tokens",
+                            label: "API Tokens",
+                            icon: "vpn_key",
+                        },
                         { id: "users", label: "Users", icon: "group" },
                         { id: "teams", label: "Teams", icon: "groups" },
                         { id: "policies", label: "Policies", icon: "policy" },
@@ -815,6 +820,182 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 </div>
             </section>
 
+            <!-- API Tokens -->
+            <section
+                id="section-tokens"
+                class="settings-section hidden space-y-6"
+            >
+                <div
+                    class="border-b border-slate-800 pb-4 flex items-center justify-between"
+                >
+                    <div>
+                        <h2 class="text-xl font-bold text-on-background">
+                            API Tokens
+                        </h2>
+                        <p class="text-sm text-slate-400 mt-1">
+                            Manage tokens for CI/CD and external integrations.
+                        </p>
+                    </div>
+                    <button
+                        id="create-token-btn"
+                        class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-fixed-dim text-on-primary rounded-lg text-sm font-bold transition-all"
+                    >
+                        <span class="material-symbols-outlined text-xl"
+                            >add</span
+                        >
+                        New Token
+                    </button>
+                </div>
+
+                <!-- Tokens table -->
+                <div id="tokens-container" class="space-y-3">
+                    <div class="text-center py-8 text-slate-500 text-sm">
+                        Loading tokens...
+                    </div>
+                </div>
+
+                <!-- Create token modal -->
+                <div
+                    id="create-token-modal"
+                    class="hidden fixed inset-0 z-50 flex items-center justify-center"
+                >
+                    <div
+                        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        id="create-token-overlay"
+                    >
+                    </div>
+                    <div
+                        class="relative bg-surface-container border border-outline-variant/20 rounded-xl p-6 w-full max-w-md space-y-5 mx-4"
+                    >
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-on-background">
+                                Create API Token
+                            </h3>
+                            <button
+                                id="close-token-modal"
+                                class="text-slate-400 hover:text-on-background transition-colors"
+                            >
+                                <span class="material-symbols-outlined"
+                                    >close</span
+                                >
+                            </button>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-widest text-slate-500"
+                                    >Name</label
+                                >
+                                <input
+                                    id="token-name-input"
+                                    type="text"
+                                    placeholder="e.g. GitHub Actions Production"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                />
+                            </div>
+                            <div class="space-y-2">
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-widest text-slate-500"
+                                    >Project Scope (optional)</label
+                                >
+                                <select
+                                    id="token-project-select"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
+                                >
+                                    <option value="">All projects</option>
+                                </select>
+                                <p class="text-xs text-slate-500">
+                                    Leave empty to allow access to all projects.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button
+                                id="cancel-token-btn"
+                                class="flex-1 px-4 py-2.5 border border-slate-700 text-slate-400 rounded-lg text-sm font-bold hover:bg-slate-800 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                id="submit-token-btn"
+                                class="flex-1 px-4 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-bold hover:bg-primary-fixed-dim transition-all"
+                            >
+                                Create Token
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Token created modal (shows raw token once) -->
+                <div
+                    id="token-created-modal"
+                    class="hidden fixed inset-0 z-50 flex items-center justify-center"
+                >
+                    <div
+                        class="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        id="token-created-overlay"
+                    >
+                    </div>
+                    <div
+                        class="relative bg-surface-container border border-outline-variant/20 rounded-xl p-6 w-full max-w-md space-y-5 mx-4"
+                    >
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-bold text-on-background">
+                                Token Created
+                            </h3>
+                            <button
+                                id="close-token-created-modal"
+                                class="text-slate-400 hover:text-on-background transition-colors"
+                            >
+                                <span class="material-symbols-outlined"
+                                    >close</span
+                                >
+                            </button>
+                        </div>
+                        <div
+                            class="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 space-y-2"
+                        >
+                            <div class="flex items-center gap-2 text-amber-400">
+                                <span class="material-symbols-outlined text-xl"
+                                    >warning</span
+                                >
+                                <p class="text-sm font-bold">
+                                    Copy this token now — it will not be shown
+                                    again.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <label
+                                class="block text-xs font-bold uppercase tracking-widest text-slate-500"
+                                >Your API Token</label
+                            >
+                            <div class="relative">
+                                <pre
+                                    id="new-token-display"
+                                    class="bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm font-mono text-cyan-400 overflow-auto select-all">
+                                </pre>
+                                <button
+                                    id="copy-token-btn"
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-400 transition-colors"
+                                    title="Copy to clipboard"
+                                >
+                                    <span class="material-symbols-outlined"
+                                        >content_copy</span
+                                    >
+                                </button>
+                            </div>
+                        </div>
+                        <button
+                            id="done-token-btn"
+                            class="w-full px-4 py-2.5 bg-primary text-on-primary rounded-lg text-sm font-bold hover:bg-primary-fixed-dim transition-all"
+                        >
+                            Done
+                        </button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Users -->
             <section
                 id="section-users"
@@ -1249,37 +1430,74 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 class="settings-section hidden space-y-6"
             >
                 <div class="border-b border-slate-800 pb-4">
-                    <h2 class="text-xl font-bold text-on-background">License</h2>
+                    <h2 class="text-xl font-bold text-on-background">
+                        License
+                    </h2>
                     <p class="text-sm text-slate-400 mt-1">
                         Manage your self-hosted license key.
                     </p>
                 </div>
 
-                <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4">
+                <div
+                    class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
+                >
                     <div class="flex items-start gap-4">
-                        <div id="license-status-icon" class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-slate-500 text-2xl">badge</span>
+                        <div
+                            id="license-status-icon"
+                            class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0"
+                        >
+                            <span
+                                class="material-symbols-outlined text-slate-500 text-2xl"
+                                >badge</span
+                            >
                         </div>
                         <div class="flex-1">
-                            <h3 id="license-status" class="font-bold text-on-background">Loading...</h3>
-                            <p id="license-message" class="text-sm text-slate-400 mt-1"></p>
-                            <div id="license-details" class="mt-4 grid grid-cols-2 gap-4 text-sm hidden">
+                            <h3
+                                id="license-status"
+                                class="font-bold text-on-background"
+                            >
+                                Loading...
+                            </h3>
+                            <p
+                                id="license-message"
+                                class="text-sm text-slate-400 mt-1"
+                            >
+                            </p>
+                            <div
+                                id="license-details"
+                                class="mt-4 grid grid-cols-2 gap-4 text-sm hidden"
+                            >
                                 <div>
                                     <p class="text-xs text-slate-500">Email</p>
-                                    <p id="license-email" class="text-slate-300"></p>
+                                    <p
+                                        id="license-email"
+                                        class="text-slate-300"
+                                    >
+                                    </p>
                                 </div>
                                 <div>
-                                    <p class="text-xs text-slate-500">Expires</p>
-                                    <p id="license-expires" class="text-slate-300"></p>
+                                    <p class="text-xs text-slate-500">
+                                        Expires
+                                    </p>
+                                    <p
+                                        id="license-expires"
+                                        class="text-slate-300"
+                                    >
+                                    </p>
                                 </div>
                             </div>
-                            <div id="license-features" class="mt-4 flex flex-wrap gap-2 hidden">
+                            <div
+                                id="license-features"
+                                class="mt-4 flex flex-wrap gap-2 hidden"
+                            >
                             </div>
                         </div>
                     </div>
 
                     <div class="pt-4 border-t border-slate-800">
-                        <h4 class="font-bold text-on-background mb-3">Update License Key</h4>
+                        <h4 class="font-bold text-on-background mb-3">
+                            Update License Key
+                        </h4>
                         <div class="flex gap-3">
                             <input
                                 id="license-key-input"
@@ -1295,7 +1513,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                             </button>
                         </div>
                         <p class="text-xs text-slate-500 mt-2">
-                            Set the LICENSE_KEY environment variable and restart the API to apply changes.
+                            Set the LICENSE_KEY environment variable and restart
+                            the API to apply changes.
                         </p>
                     </div>
                 </div>
@@ -1305,6 +1524,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 </DashboardLayout>
 
 <script>
+    import { toast } from "../../lib/toast";
+
     // --- Section switching ---
     const navBtns =
         document.querySelectorAll<HTMLButtonElement>(".settings-nav");
@@ -2492,48 +2713,65 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     }
 
     async function loadLicense() {
-        const statusIcon = document.getElementById('license-status-icon');
-        const status = document.getElementById('license-status');
-        const message = document.getElementById('license-message');
-        const details = document.getElementById('license-details');
-        const features = document.getElementById('license-features');
+        const statusIcon = document.getElementById("license-status-icon");
+        const status = document.getElementById("license-status");
+        const message = document.getElementById("license-message");
+        const details = document.getElementById("license-details");
+        const features = document.getElementById("license-features");
 
         try {
-            const data = await api.get('/api/license');
+            const data = await api.get("/api/license");
 
             if (data.valid) {
-                statusIcon.className = 'w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0';
-                statusIcon.innerHTML = '<span class="material-symbols-outlined text-emerald-500 text-2xl">check_circle</span>';
-                status.textContent = 'License Active';
-                status.className = 'font-bold text-emerald-400';
-                message.textContent = 'Your self-hosted license is valid and active.';
+                statusIcon.className =
+                    "w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0";
+                statusIcon.innerHTML =
+                    '<span class="material-symbols-outlined text-emerald-500 text-2xl">check_circle</span>';
+                status.textContent = "License Active";
+                status.className = "font-bold text-emerald-400";
+                message.textContent =
+                    "Your self-hosted license is valid and active.";
 
-                document.getElementById('license-email').textContent = data.email;
-                document.getElementById('license-expires').textContent = new Date(data.expiry).toLocaleDateString();
-                details.classList.remove('hidden');
+                document.getElementById("license-email").textContent =
+                    data.email;
+                document.getElementById("license-expires").textContent =
+                    new Date(data.expiry).toLocaleDateString();
+                details.classList.remove("hidden");
 
                 if (data.features && data.features.length > 0) {
-                    features.innerHTML = data.features.map(f =>
-                        `<span class="text-[10px] font-bold uppercase tracking-wider rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-emerald-400">${f}</span>`
-                    ).join('');
-                    features.classList.remove('hidden');
+                    features.innerHTML = data.features
+                        .map(
+                            (f) =>
+                                `<span class="text-[10px] font-bold uppercase tracking-wider rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-emerald-400">${f}</span>`,
+                        )
+                        .join("");
+                    features.classList.remove("hidden");
                 }
-            } else if (data.status === 'expired') {
-                statusIcon.className = 'w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0';
-                statusIcon.innerHTML = '<span class="material-symbols-outlined text-amber-500 text-2xl">error</span>';
-                status.textContent = 'License Expired';
-                status.className = 'font-bold text-amber-400';
+            } else if (data.status === "expired") {
+                statusIcon.className =
+                    "w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0";
+                statusIcon.innerHTML =
+                    '<span class="material-symbols-outlined text-amber-500 text-2xl">error</span>';
+                status.textContent = "License Expired";
+                status.className = "font-bold text-amber-400";
                 message.textContent = data.message;
             } else {
-                statusIcon.className = 'w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0';
-                statusIcon.innerHTML = '<span class="material-symbols-outlined text-slate-500 text-2xl">badge</span>';
-                status.textContent = data.status === 'inactive' ? 'No License' : 'Invalid License';
-                status.className = 'font-bold text-slate-300';
-                message.textContent = data.message || 'No license key configured. Set LICENSE_KEY environment variable.';
+                statusIcon.className =
+                    "w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0";
+                statusIcon.innerHTML =
+                    '<span class="material-symbols-outlined text-slate-500 text-2xl">badge</span>';
+                status.textContent =
+                    data.status === "inactive"
+                        ? "No License"
+                        : "Invalid License";
+                status.className = "font-bold text-slate-300";
+                message.textContent =
+                    data.message ||
+                    "No license key configured. Set LICENSE_KEY environment variable.";
             }
         } catch (e: any) {
-            status.textContent = 'Failed to load';
-            status.className = 'font-bold text-rose-400';
+            status.textContent = "Failed to load";
+            status.className = "font-bold text-rose-400";
             message.textContent = e.message;
         }
     }
@@ -2541,6 +2779,190 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     loadNotificationSettings();
     loadJiraIntegration();
     loadLicense();
+    loadTokens();
+    loadProjectsForToken();
+
+    // --- Token modal handlers ---
+    document
+        .getElementById("create-token-btn")!
+        .addEventListener("click", () => {
+            (
+                document.getElementById("token-name-input") as HTMLInputElement
+            ).value = "";
+            (
+                document.getElementById(
+                    "token-project-select",
+                ) as HTMLSelectElement
+            ).value = "";
+            document
+                .getElementById("create-token-modal")!
+                .classList.remove("hidden");
+        });
+    document
+        .getElementById("close-token-modal")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-token-modal")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("cancel-token-btn")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-token-modal")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("create-token-overlay")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("create-token-modal")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("close-token-created-modal")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("token-created-modal")!
+                .classList.add("hidden");
+        });
+    document
+        .getElementById("token-created-overlay")!
+        .addEventListener("click", () => {
+            document
+                .getElementById("token-created-modal")!
+                .classList.add("hidden");
+        });
+    document.getElementById("done-token-btn")!.addEventListener("click", () => {
+        document.getElementById("token-created-modal")!.classList.add("hidden");
+    });
+    document.getElementById("copy-token-btn")!.addEventListener("click", () => {
+        const token =
+            (document.getElementById("new-token-display") as HTMLElement)
+                .textContent || "";
+        navigator.clipboard
+            .writeText(token)
+            .then(() => {
+                toast("Token copied to clipboard", "success");
+            })
+            .catch(() => {
+                toast("Failed to copy token", "error");
+            });
+    });
+    document
+        .getElementById("submit-token-btn")!
+        .addEventListener("click", async () => {
+            const name = (
+                document.getElementById("token-name-input") as HTMLInputElement
+            ).value.trim();
+            const projectId = (
+                document.getElementById(
+                    "token-project-select",
+                ) as HTMLSelectElement
+            ).value;
+            if (!name) {
+                toast("Token name is required", "error");
+                return;
+            }
+            const btn = document.getElementById(
+                "submit-token-btn",
+            ) as HTMLButtonElement;
+            btn.disabled = true;
+            try {
+                const res = await api.createToken({
+                    name,
+                    project_id: projectId || undefined,
+                });
+                document
+                    .getElementById("create-token-modal")!
+                    .classList.add("hidden");
+                (
+                    document.getElementById("new-token-display") as HTMLElement
+                ).textContent = res.token;
+                document
+                    .getElementById("token-created-modal")!
+                    .classList.remove("hidden");
+                await loadTokens();
+            } catch (e: any) {
+                toast(e.message || "Failed to create token", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+    async function loadProjectsForToken() {
+        try {
+            const projects = await api.getProjects();
+            const sel = document.getElementById(
+                "token-project-select",
+            ) as HTMLSelectElement;
+            sel.innerHTML = '<option value="">All projects</option>';
+            (projects || []).forEach((p: any) => {
+                sel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+            });
+        } catch (e) {
+            /* ignore */
+        }
+    }
+
+    async function loadTokens() {
+        const container = document.getElementById("tokens-container")!;
+        try {
+            const { tokens } = await api.getTokens();
+            if (tokens.length === 0) {
+                container.innerHTML =
+                    '<div class="text-center py-8 text-slate-500 text-sm">No tokens created yet. Create one to use the CI/CD integration.</div>';
+                return;
+            }
+            container.innerHTML = tokens
+                .map((t) => {
+                    const projectLabel = t.project_id
+                        ? `Project-scoped`
+                        : "All projects";
+                    const createdAt = t.created_at
+                        ? new Date(t.created_at).toLocaleDateString()
+                        : "—";
+                    const lastUsed = t.last_used_at
+                        ? new Date(t.last_used_at).toLocaleDateString()
+                        : "Never";
+                    return `<div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 bg-cyan-500/10 rounded-lg border border-cyan-500/20 flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined text-cyan-400">vpn_key</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-bold text-sm text-on-background truncate">${t.name}</p>
+                            <p class="text-xs text-slate-500 font-mono">${t.prefix}••••••••</p>
+                            <p class="text-xs text-slate-500 mt-0.5">${projectLabel} · Created ${createdAt} · Last used ${lastUsed}</p>
+                        </div>
+                    </div>
+                    <button class="revoke-token-btn shrink-0 px-3 py-1.5 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold hover:bg-rose-500/10 transition-all" data-id="${t.id}" data-name="${t.name}">Revoke</button>
+                </div>`;
+                })
+                .join("");
+            container.querySelectorAll(".revoke-token-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
+                    const id = (btn as HTMLElement).dataset.id!;
+                    const name = (btn as HTMLElement).dataset.name!;
+                    if (
+                        !confirm(
+                            `Revoke token "${name}"? This cannot be undone.`,
+                        )
+                    )
+                        return;
+                    try {
+                        await api.deleteToken(id);
+                        toast("Token revoked", "success");
+                        await loadTokens();
+                    } catch (e: any) {
+                        toast(e.message || "Failed to revoke token", "error");
+                    }
+                });
+            });
+        } catch (e: any) {
+            container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Failed to load tokens: ${e.message}</div>`;
+        }
+    }
 
     // Load webhooks after DOM is ready
     if (document.readyState === "loading") {
