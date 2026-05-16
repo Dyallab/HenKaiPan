@@ -21,11 +21,27 @@ const migrationDir = "migrations"
 func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	slog.Info("running database migrations")
 
-	if err := ensureSchemaTable(ctx, pool); err != nil {
+	// Acquire a dedicated connection for the entire migration run
+	// This ensures the advisory lock and all migration queries use the same session
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("acquire connection: %w", err)
+	}
+	defer conn.Release()
+
+	// Acquire advisory lock to prevent concurrent migration runs
+	// from api and worker containers starting simultaneously
+	const migrationLockID int64 = 2024010100
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock($1)`, migrationLockID); err != nil {
+		return fmt.Errorf("acquire migration advisory lock: %w", err)
+	}
+	defer conn.Exec(context.Background(), `SELECT pg_advisory_unlock($1)`, migrationLockID)
+
+	if err := ensureSchemaTableWithConn(ctx, conn); err != nil {
 		return fmt.Errorf("ensure schema table: %w", err)
 	}
 
-	applied, err := getAppliedMigrations(ctx, pool)
+	applied, err := getAppliedMigrationsWithConn(ctx, conn)
 	if err != nil {
 		return fmt.Errorf("get applied migrations: %w", err)
 	}
@@ -58,7 +74,7 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		ver := versionFromPath(f)
 		slog.Info("applying migration", "file", f, "version", ver)
 
-		tx, err := pool.Begin(ctx)
+		tx, err := conn.Begin(ctx)
 		if err != nil {
 			return fmt.Errorf("begin tx for %s: %w", f, err)
 		}
@@ -84,8 +100,8 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	return nil
 }
 
-func ensureSchemaTable(ctx context.Context, pool *pgxpool.Pool) error {
-	_, err := pool.Exec(ctx, `
+func ensureSchemaTableWithConn(ctx context.Context, conn *pgxpool.Conn) error {
+	_, err := conn.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			version TEXT PRIMARY KEY,
 			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -94,8 +110,8 @@ func ensureSchemaTable(ctx context.Context, pool *pgxpool.Pool) error {
 	return err
 }
 
-func getAppliedMigrations(ctx context.Context, pool *pgxpool.Pool) (map[string]bool, error) {
-	rows, err := pool.Query(ctx, `SELECT version FROM schema_migrations`)
+func getAppliedMigrationsWithConn(ctx context.Context, conn *pgxpool.Conn) (map[string]bool, error) {
+	rows, err := conn.Query(ctx, `SELECT version FROM schema_migrations`)
 	if err != nil {
 		return nil, err
 	}

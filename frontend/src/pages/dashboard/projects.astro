@@ -322,6 +322,12 @@ function renderProjects() {
             ${getCoverageBadge(coverage)}
           </div>
           <p class="text-xs text-slate-500 font-mono truncate max-w-md">${p.repo_url || 'No URL configured'}</p>
+          <div class="flex items-center gap-1.5 mt-1">
+            <span class="text-[10px] text-slate-600 font-mono select-all">${p.id}</span>
+            <button type="button" data-copy-id="${p.id}" class="copy-id-btn text-slate-600 hover:text-cyan-400 transition-colors p-0.5" title="Copy project ID">
+              <span class="material-symbols-outlined text-sm">content_copy</span>
+            </button>
+          </div>
         </div>
         <div class="flex items-center gap-3 shrink-0 ml-4">
           <a href="/dashboard/scans?project=${encodeURIComponent(p.id)}"
@@ -698,6 +704,36 @@ document.getElementById('submit-bulk-add')!.addEventListener('click', async () =
     errEl.classList.remove('hidden');
     submitBtn.textContent = 'Import';
     submitBtn.disabled = false;
+  }
+});
+
+// ── Copy project ID to clipboard ──
+document.getElementById('projects-list')!.addEventListener('click', async (e) => {
+  const btn = (e.target as HTMLElement).closest('[data-copy-id]') as HTMLElement | null;
+  if (!btn) return;
+  const id = btn.dataset.copyId!;
+  try {
+    await navigator.clipboard.writeText(id);
+    const icon = btn.querySelector('.material-symbols-outlined')!;
+    icon.textContent = 'check';
+    btn.classList.remove('text-slate-600', 'hover:text-cyan-400');
+    btn.classList.add('text-emerald-400');
+    setTimeout(() => {
+      icon.textContent = 'content_copy';
+      btn.classList.add('text-slate-600', 'hover:text-cyan-400');
+      btn.classList.remove('text-emerald-400');
+    }, 2000);
+  } catch {
+    // Fallback: select the text manually
+    const parent = btn.closest('[data-copy-id]')!.parentElement!;
+    const span = parent.querySelector('.select-all') as HTMLElement;
+    if (span) {
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    }
   }
 });
 

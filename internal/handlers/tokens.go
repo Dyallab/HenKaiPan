@@ -131,6 +131,11 @@ func (h *Handler) ListTokens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure we return an empty array, not null, for consistent frontend handling
+	if tokens == nil {
+		tokens = []repository.Token{}
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{"tokens": tokens})
 }
 

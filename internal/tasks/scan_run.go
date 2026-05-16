@@ -225,17 +225,27 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	}
 
 	cloneURL := url
+	var branch string
+	if idx := strings.Index(cloneURL, "#"); idx != -1 {
+		branch = cloneURL[idx+1:]
+		cloneURL = cloneURL[:idx]
+	}
 	if token != "" {
-		if strings.HasPrefix(url, "https://") {
-			cloneURL = "https://" + token + "@" + strings.TrimPrefix(url, "https://")
+		if strings.HasPrefix(cloneURL, "https://") {
+			cloneURL = "https://" + token + "@" + strings.TrimPrefix(cloneURL, "https://")
 			slog.Info("token injected into clone URL", "url_host", "github.com")
 		}
 	}
 
 	start := time.Now()
-	cmd := exec.CommandContext(ctx, "git", "clone", "--depth=50", cloneURL, dir)
+	args := []string{"clone", "--depth=50"}
+	if branch != "" {
+		args = append(args, "--branch", branch)
+	}
+	args = append(args, cloneURL, dir)
+	cmd := exec.CommandContext(ctx, "git", args...)
 	out, cloneErr := cmd.CombinedOutput()
-	execLog = buildSimpleLog("git clone --depth=50 "+cloneURL, out, nil, cloneErr, time.Since(start))
+	execLog = buildSimpleLog("git clone --depth=50 "+branchStr(branch)+" "+cloneURL, out, nil, cloneErr, time.Since(start))
 	if cloneErr != nil {
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
 			slog.Warn("failed to remove partial clone directory", "dir", dir, "err", rmErr)
@@ -243,6 +253,13 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 		return "", execLog, fmt.Errorf("git clone: %w\n%s", cloneErr, out)
 	}
 	return dir, execLog, nil
+}
+
+func branchStr(b string) string {
+	if b != "" {
+		return "--branch " + b
+	}
+	return ""
 }
 
 func runScannerURL(sc scanner.Scanner, target string) runResult {
