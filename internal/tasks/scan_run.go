@@ -238,6 +238,14 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	}
 
 	start := time.Now()
+
+	// Pull request refs (refs/pull/N/*) are GitHub-internal refs that don't
+	// exist in the remote. Clone normally, then fetch the specific ref.
+	if strings.HasPrefix(branch, "refs/pull/") {
+		dir, execLog, err := cloneWithPullRef(ctx, cloneURL, branch, dir, start)
+		return dir, execLog, err
+	}
+
 	args := []string{"clone", "--depth=50"}
 	if branch != "" {
 		args = append(args, "--branch", branch)
@@ -253,6 +261,50 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 		return "", execLog, fmt.Errorf("git clone: %w\n%s", cloneErr, out)
 	}
 	return dir, execLog, nil
+}
+
+// cloneWithPullRef clones a repo and fetches a GitHub pull request ref.
+// refs/pull/N/* are internal GitHub refs that cannot be fetched via --branch.
+func cloneWithPullRef(ctx context.Context, cloneURL, branch, dir string, start time.Time) (string, string, error) {
+	// Step 1: Clone without --branch
+	cloneArgs := []string{"clone", "--depth=50", cloneURL, dir}
+	cmd := exec.CommandContext(ctx, "git", cloneArgs...)
+	out, cloneErr := cmd.CombinedOutput()
+	if cloneErr != nil {
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("failed to remove partial clone directory", "dir", dir, "err", rmErr)
+		}
+		log := buildSimpleLog("git clone --depth=50 "+cloneURL, out, nil, cloneErr, time.Since(start))
+		return "", log, fmt.Errorf("git clone: %w\n%s", cloneErr, out)
+	}
+
+	// Step 2: Fetch the pull request ref
+	refName := "hkp-pr-ref"
+	fetchArgs := []string{"-C", dir, "fetch", "origin", branch + ":" + refName, "--depth=1"}
+	fetchCmd := exec.CommandContext(ctx, "git", fetchArgs...)
+	fetchOut, fetchErr := fetchCmd.CombinedOutput()
+	if fetchErr != nil {
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("failed to remove clone directory after fetch failure", "dir", dir, "err", rmErr)
+		}
+		log := buildSimpleLog("git fetch origin "+branch, fetchOut, nil, fetchErr, time.Since(start))
+		return "", log, fmt.Errorf("git fetch %s: %w\n%s", branch, fetchErr, fetchOut)
+	}
+
+	// Step 3: Checkout the fetched ref
+	checkoutArgs := []string{"-C", dir, "checkout", refName}
+	checkoutCmd := exec.CommandContext(ctx, "git", checkoutArgs...)
+	checkoutOut, checkoutErr := checkoutCmd.CombinedOutput()
+	if checkoutErr != nil {
+		if rmErr := os.RemoveAll(dir); rmErr != nil {
+			slog.Warn("failed to remove clone directory after checkout failure", "dir", dir, "err", rmErr)
+		}
+		log := buildSimpleLog("git checkout "+refName, checkoutOut, nil, checkoutErr, time.Since(start))
+		return "", log, fmt.Errorf("git checkout %s: %w\n%s", refName, checkoutErr, checkoutOut)
+	}
+
+	log := buildSimpleLog("git clone + fetch "+branch, nil, nil, nil, time.Since(start))
+	return dir, log, nil
 }
 
 func branchStr(b string) string {
