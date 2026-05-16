@@ -2,7 +2,7 @@
 -- Tokens allow external systems (GitHub Actions, GitLab CI, etc.) to
 -- authenticate against the API without a user JWT session.
 
-CREATE TABLE api_tokens (
+CREATE TABLE IF NOT EXISTS api_tokens (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name        TEXT NOT NULL,
     prefix      TEXT NOT NULL,                     -- e.g. "hkp_" prefix for identification
@@ -17,9 +17,9 @@ CREATE TABLE api_tokens (
 
 -- A token without project_id can be used against any project the creator owns.
 -- A token with project_id is scoped to that project only.
-CREATE INDEX idx_api_tokens_prefix ON api_tokens(prefix);
-CREATE INDEX idx_api_tokens_project_id ON api_tokens(project_id);
-CREATE INDEX idx_api_tokens_created_by ON api_tokens(created_by);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_prefix ON api_tokens(prefix);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_project_id ON api_tokens(project_id);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_created_by ON api_tokens(created_by);
 
 COMMENT ON TABLE api_tokens IS 'API tokens for CI/CD and external tool authentication';
 COMMENT ON COLUMN api_tokens.prefix IS 'First few characters of the raw token for UI identification (e.g. hkp_abc...)';
