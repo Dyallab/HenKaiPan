@@ -22,6 +22,12 @@ export function friendlyError(msg: string): string {
   if (msg?.includes('API_KEY')) {
     return 'AI provider not configured — set your API key in settings';
   }
+  if (msg === 'invalid body') {
+    return 'Invalid request format — please try again';
+  }
+  if (msg === 'enabled required') {
+    return 'Missing required field — please try again';
+  }
   return msg;
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -16,19 +17,21 @@ type Executor struct {
 
 func NewExecutor() *Executor {
 	return &Executor{
-		binaries: map[string]string{
-			"semgrep":      "semgrep",
-			"gosec":        "gosec",
-			"trivy":        "trivy",
-			"grype":        "grype",
-			"osv-scanner":  "osv-scanner",
-			"trufflehog":   "trufflehog",
-			"gitleaks":     "gitleaks",
-			"checkov":      "checkov",
-			"tfsec":        "tfsec",
-			"kics":         "kics",
-			"nuclei":       "nuclei",
-		},
+	binaries: map[string]string{
+		"semgrep":      "semgrep",
+		"gosec":        "gosec",
+		"trivy":        "trivy",
+		"trivy-image":  "trivy",
+		"grype":        "grype",
+		"grype-image":  "grype",
+		"osv-scanner":  "osv-scanner",
+		"trufflehog":   "trufflehog",
+		"gitleaks":     "gitleaks",
+		"checkov":      "checkov",
+		"tfsec":        "tfsec",
+		"kics":         "kics",
+		"nuclei":       "nuclei",
+	},
 	}
 }
 
@@ -46,22 +49,31 @@ func (e *Executor) RunScanner(ctx context.Context, sc Scanner, mountSrc string) 
 		}
 	}
 
-	binaryPath, err := exec.LookPath(binary)
-	if err != nil {
-		return ExecResult{
-			Err: fmt.Errorf("scanner binary not found: %s (looked for '%s')", sc.Name, binary),
-		}
-	}
-
 	args := e.buildArgs(sc, mountSrc)
-	cmd := exec.CommandContext(ctx, binaryPath, args...)
+
+	var cmd *exec.Cmd
+	if sc.ExecVia != "" {
+		shellPath, err := exec.LookPath(sc.ExecVia)
+		if err != nil {
+			return ExecResult{Err: fmt.Errorf("shell not found: %s", sc.ExecVia)}
+		}
+		cmd = exec.CommandContext(ctx, shellPath, args...)
+	} else {
+		binaryPath, err := exec.LookPath(binary)
+		if err != nil {
+			return ExecResult{
+				Err: fmt.Errorf("scanner binary not found: %s (looked for '%s')", sc.Name, binary),
+			}
+		}
+		cmd = exec.CommandContext(ctx, binaryPath, args...)
+	}
 
 	if sc.WorkDir != "" {
 		cmd.Dir = mountSrc
 	}
 
-	for k, v := range sc.Env {
-		cmd.Env = append(cmd.Env, k+"="+v)
+	if len(sc.Env) > 0 {
+		cmd.Env = append(os.Environ(), envMapToSlice(sc.Env)...)
 	}
 
 	var stdout, stderr bytes.Buffer
@@ -124,6 +136,14 @@ func truncate(b []byte, max int) []byte {
 	return b[:max]
 }
 
+func envMapToSlice(m map[string]string) []string {
+	out := make([]string, 0, len(m))
+	for k, v := range m {
+		out = append(out, k+"="+v)
+	}
+	return out
+}
+
 const maxLogBytes = 100 * 1024
 
 func CheckBinaryAvailability(scannerName string) (string, error) {
@@ -131,7 +151,9 @@ func CheckBinaryAvailability(scannerName string) (string, error) {
 		"semgrep":     "semgrep",
 		"gosec":       "gosec",
 		"trivy":       "trivy",
+		"trivy-image": "trivy",
 		"grype":       "grype",
+		"grype-image": "grype",
 		"osv-scanner": "osv-scanner",
 		"trufflehog":  "trufflehog",
 		"gitleaks":    "gitleaks",

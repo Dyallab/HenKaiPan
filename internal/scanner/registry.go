@@ -49,6 +49,7 @@ type Scanner struct {
 	BuildArgs  func(target string) []string
 	WorkDir    string            // working directory for the scanner process, empty = default
 	Env        map[string]string // extra env vars for the scanner process
+	ExecVia    string            // if set, run via this shell (e.g. "sh" for "sh -c '...'")
 	Format     OutputFormat
 	TargetType TargetType
 	Parse      ParserFunc
@@ -110,7 +111,7 @@ var Registry = map[string]Scanner{
 		Name:        "grype",
 		Category:    CategorySCA,
 		Description: "Vulnerability scanner for filesystems (Anchore)",
-		Env:         map[string]string{"GRYPE_DB_AUTO_UPDATE": "true"},
+		Env:         map[string]string{"GRYPE_DB_CACHE_DIR": "/tmp/grype-db", "GRYPE_DB_AUTO_UPDATE": "true"},
 		BuildArgs: func(t string) []string {
 			return []string{fmt.Sprintf("dir:%s", t), "-o", "json"}
 		},
@@ -184,6 +185,7 @@ var Registry = map[string]Scanner{
 		BuildArgs: func(t string) []string {
 			return []string{"-c", fmt.Sprintf("kics scan -p %s --report-formats json --silent -o /tmp/kicsout; cat /tmp/kicsout/results.json 2>/dev/null || echo '{\"queries\":[]}'", t)}
 		},
+		ExecVia:    "sh",
 		Format:     FormatJSON,
 		TargetType: TargetGit,
 		Parse:      ParseKICS,
@@ -207,6 +209,7 @@ var Registry = map[string]Scanner{
 		Name:        "grype-image",
 		Category:    CategoryContainers,
 		Description: "Container image vulnerability scanner (Anchore) — target: image ref",
+		Env:         map[string]string{"GRYPE_DB_CACHE_DIR": "/tmp/grype-db", "GRYPE_DB_AUTO_UPDATE": "true"},
 		BuildArgs: func(t string) []string {
 			return []string{t, "-o", "json"}
 		},

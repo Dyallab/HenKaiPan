@@ -580,7 +580,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const soc2Policies = allPolicies.filter(p => p.pack_type === 'soc2-starter');
       for (const policy of soc2Policies) {
         if (!policy.enabled) {
-          await api.updatePolicy(policy.id, { enabled: true });
+          await api.updatePolicy(policy.id, true);
         }
       }
       // Reload policies
@@ -611,7 +611,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       const isoPolicies = allPolicies.filter(p => p.pack_type === 'iso27001-basics');
       for (const policy of isoPolicies) {
         if (!policy.enabled) {
-          await api.updatePolicy(policy.id, { enabled: true });
+          await api.updatePolicy(policy.id, true);
         }
       }
       // Reload policies
