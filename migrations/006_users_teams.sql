@@ -22,10 +22,9 @@ CREATE TABLE IF NOT EXISTS team_members (
     PRIMARY KEY (team_id, user_id)
 );
 
--- Seed default admin (password: admin)
--- password: admin
+-- Seed default admin (password: auto-generated UUID v4)
 INSERT INTO users (username, email, password_hash, role)
-VALUES ('admin', 'admin@localhost', '$2a$10$FZCYd4VE4kFbiXEMuMBZA.3HHMEl1hydKyM1TgPMBGaaJlxKbtHCq', 'admin')
+VALUES ('admin', 'admin@localhost', '$2b$10$ucc7.PisHnW.7FqgqDqUiuMhgcD0BJRDyL43kScAdgNPEHuPygTCq', 'admin')
 ON CONFLICT (username) DO NOTHING;
 
 -- Indexes

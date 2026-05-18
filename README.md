@@ -29,7 +29,7 @@ HenKaiPan uses a feature-based licensing system. Core functionality is free, whi
 - **Risk Acceptance** — formal risk acceptance workflow with approval chain
 - **Reports & Advanced Metrics** — trend analysis, risk scores, finding exports
 
-License is validated offline via JWT. Configure with `LICENSE_KEY` and `LICENSE_SIGNING_SECRET` environment variables.
+License is validated offline via HMAC-SHA256. Configure with `LICENSE_KEY` environment variable. The signing secret is embedded in the binary.
 
 ## Tech Stack
 
