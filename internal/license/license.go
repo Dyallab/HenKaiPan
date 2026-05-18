@@ -36,15 +36,13 @@ type Service struct {
 	status        string // parsed status: "active", "inactive", "expired", "invalid"
 }
 
-// New creates a Service from the configured signing secret and optional license key.
+// New creates a Service from the given license key.
+// The signing secret is embedded in the binary — no env var required.
 // When licenseKey is empty the service operates in free mode (no features).
-func New(signingSecret, licenseKey string) *Service {
-	svc := &Service{signingSecret: signingSecret}
+func New(licenseKey string) *Service {
+	svc := &Service{signingSecret: builtinSigningSecret()}
 
-	if licenseKey == "" || signingSecret == "" {
-		if signingSecret == "" && licenseKey != "" {
-			slog.Warn("license key provided but LICENSE_SIGNING_SECRET is not set — key cannot be validated")
-		}
+	if licenseKey == "" {
 		svc.status = "inactive"
 		return svc
 	}

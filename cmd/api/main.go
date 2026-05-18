@@ -51,7 +51,7 @@ func main() {
 	defer queueClient.Close()
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
-	licSvc := license.New(cfg.LicenseSigningSecret, cfg.LicenseKey)
+	licSvc := license.New(cfg.LicenseKey)
 	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc)
 
 	// Initialize rate limiter

@@ -29,7 +29,6 @@ type Config struct {
 	CookieDomain         string // optional: cookie domain for production (e.g. ".example.com")
 	CookieSameSite       string // optional: "lax" (default), "strict", or "none" (requires Secure=true)
 	LicenseKey           string // optional: license key for self-hosted features
-	LicenseSigningSecret string // secret for signing license keys (default: "aspm-license-secret")
 	WebhookSecret        string // optional: secret for HMAC webhook signature validation
 
 	SMTPHost     string // optional email notifications
@@ -96,7 +95,6 @@ func Load() *Config {
 		CookieDomain:          os.Getenv("COOKIE_DOMAIN"),
 		CookieSameSite:        envOr("COOKIE_SAMESITE", "lax"),
 		LicenseKey:            os.Getenv("LICENSE_KEY"),
-		LicenseSigningSecret:  os.Getenv("LICENSE_SIGNING_SECRET"),
 		WebhookSecret:         os.Getenv("WEBHOOK_SECRET"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPPort:              envOr("SMTP_PORT", "587"),
