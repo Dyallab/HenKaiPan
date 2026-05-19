@@ -1588,8 +1588,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${enabled ? "right-0.5" : "left-0.5"}`;
     }
 
-    import { api } from "@lib/api";
-
     document
         .getElementById("danger-logout")!
         .addEventListener("click", async () => {
