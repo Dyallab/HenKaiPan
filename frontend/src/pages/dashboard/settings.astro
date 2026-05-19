@@ -15,11 +15,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 {
                     [
                         {
-                            id: "general",
-                            label: "General",
-                            icon: "manage_accounts",
-                        },
-                        {
                             id: "integrations",
                             label: "Integrations",
                             icon: "integration_instructions",
@@ -52,7 +47,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         <button
                             data-section={s.id}
                             class={`settings-nav w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-left transition-all ${
-                                s.id === "general"
+                                s.id === "integrations"
                                     ? "bg-cyan-500/10 text-cyan-400"
                                     : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
                             }`}
@@ -69,95 +64,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
 
         <!-- Content -->
         <div class="flex-1 min-w-0 space-y-10">
-            <!-- General -->
-            <section id="section-general" class="settings-section space-y-6">
-                <div class="border-b border-slate-800 pb-4">
-                    <h2 class="text-xl font-bold text-on-background">
-                        General Settings
-                    </h2>
-                    <p class="text-sm text-slate-400 mt-1">
-                        Platform identity and API configuration.
-                    </p>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <div class="col-span-2 space-y-5">
-                        <div
-                            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
-                        >
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                                    >Platform Name</label
-                                >
-                                <input
-                                    id="org-name"
-                                    type="text"
-                                    value="HenKaiPan — Security Posture Manager"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
-                                />
-                            </div>
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                                    >API Base URL</label
-                                >
-                                <input
-                                    id="api-url"
-                                    type="text"
-                                    value="http://localhost:8080"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none font-mono transition-all"
-                                />
-                            </div>
-                            <div class="space-y-2">
-                                <label
-                                    class="block text-[10px] font-bold uppercase tracking-widest text-slate-500"
-                                    >Admin Username</label
-                                >
-                                <input
-                                    id="admin-user"
-                                    type="text"
-                                    value="admin"
-                                    class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-on-background text-sm focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
-                                />
-                            </div>
-                        </div>
-                        <button
-                            id="save-general"
-                            class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold px-6 py-2.5 rounded-lg text-sm transition-all active:scale-95"
-                        >
-                            Save Changes
-                        </button>
-                        <div
-                            id="save-general-msg"
-                            class="hidden text-xs font-medium"
-                        >
-                        </div>
-                    </div>
-                    <div class="space-y-4">
-                        <div
-                            class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 text-center space-y-4"
-                        >
-                            <div
-                                class="w-20 h-20 rounded-xl mx-auto bg-cyan-500 flex items-center justify-center"
-                            >
-                                <span
-                                    class="material-symbols-outlined ms-fill text-slate-950 text-4xl"
-                                    >security</span
-                                >
-                            </div>
-                            <div>
-                                <h4 class="font-bold text-on-background">
-                                    Hen Kai Pan
-                                </h4>
-                                <p class="text-xs text-slate-500 mt-1">
-                                    Application Security Posture Manager
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Integrations -->
             <section
                 id="section-integrations"
@@ -172,77 +78,76 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                     </p>
                 </div>
 
-                <!-- Scanner status -->
-                <div>
-                    <p
-                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
-                    >
-                        Available Scanners
-                    </p>
+                <!-- Tab bar -->
+                <div class="flex gap-2">
+                    <button data-tab-trigger="scanners" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80">
+                        <span class="material-symbols-outlined text-base align-middle mr-1.5">security</span>
+                        Scanners
+                    </button>
+                    <button data-tab-trigger="jira" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">
+                        <span class="material-symbols-outlined text-base align-middle mr-1.5">open_in_new</span>
+                        Jira
+                    </button>
+                </div>
+
+                <!-- Panel: Scanners -->
+                <div data-tab-panel="scanners" class="tab-panel space-y-4">
                     <div
                         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                     >
                         {
                             [
                                 {
-                                    name: "semgrep",
-                                    label: "Semgrep",
+                                    name: "Semgrep",
                                     type: "SAST",
                                     icon: "code",
                                     color: "text-cyan-400",
                                     desc: "Static analysis for 30+ languages.",
                                 },
                                 {
-                                    name: "trivy",
-                                    label: "Trivy",
+                                    name: "Trivy",
                                     type: "SCA",
                                     icon: "inventory_2",
                                     color: "text-purple-400",
                                     desc: "CVEs in dependencies and containers.",
                                 },
                                 {
-                                    name: "trufflehog",
-                                    label: "TruffleHog",
+                                    name: "TruffleHog",
                                     type: "Secrets",
                                     icon: "key",
                                     color: "text-amber-400",
                                     desc: "Leaked credentials and API keys.",
                                 },
                                 {
-                                    name: "gosec",
-                                    label: "Gosec",
+                                    name: "Gosec",
                                     type: "SAST",
                                     icon: "code",
                                     color: "text-cyan-400",
                                     desc: "Go security checker.",
                                 },
                                 {
-                                    name: "gitleaks",
-                                    label: "Gitleaks",
+                                    name: "Gitleaks",
                                     type: "Secrets",
                                     icon: "key",
                                     color: "text-amber-400",
                                     desc: "Secret detection in git history.",
                                 },
                                 {
-                                    name: "grype",
-                                    label: "Grype",
+                                    name: "Grype",
                                     type: "SCA",
                                     icon: "inventory_2",
                                     color: "text-purple-400",
                                     desc: "Vulnerability scanner for container images.",
                                 },
                                 {
-                                    name: "checkov",
-                                    label: "Checkov",
+                                    name: "Checkov",
                                     type: "IaC",
                                     icon: "cloud",
                                     color: "text-green-400",
                                     desc: "Terraform, CloudFormation, Kubernetes.",
                                 },
                                 {
-                                    name: "nuclei",
-                                    label: "Nuclei",
+                                    name: "Nuclei",
                                     type: "DAST",
                                     icon: "language",
                                     color: "text-orange-400",
@@ -260,19 +165,19 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                         </div>
                                         <div class="min-w-0">
                                             <p class="font-bold text-sm text-on-background">
-                                                {s.label}
+                                                {s.name}
                                             </p>
                                             <span
                                                 class={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
                                                     s.type === "SAST"
                                                         ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
                                                         : s.type === "SCA"
-                                                          ? "text-purple-400 bg-purple-500/10 border-purple-500/20"
-                                                          : s.type === "Secrets"
-                                                            ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
-                                                            : s.type === "IaC"
-                                                              ? "text-green-400 bg-green-500/10 border-green-500/20"
-                                                              : "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                                                              ? "text-purple-400 bg-purple-500/10 border-purple-500/20"
+                                                              : s.type === "Secrets"
+                                                                ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                                                : s.type === "IaC"
+                                                                  ? "text-green-400 bg-green-500/10 border-green-500/20"
+                                                                  : "text-orange-400 bg-orange-500/10 border-orange-500/20"
                                                 }`}
                                             >
                                                 {s.type}
@@ -282,24 +187,14 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                     <p class="text-xs text-slate-500 leading-relaxed">
                                         {s.desc}
                                     </p>
-                                    <div class="flex items-center gap-2 mt-auto pt-2">
-                                        <div class="w-1.5 h-1.5 rounded-full bg-secondary shadow-[0_0_6px_rgba(78,222,163,0.5)]" />
-                                        <span class="font-mono text-[10px] text-slate-600 ml-auto">
-                                            {s.name}
-                                        </span>
-                                    </div>
                                 </div>
                             ))
                         }
                     </div>
                 </div>
 
-                <div>
-                    <p
-                        class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4"
-                    >
-                        Jira Cloud
-                    </p>
+                <!-- Panel: Jira -->
+                <div data-tab-panel="jira" class="tab-panel hidden space-y-4">
                     <div
                         class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-4"
                     >
@@ -429,20 +324,24 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         hooks.
                     </p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Alert toggles -->
+
+                <!-- Tab bar -->
+                <div class="flex gap-2">
+                    <button data-tab-trigger="alerts" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80">
+                        <span class="material-symbols-outlined text-base align-middle mr-1.5">notifications</span>
+                        Alerts
+                    </button>
+                    <button data-tab-trigger="webhooks" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">
+                        <span class="material-symbols-outlined text-base align-middle mr-1.5">webhook</span>
+                        Webhooks
+                    </button>
+                </div>
+
+                <!-- Panel: Alerts -->
+                <div data-tab-panel="alerts" class="tab-panel space-y-4">
                     <div
                         class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
                     >
-                        <h4
-                            class="font-bold text-on-background flex items-center gap-2"
-                        >
-                            <span
-                                class="material-symbols-outlined text-cyan-400 text-xl"
-                                >mail</span
-                            >
-                            Alert Preferences
-                        </h4>
                         <div class="space-y-4">
                             {
                                 [
@@ -551,8 +450,10 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         </div>
                         <p id="notification-msg" class="text-xs hidden"></p>
                     </div>
+                </div>
 
-                    <!-- Webhooks -->
+                <!-- Panel: Webhooks -->
+                <div data-tab-panel="webhooks" class="tab-panel hidden space-y-4">
                     <div
                         class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
                     >
@@ -1545,41 +1446,35 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         });
     });
 
-    // --- General: save settings ---
-    document.getElementById("save-general")!.addEventListener("click", () => {
-        const orgName = (
-            document.getElementById("org-name") as HTMLInputElement
-        ).value;
-        const apiUrl = (document.getElementById("api-url") as HTMLInputElement)
-            .value;
-        const adminUser = (
-            document.getElementById("admin-user") as HTMLInputElement
-        ).value;
+    // --- Section tabs (reusable: [data-tab-trigger] + [data-tab-panel]) ---
+    function setupTabs(triggers: NodeListOf<HTMLElement>, panels: NodeListOf<HTMLElement>, firstTab: string) {
+        function activate(tab: string) {
+            triggers.forEach(trigger => {
+                const active = trigger.dataset.tabTrigger === tab;
+                trigger.className = active
+                    ? 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80'
+                    : 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors';
+            });
+            panels.forEach(panel =>
+                panel.classList.toggle('hidden', panel.dataset.tabPanel !== tab),
+            );
+        }
+        triggers.forEach(trigger =>
+            trigger.addEventListener('click', () => activate(trigger.dataset.tabTrigger!)),
+        );
+        activate(firstTab);
+    }
 
-        localStorage.setItem("aspm_org_name", orgName);
-        localStorage.setItem("aspm_api_url", apiUrl);
-        localStorage.setItem("aspm_admin_user", adminUser);
-
-        const msg = document.getElementById("save-general-msg")!;
-        msg.textContent = "✓ Settings saved.";
-        msg.className = "text-xs font-medium text-secondary";
-        msg.classList.remove("hidden");
-        setTimeout(() => msg.classList.add("hidden"), 3000);
-    });
-
-    // Load saved general settings
-    const savedOrg = localStorage.getItem("aspm_org_name");
-    const savedUrl = localStorage.getItem("aspm_api_url");
-    const savedUser = localStorage.getItem("aspm_admin_user");
-    if (savedOrg)
-        (document.getElementById("org-name") as HTMLInputElement).value =
-            savedOrg;
-    if (savedUrl)
-        (document.getElementById("api-url") as HTMLInputElement).value =
-            savedUrl;
-    if (savedUser)
-        (document.getElementById("admin-user") as HTMLInputElement).value =
-            savedUser;
+    setupTabs(
+        document.querySelectorAll<HTMLElement>('#section-integrations [data-tab-trigger]'),
+        document.querySelectorAll<HTMLElement>('#section-integrations [data-tab-panel]'),
+        'scanners',
+    );
+    setupTabs(
+        document.querySelectorAll<HTMLElement>('#section-notifications [data-tab-trigger]'),
+        document.querySelectorAll<HTMLElement>('#section-notifications [data-tab-panel]'),
+        'alerts',
+    );
 
     function setToggleState(btn: HTMLButtonElement, enabled: boolean) {
         btn.setAttribute("aria-pressed", String(enabled));
@@ -1608,9 +1503,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             } catch {}
 
             [
-                "aspm_org_name",
-                "aspm_api_url",
-                "aspm_admin_user",
                 "aspm_webhooks",
             ].forEach((k) => localStorage.removeItem(k));
             window.location.href = "/login";

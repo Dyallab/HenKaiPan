@@ -47,6 +47,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	db.EnsureAdminUser(context.Background(), pool)
+
 	queueClient := queue.NewClient(cfg.RedisAddr)
 	defer queueClient.Close()
 
