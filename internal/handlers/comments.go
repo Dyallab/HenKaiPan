@@ -16,7 +16,7 @@ func (h *Handler) GetFindingComments(w http.ResponseWriter, r *http.Request) {
 	
 	comments, err := h.store.Apps.GetFindingComments(r.Context(), findingID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get comments")
+		writeError(w, r, http.StatusInternalServerError, "failed to get comments")
 		return
 	}
 	writeJSON(w, http.StatusOK, comments)
@@ -27,7 +27,7 @@ func (h *Handler) CreateFindingComment(w http.ResponseWriter, r *http.Request) {
 	
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -35,7 +35,7 @@ func (h *Handler) CreateFindingComment(w http.ResponseWriter, r *http.Request) {
 		Content string `json:"content"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
-		writeError(w, http.StatusBadRequest, "content required")
+		writeError(w, r, http.StatusBadRequest, "content required")
 		return
 	}
 
@@ -45,7 +45,7 @@ func (h *Handler) CreateFindingComment(w http.ResponseWriter, r *http.Request) {
 		Content:   body.Content,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create comment")
+		writeError(w, r, http.StatusInternalServerError, "failed to create comment")
 		return
 	}
 	writeJSON(w, http.StatusCreated, comment)
@@ -54,12 +54,12 @@ func (h *Handler) CreateFindingComment(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteFindingComment(w http.ResponseWriter, r *http.Request) {
 	commentID, err := strconv.ParseInt(chi.URLParam(r, "commentID"), 10, 64)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid comment ID")
+		writeError(w, r, http.StatusBadRequest, "invalid comment ID")
 		return
 	}
 
 	if err := h.store.Apps.DeleteFindingComment(r.Context(), commentID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete comment")
+		writeError(w, r, http.StatusInternalServerError, "failed to delete comment")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

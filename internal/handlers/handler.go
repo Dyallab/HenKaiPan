@@ -39,8 +39,40 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	json.NewEncoder(w).Encode(v)
 }
 
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
+func writeError(w http.ResponseWriter, r *http.Request, status int, msg string) {
+	code := statusCodeToCode(status)
+	slog.ErrorContext(r.Context(), "http error",
+		"code", code,
+		"message", msg,
+		"status", status,
+		"path", r.URL.Path,
+	)
+	writeJSON(w, status, map[string]string{"code": code, "message": msg})
+}
+
+func statusCodeToCode(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return httperrors.ErrBadRequest
+	case http.StatusUnauthorized:
+		return httperrors.ErrUnauthorized
+	case http.StatusForbidden:
+		return httperrors.ErrForbidden
+	case http.StatusNotFound:
+		return httperrors.ErrNotFound
+	case http.StatusConflict:
+		return httperrors.ErrConflict
+	case http.StatusInternalServerError:
+		return httperrors.ErrInternal
+	case http.StatusBadGateway:
+		return httperrors.ErrInternal
+	case http.StatusServiceUnavailable:
+		return httperrors.ErrServiceUnavailable
+	case http.StatusTooManyRequests:
+		return httperrors.ErrRateLimited
+	default:
+		return httperrors.ErrInternal
+	}
 }
 
 // writeHTTPError writes a standardized HTTP error response

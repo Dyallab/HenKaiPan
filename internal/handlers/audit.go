@@ -32,7 +32,7 @@ func (h *Handler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 		Limit:      100,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list audit logs")
+		writeError(w, r, http.StatusInternalServerError, "failed to list audit logs")
 		return
 	}
 
@@ -49,18 +49,18 @@ func (h *Handler) CreateRiskAcceptance(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt string `json:"expires_at"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.FindingID == "" || body.Rationale == "" || body.ExpiresAt == "" {
-		writeError(w, http.StatusBadRequest, "finding_id, rationale, expires_at required")
+		writeError(w, r, http.StatusBadRequest, "finding_id, rationale, expires_at required")
 		return
 	}
 
 	// Get current user from context (set by JWT middleware)
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	userID := claims.UserID
@@ -73,7 +73,7 @@ func (h *Handler) CreateRiskAcceptance(w http.ResponseWriter, r *http.Request) {
 		Status:    "pending",
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create risk acceptance")
+		writeError(w, r, http.StatusInternalServerError, "failed to create risk acceptance")
 		return
 	}
 
@@ -87,19 +87,19 @@ func (h *Handler) ApproveRiskAcceptance(w http.ResponseWriter, r *http.Request) 
 		ReviewNotes string `json:"review_notes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	userID := claims.UserID
 
 	if err := h.store.RiskAcceptance.Approve(r.Context(), chi.URLParam(r, "id"), userID, body.ReviewNotes); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to approve risk acceptance")
+		writeError(w, r, http.StatusInternalServerError, "failed to approve risk acceptance")
 		return
 	}
 
@@ -113,12 +113,12 @@ func (h *Handler) RejectRiskAcceptance(w http.ResponseWriter, r *http.Request) {
 		ReviewNotes string `json:"review_notes"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 
 	if err := h.store.RiskAcceptance.Reject(r.Context(), chi.URLParam(r, "id"), body.ReviewNotes); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to reject risk acceptance")
+		writeError(w, r, http.StatusInternalServerError, "failed to reject risk acceptance")
 		return
 	}
 
@@ -138,7 +138,7 @@ func (h *Handler) ListRiskAcceptances(w http.ResponseWriter, r *http.Request) {
 		Limit:     50,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list risk acceptances")
+		writeError(w, r, http.StatusInternalServerError, "failed to list risk acceptances")
 		return
 	}
 
@@ -153,7 +153,7 @@ func (h *Handler) GetRiskAcceptanceByFinding(w http.ResponseWriter, r *http.Requ
 
 	ra, err := h.store.RiskAcceptance.GetByFindingID(r.Context(), findingID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "no risk acceptance found for this finding")
+		writeError(w, r, http.StatusNotFound, "no risk acceptance found for this finding")
 		return
 	}
 

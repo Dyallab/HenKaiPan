@@ -17,7 +17,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	if appID != "" {
 		projects, err := h.store.Apps.ListProjects(r.Context(), appID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list projects")
+			writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 			return
 		}
 		writeJSON(w, http.StatusOK, projects)
@@ -31,7 +31,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	if pattern != "" {
 		projects, err := h.store.Apps.ListStandaloneByPattern(r.Context(), pattern)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "failed to list projects")
+			writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 			return
 		}
 		writeJSON(w, http.StatusOK, projects)
@@ -40,7 +40,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 
 	projects, err := h.store.Apps.ListAllProjects(r.Context(), filter)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list projects")
+		writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 		return
 	}
 	writeJSON(w, http.StatusOK, projects)
@@ -49,7 +49,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 	p, err := h.store.Apps.GetProjectByID(r.Context(), chi.URLParam(r, "projectID"))
 	if err != nil {
-		writeError(w, http.StatusNotFound, "project not found")
+		writeError(w, r, http.StatusNotFound, "project not found")
 		return
 	}
 	writeJSON(w, http.StatusOK, p)
@@ -58,7 +58,7 @@ func (h *Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var req validation.CreateProjectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 
@@ -76,17 +76,18 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	appID := r.URL.Query().Get("app_id")
 	if appID != "" {
 		project, err := h.store.Apps.CreateProject(r.Context(), appID, pc)
-		if err != nil {
-			writeError(w, http.StatusConflict, err.Error())
+	if err != nil {
+			writeError(w, r, http.StatusConflict, "project already exists")
 			return
 		}
 		writeJSON(w, http.StatusCreated, project)
 	} else {
 		project, err := h.store.Apps.CreateStandaloneProject(r.Context(), pc)
 		if err != nil {
-			writeError(w, http.StatusConflict, err.Error())
+			writeError(w, r, http.StatusConflict, "project already exists")
 			return
 		}
+		h.auditLog(r, "project.create", "project", project.ID, nil, project)
 		writeJSON(w, http.StatusCreated, project)
 	}
 }
@@ -102,15 +103,18 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 		AppID          *string `json:"app_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
-	h.store.Apps.UpdateProject(r.Context(), chi.URLParam(r, "projectID"), repository.ProjectUpdate{
+	projectID := chi.URLParam(r, "projectID")
+	oldProject, _ := h.store.Apps.GetProjectByID(r.Context(), projectID)
+	h.store.Apps.UpdateProject(r.Context(), projectID, repository.ProjectUpdate{
 		Name: body.Name, Description: body.Description,
 		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
 		ExternalRepoID: body.ExternalRepoID,
 		AppID: body.AppID,
 	})
+	h.auditLog(r, "project.update", "project", projectID, oldProject, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -121,12 +125,12 @@ func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Reques
 		Token string `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, r, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	if err := h.store.Apps.UpdateProjectGitHubToken(r.Context(), id, req.Token); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update token")
+		writeError(w, r, http.StatusInternalServerError, "failed to update token")
 		return
 	}
 
@@ -134,7 +138,10 @@ func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
-	h.store.Apps.DeleteProject(r.Context(), chi.URLParam(r, "projectID"))
+	id := chi.URLParam(r, "projectID")
+	oldProject, _ := h.store.Apps.GetProjectByID(r.Context(), id)
+	h.store.Apps.DeleteProject(r.Context(), id)
+	h.auditLog(r, "project.delete", "project", id, oldProject, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -146,7 +153,7 @@ func (h *Handler) GetCoverageReport(w http.ResponseWriter, r *http.Request) {
 
 	report, err := h.store.Apps.GetCoverageReport(r.Context(), days)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get coverage report")
+		writeError(w, r, http.StatusInternalServerError, "failed to get coverage report")
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
@@ -178,11 +185,11 @@ type bulkCreateResponse struct {
 func (h *Handler) BulkCreateProjects(w http.ResponseWriter, r *http.Request) {
 	var req bulkCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if req.Pattern == "" {
-		writeError(w, http.StatusBadRequest, "pattern is required")
+		writeError(w, r, http.StatusBadRequest, "pattern is required")
 		return
 	}
 	if req.Limit <= 0 {
@@ -194,7 +201,7 @@ func (h *Handler) BulkCreateProjects(w http.ResponseWriter, r *http.Request) {
 
 	repos, err := github.ResolvePattern(r.Context(), req.Pattern, req.GitHubToken, req.Limit)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 	if len(repos) == 0 {
@@ -232,7 +239,7 @@ func (h *Handler) BulkCreateProjects(w http.ResponseWriter, r *http.Request) {
 
 	results, err := h.store.Apps.BulkCreateProjects(r.Context(), req.AppID, projects)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to bulk create projects")
 		return
 	}
 
@@ -261,21 +268,21 @@ func (h *Handler) BulkAssignProjects(w http.ResponseWriter, r *http.Request) {
 		ProjectIDs []string `json:"project_ids"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if req.AppID == "" {
-		writeError(w, http.StatusBadRequest, "app_id is required")
+		writeError(w, r, http.StatusBadRequest, "app_id is required")
 		return
 	}
 	if len(req.ProjectIDs) == 0 {
-		writeError(w, http.StatusBadRequest, "project_ids is required")
+		writeError(w, r, http.StatusBadRequest, "project_ids is required")
 		return
 	}
 
 	count, err := h.store.Apps.AssignProjectsToApp(r.Context(), req.AppID, req.ProjectIDs)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to assign projects")
 		return
 	}
 

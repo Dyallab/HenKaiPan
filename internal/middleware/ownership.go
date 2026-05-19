@@ -85,18 +85,13 @@ func writeJSONError(w http.ResponseWriter, status int, code, message string) {
 func extractResourceID(r *http.Request, resourceType string) string {
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
+	plural := resourceType + "s"
+	noHyphen := strings.ReplaceAll(resourceType, "-", "")
+	pluralNoHyphen := noHyphen + "s"
 
 	for i, part := range parts {
-		if part == resourceType || part == strings.Replace(resourceType, "-", "", -1) {
+		if part == resourceType || part == plural || part == noHyphen || part == pluralNoHyphen {
 			if i+1 < len(parts) {
-				return parts[i+1]
-			}
-		}
-	}
-
-	if resourceType == "project" {
-		for i, part := range parts {
-			if part == "projects" && i+1 < len(parts) {
 				return parts[i+1]
 			}
 		}

@@ -10,7 +10,7 @@ import (
 func (h *Handler) ListTeams(w http.ResponseWriter, r *http.Request) {
 	teams, err := h.store.Teams.List(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list teams")
+		writeError(w, r, http.StatusInternalServerError, "failed to list teams")
 		return
 	}
 	writeJSON(w, http.StatusOK, teams)
@@ -21,13 +21,13 @@ func (h *Handler) CreateTeam(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
-		writeError(w, http.StatusBadRequest, "name required")
+		writeError(w, r, http.StatusBadRequest, "name required")
 		return
 	}
 
 	t, err := h.store.Teams.Create(r.Context(), body.Name)
 	if err != nil {
-		writeError(w, http.StatusConflict, "team name already exists")
+		writeError(w, r, http.StatusConflict, "team name already exists")
 		return
 	}
 	writeJSON(w, http.StatusCreated, t)
@@ -43,12 +43,12 @@ func (h *Handler) AddTeamMember(w http.ResponseWriter, r *http.Request) {
 		UserID string `json:"user_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.UserID == "" {
-		writeError(w, http.StatusBadRequest, "user_id required")
+		writeError(w, r, http.StatusBadRequest, "user_id required")
 		return
 	}
 
 	if err := h.store.Teams.AddMember(r.Context(), chi.URLParam(r, "id"), body.UserID); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to add member")
+		writeError(w, r, http.StatusInternalServerError, "failed to add member")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

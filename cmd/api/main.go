@@ -202,13 +202,6 @@ func main() {
 			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.RejectRiskAcceptance)))
 		})
 
-		// ── Paid: Comments ──
-		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.GetFindingComments)))
-			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.CreateFindingComment)))
-			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.DeleteFindingComment)))
-		})
-
 		// ── Paid: Reports & Advanced Metrics ──
 		r.With(licSvc.RequireFeature(license.FeatureReports)).Group(func(r chi.Router) {
 			r.Get("/api/metrics/trends", h.GetTrends)
@@ -239,22 +232,6 @@ func main() {
 		r.Delete("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.DeleteProject))
 		r.Post("/api/projects/bulk", h.BulkCreateProjects)
 		r.Post("/api/projects/bulk-assign", h.BulkAssignProjects)
-
-		// ── Paid: Risk Acceptance ──
-		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
-			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.ApproveRiskAcceptance))
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.RejectRiskAcceptance))
-		})
-
-		// ── Paid: Comments ──
-		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
-			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
-			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
-		})
 
 		// ── Paid: AI Remediation ──
 		r.With(licSvc.RequireFeature(license.FeatureAIRemediation)).Group(func(r chi.Router) {

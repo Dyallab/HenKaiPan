@@ -15,13 +15,13 @@ func (h *Handler) GetFindingCorrelations(w http.ResponseWriter, r *http.Request)
 	id := chi.URLParam(r, "id")
 
 	if _, err := h.store.Findings.GetByID(r.Context(), id); err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 
 	findings, err := h.store.Agents.GetCorrelatedFindings(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get correlations")
+		writeError(w, r, http.StatusInternalServerError, "failed to get correlations")
 		return
 	}
 
@@ -36,7 +36,7 @@ func (h *Handler) GetFindingAnalysis(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	analysis, err := h.store.Agents.GetAnalysis(r.Context(), id, "validator")
 	if err != nil {
-		writeError(w, http.StatusNotFound, "no analysis found for this finding")
+		writeError(w, r, http.StatusNotFound, "no analysis found for this finding")
 		return
 	}
 	writeJSON(w, http.StatusOK, analysis)
@@ -48,19 +48,19 @@ func (h *Handler) AnalyzeFinding(w http.ResponseWriter, r *http.Request) {
 
 	// Verify finding exists
 	if _, err := h.store.Findings.GetByID(r.Context(), id); err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 
 	payload, err := tasks.MarshalFindingValidatePayload(tasks.FindingValidatePayload{FindingID: id})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal error")
+		writeError(w, r, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeFindingValidate, payload)); err != nil {
 		slog.Error("enqueue agent:validate", "finding_id", id, "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to enqueue analysis")
+		writeError(w, r, http.StatusInternalServerError, "failed to enqueue analysis")
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *Handler) RequestFindingSummary(w http.ResponseWriter, r *http.Request) 
 
 	finding, err := h.store.Findings.GetByID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 
@@ -110,14 +110,14 @@ func (h *Handler) RequestFindingSummary(w http.ResponseWriter, r *http.Request) 
 
 	payload, err := tasks.MarshalFindingSummarizePayload(tasks.FindingSummarizePayload{FindingID: id})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "internal error")
+		writeError(w, r, http.StatusInternalServerError, "internal error")
 		return
 	}
 
 	task := asynq.NewTask(tasks.TypeFindingSummarize, payload)
 	if _, err := h.queue.EnqueueContext(r.Context(), task, asynq.Unique(5*time.Minute)); err != nil {
 		slog.Error("enqueue agent:summarize", "finding_id", id, "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to enqueue summary")
+		writeError(w, r, http.StatusInternalServerError, "failed to enqueue summary")
 		return
 	}
 

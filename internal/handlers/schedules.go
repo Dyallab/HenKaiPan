@@ -39,7 +39,7 @@ func (h *Handler) ListSchedules(w http.ResponseWriter, r *http.Request) {
 	if projectID != "" {
 		schedules, err := h.store.Schedules.ListByProject(r.Context(), projectID)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "list schedules: "+err.Error())
+			writeError(w, r, http.StatusInternalServerError, "failed to list schedules")
 			return
 		}
 		writeJSON(w, http.StatusOK, schedules)
@@ -49,7 +49,7 @@ func (h *Handler) ListSchedules(w http.ResponseWriter, r *http.Request) {
 	// If no project_id, return all enabled schedules (admin use)
 	schedules, err := h.store.Schedules.ListEnabled(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "list schedules: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to list schedules")
 		return
 	}
 	writeJSON(w, http.StatusOK, schedules)
@@ -60,10 +60,10 @@ func (h *Handler) GetSchedule(w http.ResponseWriter, r *http.Request) {
 	schedule, err := h.store.Schedules.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "schedule not found")
+			writeError(w, r, http.StatusNotFound, "schedule not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "get schedule: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to get schedule")
 		return
 	}
 	writeJSON(w, http.StatusOK, schedule)
@@ -72,25 +72,25 @@ func (h *Handler) GetSchedule(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 	var req scheduleCreateReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON")
+		writeError(w, r, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 	if req.ProjectID == "" && req.AppID == "" {
-		writeError(w, http.StatusBadRequest, "project_id or app_id is required")
+		writeError(w, r, http.StatusBadRequest, "project_id or app_id is required")
 		return
 	}
 	if req.CronExpr == "" {
-		writeError(w, http.StatusBadRequest, "cron_expr is required")
+		writeError(w, r, http.StatusBadRequest, "cron_expr is required")
 		return
 	}
 	if req.Scanner == "" && req.ScannerType == nil {
-		writeError(w, http.StatusBadRequest, "scanner or scanner_type is required")
+		writeError(w, r, http.StatusBadRequest, "scanner or scanner_type is required")
 		return
 	}
 
 	// Validate cron expression
 	if err := validateCronExpr(req.CronExpr); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid cron expression: "+err.Error())
+		writeError(w, r, http.StatusBadRequest, "invalid cron expression: "+err.Error())
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		CronExpr:    req.CronExpr,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "create schedule: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to create schedule")
 		return
 	}
 
@@ -119,14 +119,14 @@ func (h *Handler) UpdateSchedule(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "scheduleID")
 	var req scheduleUpdateReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON")
+		writeError(w, r, http.StatusBadRequest, "invalid JSON")
 		return
 	}
 
 	// Validate cron expression if provided
 	if req.CronExpr != nil {
 		if err := validateCronExpr(*req.CronExpr); err != nil {
-			writeError(w, http.StatusBadRequest, "invalid cron expression: "+err.Error())
+			writeError(w, r, http.StatusBadRequest, "invalid cron expression: "+err.Error())
 			return
 		}
 	}
@@ -139,10 +139,10 @@ func (h *Handler) UpdateSchedule(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "schedule not found")
+			writeError(w, r, http.StatusNotFound, "schedule not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "update schedule: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to update schedule")
 		return
 	}
 
@@ -154,10 +154,10 @@ func (h *Handler) DeleteSchedule(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "scheduleID")
 	if err := h.store.Schedules.Delete(r.Context(), id); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "schedule not found")
+			writeError(w, r, http.StatusNotFound, "schedule not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "delete schedule: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to delete schedule")
 		return
 	}
 

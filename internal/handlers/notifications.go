@@ -23,7 +23,7 @@ func (h *Handler) GetNotifications(w http.ResponseWriter, r *http.Request) {
 
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -54,12 +54,12 @@ func (h *Handler) MarkNotificationAsRead(w http.ResponseWriter, r *http.Request)
 	id := chi.URLParam(r, "id")
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
 	if err := h.store.Notifications.MarkAsRead(r.Context(), id, claims.UserID); err != nil {
-		writeError(w, http.StatusNotFound, "notification not found")
+		writeError(w, r, http.StatusNotFound, "notification not found")
 		return
 	}
 
@@ -69,7 +69,7 @@ func (h *Handler) MarkNotificationAsRead(w http.ResponseWriter, r *http.Request)
 func (h *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h *Handler) MarkAllNotificationsAsRead(w http.ResponseWriter, r *http.Requ
 func (h *Handler) GetUnreadNotificationCount(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
+		writeError(w, r, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
