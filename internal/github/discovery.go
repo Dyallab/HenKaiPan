@@ -36,6 +36,74 @@ type ghError struct {
 	Message string `json:"message"`
 }
 
+type ghUser struct {
+	Login string `json:"login"`
+	Name  string `json:"name"`
+}
+
+// TokenValidation holds the result of validating a GitHub PAT.
+type TokenValidation struct {
+	Valid     bool
+	Login     string
+	Scopes    []string
+	ExpiresAt *time.Time
+	Error     string
+}
+
+// ValidateToken checks if a GitHub PAT is valid and returns user info + scopes.
+func ValidateToken(ctx context.Context, token string) TokenValidation {
+	if token == "" {
+		return TokenValidation{Valid: true}
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://api.github.com/user", nil)
+	if err != nil {
+		return TokenValidation{Error: fmt.Sprintf("build request: %v", err)}
+	}
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return TokenValidation{Error: fmt.Sprintf("request failed: %v", err)}
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		io.Copy(io.Discard, resp.Body)
+		return TokenValidation{Error: fmt.Sprintf("invalid token (HTTP %d)", resp.StatusCode)}
+	}
+
+	var user ghUser
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return TokenValidation{Error: fmt.Sprintf("parse response: %v", err)}
+	}
+
+	var scopes []string
+	if s := resp.Header.Get("X-OAuth-Scopes"); s != "" {
+		for _, s := range strings.Split(s, ", ") {
+			scopes = append(scopes, strings.TrimSpace(s))
+		}
+	}
+
+	var expiresAt *time.Time
+	if exp := resp.Header.Get("X-GitHub-Token-Expiration"); exp != "" {
+		if t, err := time.Parse("2006-01-02 15:04:05 MST", exp); err == nil {
+			expiresAt = &t
+		} else if t, err := time.Parse(time.RFC3339, exp); err == nil {
+			expiresAt = &t
+		}
+	}
+
+	return TokenValidation{
+		Valid:     true,
+		Login:     user.Login,
+		Scopes:    scopes,
+		ExpiresAt: expiresAt,
+	}
+}
+
 // ResolvePattern resolves a glob pattern to a list of GitHub repos.
 //
 // Supported patterns:

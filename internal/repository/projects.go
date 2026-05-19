@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"aspm/internal/models"
 	"aspm/internal/secrets"
@@ -281,9 +282,9 @@ func (r *appRepo) AssignProjectsToApp(ctx context.Context, appID string, project
 	return res.RowsAffected(), nil
 }
 
-func (r *appRepo) UpdateProjectGitHubToken(ctx context.Context, id, token string) error {
+func (r *appRepo) UpdateProjectGitHubToken(ctx context.Context, id, token string, expiresAt *time.Time) error {
 	if token == "" {
-		_, err := r.db.Exec(ctx, `UPDATE projects SET github_token_encrypted = NULL WHERE id = $1`, id)
+		_, err := r.db.Exec(ctx, `UPDATE projects SET github_token_encrypted = NULL, github_token_expires_at = NULL WHERE id = $1`, id)
 		return err
 	}
 
@@ -292,21 +293,21 @@ func (r *appRepo) UpdateProjectGitHubToken(ctx context.Context, id, token string
 		return fmt.Errorf("encrypt token: %w", err)
 	}
 
-	_, err = r.db.Exec(ctx, `UPDATE projects SET github_token_encrypted = $1 WHERE id = $2`, encrypted, id)
+	_, err = r.db.Exec(ctx, `UPDATE projects SET github_token_encrypted = $1, github_token_expires_at = $2 WHERE id = $3`, []byte(encrypted), expiresAt, id)
 	return err
 }
 
 func (r *appRepo) GetProjectGitHubToken(ctx context.Context, id string) (string, error) {
-	var token *string
+	var token []byte
 	err := r.db.QueryRow(ctx, `SELECT github_token_encrypted FROM projects WHERE id = $1`, id).Scan(&token)
 	if err != nil {
 		return "", fmt.Errorf("get token: %w", err)
 	}
-	if token == nil || *token == "" {
+	if token == nil || len(token) == 0 {
 		return "", nil
 	}
 
-	decrypted, err := secrets.Decrypt(*token)
+	decrypted, err := secrets.Decrypt(string(token))
 	if err != nil {
 		return "", fmt.Errorf("decrypt token: %w", err)
 	}

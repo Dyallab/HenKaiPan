@@ -1441,13 +1441,33 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             });
 
             sections.forEach((s) => {
-                s.classList.toggle("hidden", s.id !== `section-${target}`);
+                const visible = s.id === `section-${target}`;
+                s.classList.toggle("hidden", !visible);
+                if (visible) {
+                    const tabConfig = sectionTabs.get(s.id);
+                    if (tabConfig) {
+                        const { triggers, panels, firstTab } = tabConfig;
+                        triggers.forEach(trigger => {
+                            const active = trigger.dataset.tabTrigger === firstTab;
+                            trigger.className = active
+                                ? 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-300 bg-slate-900/80'
+                                : 'tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors';
+                        });
+                        panels.forEach(panel =>
+                            panel.classList.toggle('hidden', panel.dataset.tabPanel !== firstTab),
+                        );
+                    }
+                }
             });
         });
     });
 
     // --- Section tabs (reusable: [data-tab-trigger] + [data-tab-panel]) ---
-    function setupTabs(triggers: NodeListOf<HTMLElement>, panels: NodeListOf<HTMLElement>, firstTab: string) {
+    const sectionTabs = new Map<string, { triggers: NodeListOf<HTMLElement>, panels: NodeListOf<HTMLElement>, firstTab: string }>();
+
+    function setupSectionTabs(sectionId: string, triggers: NodeListOf<HTMLElement>, panels: NodeListOf<HTMLElement>, firstTab: string) {
+        sectionTabs.set(sectionId, { triggers, panels, firstTab });
+
         function activate(tab: string) {
             triggers.forEach(trigger => {
                 const active = trigger.dataset.tabTrigger === tab;
@@ -1462,15 +1482,16 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         triggers.forEach(trigger =>
             trigger.addEventListener('click', () => activate(trigger.dataset.tabTrigger!)),
         );
-        activate(firstTab);
     }
 
-    setupTabs(
+    setupSectionTabs(
+        'section-integrations',
         document.querySelectorAll<HTMLElement>('#section-integrations [data-tab-trigger]'),
         document.querySelectorAll<HTMLElement>('#section-integrations [data-tab-panel]'),
         'scanners',
     );
-    setupTabs(
+    setupSectionTabs(
+        'section-notifications',
         document.querySelectorAll<HTMLElement>('#section-notifications [data-tab-trigger]'),
         document.querySelectorAll<HTMLElement>('#section-notifications [data-tab-panel]'),
         'alerts',

@@ -230,19 +230,13 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 		branch = cloneURL[idx+1:]
 		cloneURL = cloneURL[:idx]
 	}
-	if token != "" {
-		if strings.HasPrefix(cloneURL, "https://") {
-			cloneURL = "https://" + token + "@" + strings.TrimPrefix(cloneURL, "https://")
-			slog.Info("token injected into clone URL", "url_host", "github.com")
-		}
-	}
 
 	start := time.Now()
 
 	// Pull request refs (refs/pull/N/*) are GitHub-internal refs that don't
 	// exist in the remote. Clone normally, then fetch the specific ref.
 	if strings.HasPrefix(branch, "refs/pull/") {
-		dir, execLog, err := cloneWithPullRef(ctx, cloneURL, branch, dir, start)
+		dir, execLog, err := cloneWithPullRef(ctx, cloneURL, branch, token, dir, start)
 		return dir, execLog, err
 	}
 
@@ -250,6 +244,14 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	if branch != "" {
 		args = append(args, "--branch", branch)
 	}
+
+	// Use http.extraHeader to pass token via Authorization header instead of
+	// embedding it in the URL. This prevents token leakage into logs, ps output,
+	// and git config files.
+	if token != "" {
+		args = append([]string{"-c", "http.extraHeader=Authorization: token " + token}, args...)
+	}
+
 	args = append(args, cloneURL, dir)
 	cmd := exec.CommandContext(ctx, "git", args...)
 	out, cloneErr := cmd.CombinedOutput()
@@ -263,11 +265,14 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	return dir, execLog, nil
 }
 
-// cloneWithPullRef clones a repo and fetches a GitHub pull request ref.
+// cloneWithPullRef clones a repo and fetchs a GitHub pull request ref.
 // refs/pull/N/* are internal GitHub refs that cannot be fetched via --branch.
-func cloneWithPullRef(ctx context.Context, cloneURL, branch, dir string, start time.Time) (string, string, error) {
+func cloneWithPullRef(ctx context.Context, cloneURL, branch, token, dir string, start time.Time) (string, string, error) {
 	// Step 1: Clone without --branch
 	cloneArgs := []string{"clone", "--depth=50", cloneURL, dir}
+	if token != "" {
+		cloneArgs = append([]string{"-c", "http.extraHeader=Authorization: token " + token}, cloneArgs...)
+	}
 	cmd := exec.CommandContext(ctx, "git", cloneArgs...)
 	out, cloneErr := cmd.CombinedOutput()
 	if cloneErr != nil {
@@ -281,6 +286,9 @@ func cloneWithPullRef(ctx context.Context, cloneURL, branch, dir string, start t
 	// Step 2: Fetch the pull request ref
 	refName := "hkp-pr-ref"
 	fetchArgs := []string{"-C", dir, "fetch", "origin", branch + ":" + refName, "--depth=1"}
+	if token != "" {
+		fetchArgs = append([]string{"-c", "http.extraHeader=Authorization: token " + token}, fetchArgs...)
+	}
 	fetchCmd := exec.CommandContext(ctx, "git", fetchArgs...)
 	fetchOut, fetchErr := fetchCmd.CombinedOutput()
 	if fetchErr != nil {
