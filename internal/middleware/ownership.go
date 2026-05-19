@@ -19,6 +19,22 @@ type ownershipStore interface {
 	CheckRiskAcceptanceOwnership(ctx context.Context, userID, riskAcceptanceID string) (bool, error)
 }
 
+var roleCapabilities = map[string]struct{ read, write bool }{
+	"admin":  {read: true, write: true},
+	"viewer": {read: true, write: false},
+}
+
+func hasCapability(role, cap string) bool {
+	c, ok := roleCapabilities[role]
+	if !ok {
+		return false
+	}
+	if cap == "read" {
+		return c.read
+	}
+	return c.write
+}
+
 func RequireOwnership(store repository.AppRepository, resourceType string) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
@@ -28,7 +44,12 @@ func RequireOwnership(store repository.AppRepository, resourceType string) func(
 				return
 			}
 
-			if claims.Role == "admin" {
+			if hasCapability(claims.Role, "write") {
+				next(w, r)
+				return
+			}
+
+			if hasCapability(claims.Role, "read") && r.Method == http.MethodGet {
 				next(w, r)
 				return
 			}

@@ -138,9 +138,16 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 <script>
   import { api } from '@lib/api';
   import type { Finding } from '@lib/api';
+  import { canWrite } from '@lib/auth';
 
   // Bulk actions state
   let selectedFindingIds: Set<string> = new Set();
+  const hasWriteAccess = canWrite();
+
+  if (!hasWriteAccess) {
+    document.getElementById('bulk-actions')?.remove();
+    document.getElementById('select-all-findings')?.closest('th')?.remove();
+  }
 
   const SEV_STYLES: Record<string, string> = {
     critical: 'text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20',
@@ -290,9 +297,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       <table class="w-full text-sm">
         <thead>
           <tr class="bg-slate-950/50 border-b border-slate-800">
-              <th class="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-12">
+              ${hasWriteAccess ? `<th class="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-12">
               <input type="checkbox" id="select-all-findings" class="h-4 w-4 rounded border-slate-600 bg-surface-container text-cyan-400 focus:ring-0" />
-            </th>
+            </th>` : ''}
             <th class="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Finding</th>
 			<th class="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
             <th class="text-left px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
@@ -319,9 +326,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
               : '';
 			return `
               <tr class="group hover:bg-slate-900/30 transition-colors cursor-pointer ${f.false_positive ? 'opacity-50' : ''}" data-finding-id="${f.id}">
-                <td class="px-5 py-3" onclick="event.stopPropagation()">
+                ${hasWriteAccess ? `<td class="px-5 py-3" onclick="event.stopPropagation()">
                   <input type="checkbox" data-finding-id="${f.id}" class="finding-checkbox h-4 w-4 rounded border-slate-600 bg-surface-container text-cyan-400 focus:ring-0" />
-                </td>
+                </td>` : ''}
                 <td class="px-5 py-3">
                   <a href="/dashboard/findings/detail?id=${encodeURIComponent(f.id)}" class="block" onclick="event.stopPropagation()">
                     <p class="font-bold text-on-background group-hover:text-cyan-300 transition-colors">${f.title}</p>
@@ -356,7 +363,8 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         </tbody>
       </table>`;
 
-    // Setup checkbox handlers
+    // Setup checkbox handlers (skip for viewers)
+    if (hasWriteAccess) {
     const selectAllCheckbox = document.getElementById('select-all-findings') as HTMLInputElement;
     const checkboxes = document.querySelectorAll('.finding-checkbox') as NodeListOf<HTMLInputElement>;
     
@@ -372,6 +380,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         updateBulkActions();
       });
     });
+    }
 
     // Setup row click handlers - navigate to detail page
     const rows = document.querySelectorAll('tr[data-finding-id]');
