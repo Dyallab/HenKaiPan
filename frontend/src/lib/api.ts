@@ -30,20 +30,25 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
       throw new Error("unauthorized");
     }
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      const errorMsg = err.error ?? res.statusText;
+      const err = await res.json().catch(() => ({ message: res.statusText }));
+      const errorMsg = err.message ?? err.error ?? res.statusText;
+      const errorCode = err.code ?? "";
       console.error(`API Error [${res.status}]:`, errorMsg, "Path:", path);
       window.dispatchEvent(
         new CustomEvent("api-error", {
           detail: {
             message: friendlyError(errorMsg),
             status: res.status,
+            code: errorCode,
             path,
             silent: res.status === 404,
           },
         }),
       );
-      throw new Error(errorMsg);
+      const e = new Error(errorMsg);
+      (e as any).code = errorCode;
+      (e as any).status = res.status;
+      throw e;
     }
     if (res.status === 204) {
       return undefined as T;

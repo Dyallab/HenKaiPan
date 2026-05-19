@@ -60,7 +60,22 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
+## Completed — Session: Error Handling & Middleware Audit
 
+### Fixed
+- **Rate limits too aggressive**: `rateLimitHeavy` 20→60 req/min, removed `/api/scans` from heavy (now falls under general 100 req/min)
+- **Ownership middleware broken for viewers**: `extractResourceID` only matched singular resource names (`finding`) but URLs use plural (`/api/findings/`). Fixed to match both forms. Removed hardcoded `project` workaround that was the only working case.
+- **Duplicate routes in main.go**: 3x Comments group, 2x Risk Acceptance group — removed duplicates
+- **Error responses not logged**: `writeError()` was a silent function. Now logs code, message, status, path via `slog.ErrorContext` (196 call sites updated)
+- **Error response format inconsistent**: Changed from `{"error": "msg"}` to `{"code": "...", "message": "..."}` across all handlers
+- **Frontend error parsing**: `api.ts` now reads `err.message` first (new format), fallback to `err.error` (legacy). Error objects carry `code` and `status` properties for programmatic handling
+- **Error details leaked in production**: Replaced DB/internal error strings with generic messages in 12 locations (schedules, projects, webhooks, settings, knowledge_remediation, knowledge_articles). Validation feedback errors (cron, URL, scanner names) kept as-is — user needs to know what's wrong
+- **Audit logging gaps**: Added audit entries for App CRUD, Project CRUD, Webhook CRUD + test, Scan creation (single + batch). Coverage now: 10 entities, 30 audit points
+
+### Skipped (documented for future)
+- **Inconsistent error messages**: Cosmetic only. Frontend reads `code` field so behavior is predictable. Would require touching 200+ strings — high risk, low reward. See Tech Debt section.
+
+---
 
 ## v1.8.0 — GitHub Action: CI/CD Security Scanning
 
@@ -274,6 +289,12 @@ Critical items that must be completed before v1.0 release.
   - [ ] Update frontend to point to `/api/v1/`
   - [ ] Deprecate old `/api/` routes with `Deprecation` header
   - [ ] Rollback strategy
+
+- [ ] **Inconsistent error messages** (cosmetic, low priority)
+  - Backend returns ~200 different message strings for same error codes
+  - Frontend now reads `code` field so this is non-blocking
+  - Would require touching 200+ `writeError` calls — high risk, low reward
+  - Consider doing incrementally as part of API versioning migration
 
 ### Scanner Extensions
 

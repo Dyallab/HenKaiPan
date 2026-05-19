@@ -21,7 +21,7 @@ func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 		Limit:      p.Limit,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list vulnerabilities")
+		writeError(w, r, http.StatusInternalServerError, "failed to list vulnerabilities")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"vulnerabilities": vulns, "total": total})
@@ -30,7 +30,7 @@ func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetVulnerabilityAffected(w http.ResponseWriter, r *http.Request) {
 	affected, err := h.store.Vulns.GetAffected(r.Context(), chi.URLParam(r, "vulnID"))
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get affected repos")
+		writeError(w, r, http.StatusInternalServerError, "failed to get affected repos")
 		return
 	}
 	writeJSON(w, http.StatusOK, affected)

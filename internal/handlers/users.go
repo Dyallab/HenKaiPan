@@ -14,7 +14,7 @@ import (
 func (h *Handler) ListUsers(w http.ResponseWriter, r *http.Request) {
 	users, err := h.store.Users.List(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list users")
+		writeError(w, r, http.StatusInternalServerError, "failed to list users")
 		return
 	}
 	writeJSON(w, http.StatusOK, users)
@@ -28,20 +28,20 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		Role     string `json:"role"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Username == "" || body.Email == "" || body.Password == "" {
-		writeError(w, http.StatusBadRequest, "username, email, and password required")
+		writeError(w, r, http.StatusBadRequest, "username, email, and password required")
 		return
 	}
 	if body.Role == "" {
 		body.Role = "viewer"
 	}
 	if !validation.IsValid(validation.Roles, body.Role) {
-		writeError(w, http.StatusBadRequest, "role must be admin or viewer")
+		writeError(w, r, http.StatusBadRequest, "role must be admin or viewer")
 		return
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "password hash error")
+		writeError(w, r, http.StatusInternalServerError, "password hash error")
 		return
 	}
 
@@ -50,7 +50,7 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hash), Role: body.Role,
 	})
 	if err != nil {
-		writeError(w, http.StatusConflict, "username or email already exists")
+		writeError(w, r, http.StatusConflict, "username or email already exists")
 		return
 	}
 
@@ -68,13 +68,13 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Password *string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 
 	if body.Role != nil {
 		if !validation.IsValid(validation.Roles, *body.Role) {
-			writeError(w, http.StatusBadRequest, "role must be admin or viewer")
+			writeError(w, r, http.StatusBadRequest, "role must be admin or viewer")
 			return
 		}
 	}
@@ -83,7 +83,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	if body.Password != nil && *body.Password != "" {
 		h, err := bcrypt.GenerateFromPassword([]byte(*body.Password), bcrypt.DefaultCost)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "password hash error")
+			writeError(w, r, http.StatusInternalServerError, "password hash error")
 			return
 		}
 		s := string(h)
@@ -97,7 +97,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Email: body.Email, Role: body.Role, PasswordHash: hashPtr,
 	})
 	if err != nil {
-		writeError(w, http.StatusNotFound, "user not found")
+		writeError(w, r, http.StatusNotFound, "user not found")
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	oldUser, _ := h.store.Users.GetByID(r.Context(), id)
 
 	if err := h.store.Users.Delete(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete user")
+		writeError(w, r, http.StatusInternalServerError, "failed to delete user")
 		return
 	}
 

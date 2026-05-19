@@ -1643,8 +1643,11 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 loadJiraIssue(),
                 loadRiskAcceptance(),
             ]);
-        } catch {
+        } catch (error: any) {
             document.getElementById("loading")!.classList.add("hidden");
+            if (error?.message) {
+                toast(error.message, "error");
+            }
             document.getElementById("not-found")!.classList.remove("hidden");
         }
     }

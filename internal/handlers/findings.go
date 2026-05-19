@@ -51,7 +51,7 @@ func (h *Handler) GetFinding(w http.ResponseWriter, r *http.Request) {
 
 	finding, err := h.store.Findings.GetByID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 	h.normalizeFindingForDisplay(finding)
@@ -96,7 +96,7 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetSLASummary(w http.ResponseWriter, r *http.Request) {
 	s, err := h.store.Findings.GetSLASummary(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get SLA summary")
+		writeError(w, r, http.StatusInternalServerError, "failed to get SLA summary")
 		return
 	}
 	writeJSON(w, http.StatusOK, s)
@@ -110,7 +110,7 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 		Status:     q.Get("status"),
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to export findings")
+		writeError(w, r, http.StatusInternalServerError, "failed to export findings")
 		return
 	}
 
@@ -181,7 +181,7 @@ func fmtTime(t *time.Time) string {
 func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
 	files, err := h.store.Findings.ListUniqueFiles(r.Context());
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list files")
+		writeError(w, r, http.StatusInternalServerError, "failed to list files")
 		return
 	}
 	writeJSON(w, http.StatusOK, files)
@@ -190,7 +190,7 @@ func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
 	var req validation.BulkUpdateFindingsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
+		writeError(w, r, http.StatusBadRequest, "invalid request body")
 		return
 	}
 

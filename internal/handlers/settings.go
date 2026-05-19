@@ -23,7 +23,7 @@ import (
 func (h *Handler) GetNotificationSettings(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.store.Settings.GetNotificationSettings(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load notification settings")
+		writeError(w, r, http.StatusInternalServerError, "failed to load notification settings")
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)
@@ -39,7 +39,7 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		EmailRecipients   *[]string `json:"email_recipients"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	settings, err := h.store.Settings.UpdateNotificationSettings(r.Context(), repository.NotificationSettingsUpdate{
@@ -51,7 +51,7 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		EmailRecipients:   body.EmailRecipients,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update notification settings")
+		writeError(w, r, http.StatusInternalServerError, "failed to update notification settings")
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)
@@ -60,11 +60,11 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 func (h *Handler) TestNotificationEmail(w http.ResponseWriter, r *http.Request) {
 	settings, err := h.store.Settings.GetNotificationSettings(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load notification settings")
+		writeError(w, r, http.StatusInternalServerError, "failed to load notification settings")
 		return
 	}
 	if len(settings.EmailRecipients) == 0 {
-		writeError(w, http.StatusBadRequest, "configure email recipients first")
+		writeError(w, r, http.StatusBadRequest, "configure email recipients first")
 		return
 	}
 	payload, err := tasks.MarshalEmailSendPayload(tasks.EmailSendPayload{
@@ -74,13 +74,13 @@ func (h *Handler) TestNotificationEmail(w http.ResponseWriter, r *http.Request) 
 	})
 	if err != nil {
 		slog.Error("failed to marshal test email payload", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to create test email")
+		writeError(w, r, http.StatusInternalServerError, "failed to create test email")
 		return
 	}
 
 	if _, err := h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeEmailSend, payload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second)); err != nil {
 		slog.Error("failed to enqueue test email task", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to enqueue test email")
+		writeError(w, r, http.StatusInternalServerError, "failed to enqueue test email")
 		return
 	}
 
@@ -91,7 +91,7 @@ func (h *Handler) TestNotificationEmail(w http.ResponseWriter, r *http.Request) 
 func (h *Handler) GetJiraIntegration(w http.ResponseWriter, r *http.Request) {
 	integration, err := h.store.Settings.GetJiraIntegration(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to load jira integration")
+		writeError(w, r, http.StatusInternalServerError, "failed to load jira integration")
 		return
 	}
 	writeJSON(w, http.StatusOK, integration)
@@ -108,7 +108,7 @@ func (h *Handler) UpdateJiraIntegration(w http.ResponseWriter, r *http.Request) 
 		Token      *string  `json:"token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.BaseURL != nil {
@@ -116,7 +116,7 @@ func (h *Handler) UpdateJiraIntegration(w http.ResponseWriter, r *http.Request) 
 		if trimmed != "" {
 			normalized, err := validateJiraCloudBaseURL(trimmed)
 			if err != nil {
-				writeError(w, http.StatusBadRequest, err.Error())
+				writeError(w, r, http.StatusBadRequest, err.Error())
 				return
 			}
 			trimmed = normalized
@@ -137,7 +137,7 @@ func (h *Handler) UpdateJiraIntegration(w http.ResponseWriter, r *http.Request) 
 	}
 	if body.Enabled != nil && *body.Enabled {
 		if body.BaseURL != nil && *body.BaseURL == "" {
-			writeError(w, http.StatusBadRequest, "jira base url required when enabling integration")
+			writeError(w, r, http.StatusBadRequest, "jira base url required when enabling integration")
 			return
 		}
 	}
@@ -152,7 +152,7 @@ func (h *Handler) UpdateJiraIntegration(w http.ResponseWriter, r *http.Request) 
 		Token:      body.Token,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update jira integration")
+		writeError(w, r, http.StatusInternalServerError, "failed to update jira integration")
 		return
 	}
 	writeJSON(w, http.StatusOK, integration)
@@ -163,10 +163,10 @@ func (h *Handler) GetFindingJiraIssue(w http.ResponseWriter, r *http.Request) {
 	link, err := h.store.Settings.GetJiraIssueLinkByFindingID(r.Context(), findingID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			writeError(w, http.StatusNotFound, "jira ticket not found")
+			writeError(w, r, http.StatusNotFound, "jira ticket not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "failed to load jira ticket")
+		writeError(w, r, http.StatusInternalServerError, "failed to load jira ticket")
 		return
 	}
 	writeJSON(w, http.StatusOK, link)
@@ -176,7 +176,7 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 	findingID := chi.URLParam(r, "id")
 	reserved, created, err := h.store.Settings.ReserveJiraIssueLink(r.Context(), findingID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to reserve jira ticket link")
+		writeError(w, r, http.StatusInternalServerError, "failed to reserve jira ticket link")
 		return
 	}
 	if !created {
@@ -191,29 +191,29 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 	finding, err := h.store.Findings.GetByID(r.Context(), findingID)
 	if err != nil {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 	creds, err := h.store.Settings.GetJiraCredentials(r.Context())
 	if err != nil {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusInternalServerError, "failed to load jira integration")
+		writeError(w, r, http.StatusInternalServerError, "failed to load jira integration")
 		return
 	}
 	if !creds.Enabled {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusBadRequest, "jira integration is disabled")
+		writeError(w, r, http.StatusBadRequest, "jira integration is disabled")
 		return
 	}
 	if strings.TrimSpace(creds.BaseURL) == "" || strings.TrimSpace(creds.UserEmail) == "" || strings.TrimSpace(creds.Token) == "" || strings.TrimSpace(creds.ProjectKey) == "" || strings.TrimSpace(creds.IssueType) == "" {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusBadRequest, "jira integration is incomplete")
+		writeError(w, r, http.StatusBadRequest, "jira integration is incomplete")
 		return
 	}
 	validatedBaseURL, err := validateJiraCloudBaseURL(creds.BaseURL)
 	if err != nil {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 	})
 	if err != nil {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)
-		writeError(w, http.StatusBadGateway, err.Error())
+		writeError(w, r, http.StatusBadGateway, "failed to create Jira ticket")
 		return
 	}
 
@@ -243,7 +243,7 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 		Status:    &status,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "jira ticket created but failed to persist link")
+		writeError(w, r, http.StatusInternalServerError, "jira ticket created but failed to persist link")
 		return
 	}
 	writeJSON(w, http.StatusCreated, link)

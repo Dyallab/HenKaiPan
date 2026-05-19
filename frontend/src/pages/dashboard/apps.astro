@@ -391,8 +391,8 @@ document.getElementById('assign-preview-btn')!.addEventListener('click', async (
       headers: { 'Accept': 'application/json' },
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Search failed' }));
-      throw new Error(err.error || 'Search failed');
+      const err = await res.json().catch(() => ({ message: 'Search failed' }));
+      throw new Error(err.message || err.error || 'Search failed');
     }
     const projects = await res.json();
     loading.classList.add('hidden');

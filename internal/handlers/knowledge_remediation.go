@@ -13,13 +13,13 @@ func (h *Handler) AIRemediate(w http.ResponseWriter, r *http.Request) {
 		FindingID string `json:"finding_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.FindingID == "" {
-		writeError(w, http.StatusBadRequest, "finding_id required")
+		writeError(w, r, http.StatusBadRequest, "finding_id required")
 		return
 	}
 
 	src, err := h.store.Findings.GetForRemediation(r.Context(), body.FindingID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "finding not found")
+		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
 
@@ -31,7 +31,7 @@ func (h *Handler) AIRemediate(w http.ResponseWriter, r *http.Request) {
 
 	content, err := ai.GenerateRemediation(r.Context(), appknowledge.BuildRemediationRequest(src))
 	if err != nil {
-		writeError(w, http.StatusServiceUnavailable, "AI generation failed: "+err.Error())
+		writeError(w, r, http.StatusServiceUnavailable, "AI generation failed")
 		return
 	}
 
@@ -53,13 +53,13 @@ func (h *Handler) FindArticleForFinding(w http.ResponseWriter, r *http.Request) 
 	ruleID := r.URL.Query().Get("rule_id")
 	cweID := r.URL.Query().Get("cwe_id")
 	if ruleID == "" && cweID == "" {
-		writeError(w, http.StatusBadRequest, "rule_id or cwe_id required")
+		writeError(w, r, http.StatusBadRequest, "rule_id or cwe_id required")
 		return
 	}
 
 	a, err := h.store.Knowledge.FindByCWEOrRule(r.Context(), cweID, ruleID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "lookup failed")
+		writeError(w, r, http.StatusInternalServerError, "lookup failed")
 		return
 	}
 	if a == nil {

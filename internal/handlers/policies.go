@@ -13,7 +13,7 @@ import (
 func (h *Handler) ListPolicies(w http.ResponseWriter, r *http.Request) {
 	policies, err := h.store.Policies.List(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list policies")
+		writeError(w, r, http.StatusInternalServerError, "failed to list policies")
 		return
 	}
 	writeJSON(w, http.StatusOK, policies)
@@ -29,11 +29,11 @@ func (h *Handler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		ComplianceControls []string                 `json:"compliance_controls"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.Name == "" {
-		writeError(w, http.StatusBadRequest, "name required")
+		writeError(w, r, http.StatusBadRequest, "name required")
 		return
 	}
 
@@ -41,14 +41,14 @@ func (h *Handler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 	validOps := map[string]bool{"eq": true, "contains": true}
 	for _, c := range body.Conditions {
 		if !validFields[c.Field] || !validOps[c.Op] {
-			writeError(w, http.StatusBadRequest, "invalid condition field or op")
+			writeError(w, r, http.StatusBadRequest, "invalid condition field or op")
 			return
 		}
 	}
 	validActionTypes := map[string]bool{"set_status": true, "assign": true}
 	for _, a := range body.Actions {
 		if !validActionTypes[a.Type] {
-			writeError(w, http.StatusBadRequest, "invalid action type")
+			writeError(w, r, http.StatusBadRequest, "invalid action type")
 			return
 		}
 	}
@@ -58,7 +58,7 @@ func (h *Handler) CreatePolicy(w http.ResponseWriter, r *http.Request) {
 		PackType: body.PackType, ComplianceControls: body.ComplianceControls,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create policy")
+		writeError(w, r, http.StatusInternalServerError, "failed to create policy")
 		return
 	}
 
@@ -72,11 +72,11 @@ func (h *Handler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 		Enabled *bool `json:"enabled"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.Enabled == nil {
-		writeError(w, http.StatusBadRequest, "enabled required")
+		writeError(w, r, http.StatusBadRequest, "enabled required")
 		return
 	}
 
@@ -84,7 +84,7 @@ func (h *Handler) UpdatePolicy(w http.ResponseWriter, r *http.Request) {
 	oldPolicy, _ := h.store.Policies.GetByID(r.Context(), chi.URLParam(r, "id"))
 
 	if err := h.store.Policies.SetEnabled(r.Context(), chi.URLParam(r, "id"), *body.Enabled); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update policy")
+		writeError(w, r, http.StatusInternalServerError, "failed to update policy")
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *Handler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 	oldPolicy, _ := h.store.Policies.GetByID(r.Context(), chi.URLParam(r, "id"))
 
 	if err := h.store.Policies.Delete(r.Context(), chi.URLParam(r, "id")); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete policy")
+		writeError(w, r, http.StatusInternalServerError, "failed to delete policy")
 		return
 	}
 
@@ -114,7 +114,7 @@ func (h *Handler) DeletePolicy(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListSuppressions(w http.ResponseWriter, r *http.Request) {
 	suppressions, err := h.store.Policies.ListSuppressions(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list suppressions")
+		writeError(w, r, http.StatusInternalServerError, "failed to list suppressions")
 		return
 	}
 	writeJSON(w, http.StatusOK, suppressions)
@@ -129,15 +129,15 @@ func (h *Handler) CreateSuppression(w http.ResponseWriter, r *http.Request) {
 		Reason      *string `json:"reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.Name == "" {
-		writeError(w, http.StatusBadRequest, "name required")
+		writeError(w, r, http.StatusBadRequest, "name required")
 		return
 	}
 	if body.RuleID == nil && body.FilePattern == nil && body.Scanner == nil {
-		writeError(w, http.StatusBadRequest, "at least one of rule_id, file_pattern, scanner required")
+		writeError(w, r, http.StatusBadRequest, "at least one of rule_id, file_pattern, scanner required")
 		return
 	}
 
@@ -146,7 +146,7 @@ func (h *Handler) CreateSuppression(w http.ResponseWriter, r *http.Request) {
 		Scanner: body.Scanner, Reason: body.Reason,
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create suppression")
+		writeError(w, r, http.StatusInternalServerError, "failed to create suppression")
 		return
 	}
 
@@ -167,7 +167,7 @@ func (h *Handler) DeleteSuppression(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.store.Policies.DeleteSuppression(r.Context(), chi.URLParam(r, "id")); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete suppression")
+		writeError(w, r, http.StatusInternalServerError, "failed to delete suppression")
 		return
 	}
 

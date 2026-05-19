@@ -16,7 +16,7 @@ const (
 	rateLimitWindow   = 60 // 1 minute window
 	rateLimitGeneral  = 100 // 100 requests per minute
 	rateLimitAuth     = 10  // 10 requests per minute for auth endpoints
-	rateLimitHeavy    = 20  // 20 requests per minute for heavy endpoints
+	rateLimitHeavy    = 60  // 60 requests per minute for heavy endpoints
 )
 
 var rdb *redis.Client
@@ -130,9 +130,7 @@ func isAuthEndpoint(path string) bool {
 
 // isHeavyEndpoint checks if the path is a resource-heavy endpoint
 func isHeavyEndpoint(path string) bool {
-	// Scans and findings export are heavy operations
-	return path == "/api/scans" ||
-		path == "/api/findings/export" ||
+	return path == "/api/findings/export" ||
 		path == "/api/metrics/trends" ||
 		path == "/api/metrics/risk"
 }

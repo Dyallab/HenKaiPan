@@ -63,17 +63,17 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		ProjectID string `json:"project_id,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, "name is required")
+		writeError(w, r, http.StatusBadRequest, "name is required")
 		return
 	}
 
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
+		writeError(w, r, http.StatusUnauthorized, "authentication required")
 		return
 	}
 
@@ -121,7 +121,7 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ListTokens(w http.ResponseWriter, r *http.Request) {
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
+		writeError(w, r, http.StatusUnauthorized, "authentication required")
 		return
 	}
 
@@ -143,18 +143,18 @@ func (h *Handler) ListTokens(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		writeError(w, http.StatusBadRequest, "token id required")
+		writeError(w, r, http.StatusBadRequest, "token id required")
 		return
 	}
 
 	claims := auth.GetClaims(r)
 	if claims == nil {
-		writeError(w, http.StatusUnauthorized, "authentication required")
+		writeError(w, r, http.StatusUnauthorized, "authentication required")
 		return
 	}
 
 	if err := h.store.Tokens.Delete(r.Context(), id, claims.UserID); err != nil {
-		writeError(w, http.StatusNotFound, "token not found")
+		writeError(w, r, http.StatusNotFound, "token not found")
 		return
 	}
 
@@ -169,7 +169,7 @@ func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 	token := apiKeyFromContext(r)
 	if token == nil {
-		writeError(w, http.StatusUnauthorized, "valid API key required")
+		writeError(w, r, http.StatusUnauthorized, "valid API key required")
 		return
 	}
 
@@ -180,11 +180,11 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 		Branch    string   `json:"branch,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if req.ProjectID == "" {
-		writeError(w, http.StatusBadRequest, "project_id is required")
+		writeError(w, r, http.StatusBadRequest, "project_id is required")
 		return
 	}
 	if len(req.Scanners) == 0 {
@@ -193,14 +193,14 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 
 	// Scope check: if token is project-scoped, it must match the requested project
 	if token.ProjectID != nil && *token.ProjectID != req.ProjectID {
-		writeError(w, http.StatusForbidden, "token is not scoped to this project")
+		writeError(w, r, http.StatusForbidden, "token is not scoped to this project")
 		return
 	}
 
 	// Resolve scanner names (handle packs like "all", "sast", etc.)
 	scannerNames, err := resolveScanners(req.Scanners)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -241,25 +241,25 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetExternalScanStatus(w http.ResponseWriter, r *http.Request) {
 	token := apiKeyFromContext(r)
 	if token == nil {
-		writeError(w, http.StatusUnauthorized, "valid API key required")
+		writeError(w, r, http.StatusUnauthorized, "valid API key required")
 		return
 	}
 
 	scanID := chi.URLParam(r, "id")
 	if scanID == "" {
-		writeError(w, http.StatusBadRequest, "scan id required")
+		writeError(w, r, http.StatusBadRequest, "scan id required")
 		return
 	}
 
 	scan, err := h.store.Scans.Get(r.Context(), scanID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "scan not found")
+		writeError(w, r, http.StatusNotFound, "scan not found")
 		return
 	}
 
 	// Scope check
 	if token.ProjectID != nil && scan.ProjectID != nil && *token.ProjectID != *scan.ProjectID {
-		writeError(w, http.StatusForbidden, "token is not scoped to this project")
+		writeError(w, r, http.StatusForbidden, "token is not scoped to this project")
 		return
 	}
 
@@ -287,7 +287,7 @@ func APIKeyAuth(store repository.Stores) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw := r.Header.Get("X-API-Key")
 			if raw == "" {
-				writeError(w, http.StatusUnauthorized, "X-API-Key header required")
+				writeError(w, r, http.StatusUnauthorized, "X-API-Key header required")
 				return
 			}
 
@@ -299,19 +299,19 @@ func APIKeyAuth(store repository.Stores) func(http.Handler) http.Handler {
 
 			token, err := store.Tokens.GetByPrefix(r.Context(), prefix)
 			if err != nil || token == nil {
-				writeError(w, http.StatusUnauthorized, "invalid API key")
+				writeError(w, r, http.StatusUnauthorized, "invalid API key")
 				return
 			}
 
 			// Check expiration
 			if token.ExpiresAt != nil && time.Now().After(*token.ExpiresAt) {
-				writeError(w, http.StatusUnauthorized, "API key has expired")
+				writeError(w, r, http.StatusUnauthorized, "API key has expired")
 				return
 			}
 
 			// Bcrypt comparison of raw token against stored hash
 			if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(raw)) != nil {
-				writeError(w, http.StatusUnauthorized, "invalid API key")
+				writeError(w, r, http.StatusUnauthorized, "invalid API key")
 				return
 			}
 

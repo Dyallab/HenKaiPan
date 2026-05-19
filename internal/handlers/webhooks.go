@@ -21,7 +21,7 @@ import (
 func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 	webhooks, err := h.store.Webhooks.List(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list webhooks")
+		writeError(w, r, http.StatusInternalServerError, "failed to list webhooks")
 		return
 	}
 	writeJSON(w, http.StatusOK, webhooks)
@@ -30,33 +30,34 @@ func (h *Handler) ListWebhooks(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	var body repository.WebhookCreate
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.Label == "" {
-		writeError(w, http.StatusBadRequest, "label required")
+		writeError(w, r, http.StatusBadRequest, "label required")
 		return
 	}
 	if body.URL == "" {
-		writeError(w, http.StatusBadRequest, "url required")
+		writeError(w, r, http.StatusBadRequest, "url required")
 		return
 	}
 	if err := validateWebhookURL(body.URL); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 	body.DeliveryType = validation.NormalizeWebhookDeliveryType(body.DeliveryType)
 	if body.DeliveryType == "" {
-		writeError(w, http.StatusBadRequest, "invalid delivery_type")
+		writeError(w, r, http.StatusBadRequest, "invalid delivery_type")
 		return
 	}
 
 	webhook, err := h.store.Webhooks.Create(r.Context(), body)
 	if err != nil {
 		slog.Error("failed to create webhook", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to create webhook: "+err.Error())
+		writeError(w, r, http.StatusInternalServerError, "failed to create webhook")
 		return
 	}
+	h.auditLog(r, "webhook.create", "webhook", webhook.ID, nil, webhook)
 	writeJSON(w, http.StatusCreated, webhook)
 }
 
@@ -64,29 +65,30 @@ func (h *Handler) UpdateWebhook(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body repository.WebhookUpdate
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if body.DeliveryType != nil {
 		normalized := validation.NormalizeWebhookDeliveryType(*body.DeliveryType)
 		if normalized == "" {
-			writeError(w, http.StatusBadRequest, "invalid delivery_type")
+			writeError(w, r, http.StatusBadRequest, "invalid delivery_type")
 			return
 		}
 		body.DeliveryType = &normalized
 	}
 	if body.URL != nil {
 		if err := validateWebhookURL(*body.URL); err != nil {
-			writeError(w, http.StatusBadRequest, err.Error())
+			writeError(w, r, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
 
 	webhook, err := h.store.Webhooks.Update(r.Context(), id, body)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update webhook")
+		writeError(w, r, http.StatusInternalServerError, "failed to update webhook")
 		return
 	}
+	h.auditLog(r, "webhook.update", "webhook", id, nil, webhook)
 	writeJSON(w, http.StatusOK, webhook)
 }
 
@@ -117,10 +119,12 @@ func isPublicWebhookIP(ip net.IP) bool {
 
 func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	oldWebhook, _ := h.store.Webhooks.GetByID(r.Context(), id)
 	if err := h.store.Webhooks.Delete(r.Context(), id); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to delete webhook")
+		writeError(w, r, http.StatusInternalServerError, "failed to delete webhook")
 		return
 	}
+	h.auditLog(r, "webhook.delete", "webhook", id, oldWebhook, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -129,7 +133,7 @@ func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 
 	webhook, err := h.store.Webhooks.GetByID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "webhook not found")
+		writeError(w, r, http.StatusNotFound, "webhook not found")
 		return
 	}
 
@@ -140,7 +144,7 @@ func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 	}, time.Now())
 	if err != nil {
 		slog.Error("failed to marshal test payload", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to create test payload")
+		writeError(w, r, http.StatusInternalServerError, "failed to create test payload")
 		return
 	}
 
@@ -151,18 +155,19 @@ func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		slog.Error("failed to marshal task payload", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to create task")
+		writeError(w, r, http.StatusInternalServerError, "failed to create task")
 		return
 	}
 
 	_, err = h.queue.EnqueueContext(r.Context(), asynq.NewTask(tasks.TypeWebhookSend, taskPayload), asynq.MaxRetry(5), asynq.Timeout(30*time.Second))
 	if err != nil {
 		slog.Error("failed to enqueue webhook test task", "err", err)
-		writeError(w, http.StatusInternalServerError, "failed to enqueue test")
+		writeError(w, r, http.StatusInternalServerError, "failed to enqueue test")
 		return
 	}
 
 	slog.Info("enqueued webhook test", "webhook_id", webhook.ID)
+	h.auditLog(r, "webhook.test", "webhook", webhook.ID, nil, nil)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "queued", "message": "Test webhook queued for delivery"})
 }
 

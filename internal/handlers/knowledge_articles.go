@@ -20,7 +20,7 @@ func (h *Handler) ListArticles(w http.ResponseWriter, r *http.Request) {
 		RuleID:  q.Get("rule_id"),
 	})
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list articles")
+		writeError(w, r, http.StatusInternalServerError, "failed to list articles")
 		return
 	}
 	writeJSON(w, http.StatusOK, articles)
@@ -29,7 +29,7 @@ func (h *Handler) ListArticles(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetArticle(w http.ResponseWriter, r *http.Request) {
 	a, err := h.store.Knowledge.GetBySlug(r.Context(), chi.URLParam(r, "slug"))
 	if err != nil {
-		writeError(w, http.StatusNotFound, "article not found")
+		writeError(w, r, http.StatusNotFound, "article not found")
 		return
 	}
 	writeJSON(w, http.StatusOK, a)
@@ -45,12 +45,12 @@ func (h *Handler) CreateArticle(w http.ResponseWriter, r *http.Request) {
 		Scanner   string   `json:"scanner"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Title == "" {
-		writeError(w, http.StatusBadRequest, "title required")
+		writeError(w, r, http.StatusBadRequest, "title required")
 		return
 	}
 	a, err := h.store.Knowledge.Create(r.Context(), appknowledge.BuildCreateArticle(body.Title, body.ContentMD, body.Tags, body.CWEIDs, body.RuleIDs, body.Scanner))
 	if err != nil {
-		writeError(w, http.StatusConflict, "slug already exists or DB error: "+err.Error())
+		writeError(w, r, http.StatusConflict, "slug already exists")
 		return
 	}
 	writeJSON(w, http.StatusCreated, a)
@@ -67,14 +67,14 @@ func (h *Handler) UpdateArticle(w http.ResponseWriter, r *http.Request) {
 		Scanner   *string  `json:"scanner"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 	if err := h.store.Knowledge.Update(r.Context(), slug, repository.ArticleUpdate{
 		Title: body.Title, ContentMD: body.ContentMD,
 		Tags: body.Tags, CWEIDs: body.CWEIDs, RuleIDs: body.RuleIDs, Scanner: body.Scanner,
 	}); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to update article")
+		writeError(w, r, http.StatusInternalServerError, "failed to update article")
 		return
 	}
 	h.GetArticle(w, r)

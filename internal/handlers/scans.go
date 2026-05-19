@@ -22,7 +22,7 @@ func (h *Handler) ListScans(w http.ResponseWriter, r *http.Request) {
 
 	scans, total, err := h.store.Scans.List(r.Context(), p.Page, p.Limit)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list scans")
+		writeError(w, r, http.StatusInternalServerError, "failed to list scans")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"scans": scans, "total": total})
@@ -89,7 +89,7 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 		AppID     string `json:"app_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid body")
+		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.Target == "" {
-		writeError(w, http.StatusBadRequest, "target or app_id required")
+		writeError(w, r, http.StatusBadRequest, "target or app_id required")
 		return
 	}
 	if req.Scanner == "" {
@@ -108,7 +108,7 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 
 	scannerNames, err := resolveScanners([]string{req.Scanner})
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -117,25 +117,25 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 		projectID = &req.ProjectID
 	}
 
-	ids, _, err := h.createScanRecords(r.Context(), req.Target, scannerNames, projectID, "")
+	ids, batchID, err := h.createScanRecords(r.Context(), req.Target, scannerNames, projectID, "")
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to create scans")
+		writeError(w, r, http.StatusInternalServerError, "failed to create scans")
 		return
 	}
-
+	h.auditLog(r, "scan.create", "scan", batchID, nil, map[string]any{"target": req.Target, "scanners": scannerNames, "ids": ids})
 	writeJSON(w, http.StatusCreated, map[string]any{"ids": ids})
 }
 
 func (h *Handler) createAppScans(w http.ResponseWriter, r *http.Request, appID, scannerName string) {
 	app, err := h.store.Apps.Get(r.Context(), appID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "app not found")
+		writeError(w, r, http.StatusNotFound, "app not found")
 		return
 	}
 
 	scannerNames, err := resolveScanners([]string{scannerName})
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -156,10 +156,11 @@ func (h *Handler) createAppScans(w http.ResponseWriter, r *http.Request, appID, 
 	}
 
 	if len(allIDs) == 0 {
-		writeError(w, http.StatusInternalServerError, "no scans created — projects may be missing repo URLs")
+		writeError(w, r, http.StatusInternalServerError, "no scans created — projects may be missing repo URLs")
 		return
 	}
 
+	h.auditLog(r, "scan.create", "scan", batchID, nil, map[string]any{"app_id": appID, "app_name": app.Name, "scanners": scannerNames, "count": len(allIDs)})
 	writeJSON(w, http.StatusCreated, map[string]any{"ids": allIDs})
 }
 
@@ -167,7 +168,7 @@ func (h *Handler) GetScan(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	s, err := h.store.Scans.Get(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusNotFound, "scan not found")
+		writeError(w, r, http.StatusNotFound, "scan not found")
 		return
 	}
 	writeJSON(w, http.StatusOK, s)
@@ -181,7 +182,7 @@ func (h *Handler) GetScanFindings(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	findings, err := h.store.Findings.GetByScanID(r.Context(), id)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get findings")
+		writeError(w, r, http.StatusInternalServerError, "failed to get findings")
 		return
 	}
 	for i := range findings {
