@@ -885,6 +885,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     import { z } from "zod";
     import { getSSEClient } from "@lib/sse";
     import { applyConfigGuards } from "@lib/config";
+    import { canWrite } from "@lib/auth";
     import type {
         AgentAnalysis,
         Finding,
@@ -2172,7 +2173,73 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 .catch(() => {});
         }
         applyJiraIssue(currentJiraIssue);
+        applyWriteGuards();
     });
+
+    function applyWriteGuards() {
+        if (canWrite()) return;
+
+        // Disable action buttons
+        const actionButtons = [
+            "run-analysis-btn",
+            "kb-remediate-btn",
+            "request-ai-summary-btn",
+            "jira-create-btn",
+        ];
+        actionButtons.forEach((id) => {
+            const btn = document.getElementById(id) as HTMLButtonElement;
+            if (btn) {
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                btn.style.cursor = "not-allowed";
+            }
+        });
+
+        // Disable triage panel
+        const triageElements = [
+            "triage-status",
+            "triage-assigned",
+            "triage-fp",
+            "triage-notes",
+            "triage-save",
+        ];
+        triageElements.forEach((id) => {
+            const el = document.getElementById(id) as HTMLElement;
+            if (el) {
+                el.setAttribute("disabled", "true");
+                el.style.opacity = "0.5";
+                el.style.pointerEvents = "none";
+            }
+        });
+
+        // Disable risk acceptance form
+        const riskElements = [
+            "risk-rationale",
+            "risk-expires-at",
+            "risk-create-btn",
+        ];
+        riskElements.forEach((id) => {
+            const el = document.getElementById(id) as HTMLElement;
+            if (el) {
+                el.setAttribute("disabled", "true");
+                el.style.opacity = "0.5";
+                el.style.pointerEvents = "none";
+            }
+        });
+
+        // Disable comment input and submit
+        const commentInput = document.getElementById("comment-input") as HTMLTextAreaElement;
+        if (commentInput) {
+            commentInput.disabled = true;
+            commentInput.style.opacity = "0.5";
+        }
+        const commentSubmit = document.getElementById("comment-submit") as HTMLButtonElement;
+        if (commentSubmit) {
+            commentSubmit.disabled = true;
+            commentSubmit.style.opacity = "0.5";
+            commentSubmit.style.cursor = "not-allowed";
+        }
+    }
 
     // Comments functions
     async function loadComments() {

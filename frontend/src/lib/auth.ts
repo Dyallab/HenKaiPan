@@ -4,6 +4,14 @@ import { toast } from "./toast";
 let _cachedUser: User | null = null;
 
 /**
+ * Capability matrix per role. Add new roles here — UI and API checks derive from this.
+ */
+const ROLE_CAPABILITIES: Record<string, { read: boolean; write: boolean }> = {
+    admin:  { read: true, write: true },
+    viewer: { read: true, write: false },
+};
+
+/**
  * Get the current authenticated user.
  * Results are cached for the session lifetime.
  */
@@ -15,6 +23,18 @@ export async function getCurrentUser(): Promise<User | null> {
     } catch {
         return null;
     }
+}
+
+function has(capability: "read" | "write"): boolean {
+    return ROLE_CAPABILITIES[_cachedUser?.role ?? ""]?.[capability] ?? false;
+}
+
+export function canRead(): boolean {
+    return has("read");
+}
+
+export function canWrite(): boolean {
+    return has("write");
 }
 
 /**
