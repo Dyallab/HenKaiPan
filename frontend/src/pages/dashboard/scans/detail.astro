@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Scan Detail" active="scans">
 
@@ -89,8 +89,8 @@ import DashboardLayout from '../../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../../lib/api';
-  import type { Finding } from '../../../lib/api';
+  import { api } from '@lib/api';
+  import type { Finding } from '@lib/api';
 
   const SEV_STYLES: Record<string, string> = {
     critical: 'text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20',

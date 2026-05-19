@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Audit Log" active="audit">
 
@@ -17,7 +17,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <option value="suppression">Suppressions</option>
         <option value="risk_acceptance">Risk Acceptances</option>
         <option value="scan">Scans</option>
+        <option value="schedule">Schedules</option>
         <option value="user">Users</option>
+        <option value="api_token">API Tokens</option>
       </select>
       <select id="filter-action" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
         <option value="">All actions</option>
@@ -28,6 +30,9 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <option value="risk_acceptance.create">Risk Acceptance Create</option>
         <option value="risk_acceptance.approve">Risk Acceptance Approve</option>
         <option value="risk_acceptance.reject">Risk Acceptance Reject</option>
+        <option value="schedule.create">Schedule Create</option>
+        <option value="schedule.update">Schedule Update</option>
+        <option value="schedule.delete">Schedule Delete</option>
       </select>
       <button id="filter-btn" class="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 text-on-background rounded-lg hover:bg-slate-800 transition-colors text-sm font-semibold">
         <span class="material-symbols-outlined text-base">filter_list</span>
@@ -54,7 +59,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
+  import { api } from '@lib/api';
 
   const ACTION_ICONS: Record<string, string> = {
     'finding.update': 'edit',
@@ -66,7 +71,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     'risk_acceptance.approve': 'verified',
     'risk_acceptance.reject': 'cancel',
     'scan.create': 'radar',
+    'schedule.create': 'event_repeat',
+    'schedule.update': 'edit',
+    'schedule.delete': 'delete',
     'user.create': 'person_add',
+    'api_token.create': 'vpn_key',
+    'api_token.delete': 'disabled_visible',
   };
 
   const ACTION_COLORS: Record<string, string> = {
@@ -79,7 +89,12 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     'risk_acceptance.approve': 'text-emerald-400 bg-emerald-500/10',
     'risk_acceptance.reject': 'text-red-400 bg-red-500/10',
     'scan.create': 'text-blue-400 bg-blue-500/10',
+    'schedule.create': 'text-cyan-400 bg-cyan-500/10',
+    'schedule.update': 'text-amber-400 bg-amber-500/10',
+    'schedule.delete': 'text-red-400 bg-red-500/10',
     'user.create': 'text-indigo-400 bg-indigo-500/10',
+    'api_token.create': 'text-emerald-400 bg-emerald-500/10',
+    'api_token.delete': 'text-slate-400 bg-slate-500/10',
   };
 
   function formatDate(dateStr: string): string {

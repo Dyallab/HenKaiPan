@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="Scan Schedules" active="schedules">
@@ -162,11 +162,11 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 </DashboardLayout>
 
 <script>
-    import { api } from "../../lib/api";
+    import { api } from "@lib/api";
     import {
         humanFrequencyToCron,
         cronToHumanFrequency,
-    } from "../../lib/cron";
+    } from "@lib/cron";
 
     // ── Combobox state ──
     interface ComboboxItem {

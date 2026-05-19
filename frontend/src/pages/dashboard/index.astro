@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Dashboard" active="dashboard">
 
@@ -105,7 +105,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
+  import { api } from '@lib/api';
 
   const SEV_COLORS: Record<string, string> = {
     critical: 'bg-red-500',

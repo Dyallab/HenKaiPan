@@ -111,7 +111,7 @@ func (h *Handler) CreateSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auditLog(r, "create", "schedule", schedule.ID, nil, schedule)
+	h.auditLog(r, "schedule.create", "schedule", schedule.ID, nil, schedule)
 	writeJSON(w, http.StatusCreated, schedule)
 }
 
@@ -146,7 +146,7 @@ func (h *Handler) UpdateSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auditLog(r, "update", "schedule", id, nil, schedule)
+	h.auditLog(r, "schedule.update", "schedule", id, nil, schedule)
 	writeJSON(w, http.StatusOK, schedule)
 }
 
@@ -161,6 +161,6 @@ func (h *Handler) DeleteSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auditLog(r, "delete", "schedule", id, nil, nil)
+	h.auditLog(r, "schedule.delete", "schedule", id, nil, nil)
 	w.WriteHeader(http.StatusNoContent)
 }

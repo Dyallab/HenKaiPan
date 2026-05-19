@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="Settings" active="settings">
@@ -539,6 +539,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                         <div class="flex items-center gap-3">
                             <button
                                 id="test-email-btn"
+                            data-requires-config="email_enabled"
                                 class="px-3 py-2 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all"
                             >
                                 Send test email
@@ -1067,7 +1068,6 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                                 id="new-role"
                                 class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none"
                             >
-                                <option value="analyst">Analyst</option>
                                 <option value="viewer">Viewer</option>
                                 <option value="admin">Admin</option>
                             </select>
@@ -1512,7 +1512,14 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 </DashboardLayout>
 
 <script>
-    import { toast } from "../../lib/toast";
+    import { toast } from "@lib/toast";
+    import { api } from "@lib/api";
+    import { requireRole } from "@lib/auth";
+    import { applyConfigGuards } from "@lib/config";
+
+    await requireRole(["admin"]);
+
+    applyConfigGuards();
 
     // --- Section switching ---
     const navBtns =
@@ -1581,7 +1588,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         dot.className = `absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${enabled ? "right-0.5" : "left-0.5"}`;
     }
 
-    import { api } from "../../lib/api";
+    import { api } from "@lib/api";
 
     document
         .getElementById("danger-logout")!
@@ -1852,9 +1859,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
         const cls =
             role === "admin"
                 ? "text-red-400 bg-red-500/10 border-red-500/20"
-                : role === "analyst"
-                  ? "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"
-                  : "text-slate-400 bg-slate-500/10 border-slate-500/20";
+                : "text-slate-400 bg-slate-500/10 border-slate-500/20";
         return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${cls}">${role}</span>`;
     }
 
@@ -1901,7 +1906,6 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
                 <td class="px-4 py-3 text-xs text-slate-500">${u.last_login ? new Date(u.last_login).toLocaleDateString() : "—"}</td>
                 <td class="px-4 py-3 text-right">
                   <select class="role-change-select bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-on-background mr-2" data-uid="${u.id}">
-                    <option value="analyst" ${u.role === "analyst" ? "selected" : ""}>Analyst</option>
                     <option value="viewer"  ${u.role === "viewer" ? "selected" : ""}>Viewer</option>
                     <option value="admin"   ${u.role === "admin" ? "selected" : ""}>Admin</option>
                   </select>
@@ -2165,7 +2169,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     });
 
     // ---------- Policies ----------
-    import type { Policy, PolicyCondition, PolicyAction } from "../../lib/api";
+    import type { Policy, PolicyCondition, PolicyAction } from "@lib/api";
 
     let conditionRows: PolicyCondition[] = [];
     let actionRows: PolicyAction[] = [];
@@ -2393,7 +2397,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     }
 
     // ---------- Suppressions ----------
-    import type { Suppression } from "../../lib/api";
+    import type { Suppression } from "@lib/api";
 
     document
         .getElementById("show-create-suppression")!
@@ -2500,7 +2504,7 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     }
 
     // ---------- Webhooks ----------
-    import type { Webhook } from "../../lib/api";
+    import type { Webhook } from "@lib/api";
 
     function webhookTypeMeta(type: Webhook["delivery_type"] | string) {
         switch (type) {

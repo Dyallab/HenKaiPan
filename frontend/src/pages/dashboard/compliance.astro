@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Compliance Readiness" active="compliance">
 
@@ -225,7 +225,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
+  import { api } from '@lib/api';
 
   // Controls definition per framework
   const FRAMEWORKS: Record<string, {

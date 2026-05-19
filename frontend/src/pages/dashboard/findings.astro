@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 
 <DashboardLayout title="Security Findings" active="findings">
@@ -136,8 +136,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
-  import type { Finding } from '../../lib/api';
+  import { api } from '@lib/api';
+  import type { Finding } from '@lib/api';
 
   // Bulk actions state
   let selectedFindingIds: Set<string> = new Set();

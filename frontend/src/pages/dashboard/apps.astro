@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Apps & Projects" active="apps">
 
@@ -144,8 +144,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </div>
 
 <script>
-import { api, API_BASE } from '../../lib/api.ts';
-import type { App, TeamMetrics, Team } from '../../lib/api.ts';
+import { api, API_BASE } from '@lib/api.ts';
+import type { App, TeamMetrics, Team } from '@lib/api.ts';
 
 let allApps: App[] = [];
 let allTeams: Team[] = [];

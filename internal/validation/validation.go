@@ -1,9 +1,8 @@
 package validation
 
 var Roles = map[string]bool{
-	"admin":   true,
-	"analyst": true,
-	"viewer":  true,
+	"admin":  true,
+	"viewer": true,
 }
 
 var FindingStatuses = map[string]bool{
