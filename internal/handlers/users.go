@@ -32,10 +32,10 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if body.Role == "" {
-		body.Role = "analyst"
+		body.Role = "viewer"
 	}
 	if !validation.IsValid(validation.Roles, body.Role) {
-		writeError(w, http.StatusBadRequest, "role must be admin, analyst, or viewer")
+		writeError(w, http.StatusBadRequest, "role must be admin or viewer")
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	if body.Role != nil {
 		if !validation.IsValid(validation.Roles, *body.Role) {
-			writeError(w, http.StatusBadRequest, "role must be admin, analyst, or viewer")
+			writeError(w, http.StatusBadRequest, "role must be admin or viewer")
 			return
 		}
 	}

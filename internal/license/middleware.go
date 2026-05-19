@@ -23,7 +23,7 @@ func (s *Service) RequireFeature(feature string) func(http.Handler) http.Handler
 
 			if r.Method == http.MethodGet {
 				claims := auth.GetClaims(r)
-				if claims != nil && (claims.Role == "admin" || claims.Role == "analyst") {
+				if claims != nil && claims.Role == "admin" {
 					next.ServeHTTP(w, r)
 					return
 				}

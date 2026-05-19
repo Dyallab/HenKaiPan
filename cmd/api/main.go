@@ -52,7 +52,9 @@ func main() {
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 	licSvc := license.New(cfg.LicenseKey)
-	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc)
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc,
+		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
+		cfg.EmailEnabled, cfg.WebhookSecret)
 
 	// Initialize rate limiter
 	appmw.InitRateLimiter(cfg.RedisAddr)
@@ -147,20 +149,23 @@ func main() {
 
 		r.Get("/api/scans", h.ListScans)
 		r.Post("/api/scans", h.CreateScan)
-		r.Get("/api/scans/{id}", appmw.RequireOwnership(store.Apps, "scan")(h.GetScan))
-		r.Get("/api/scans/{id}/findings", appmw.RequireOwnership(store.Apps, "scan")(h.GetScanFindings))
+		// TODO: Restore ownership check when per-team/project visibility is implemented.
+		// r.Get("/api/scans/{id}", appmw.RequireOwnership(store.Apps, "scan")(h.GetScan))
+		// r.Get("/api/scans/{id}/findings", appmw.RequireOwnership(store.Apps, "scan")(h.GetScanFindings))
+		r.Get("/api/scans/{id}", h.GetScan)
+		r.Get("/api/scans/{id}/findings", h.GetScanFindings)
 
 		r.Get("/api/findings", h.ListFindings)
 		r.Get("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.GetFinding))
 		r.Patch("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.UpdateFinding))
 		r.Get("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingJiraIssue))
-		r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingJiraIssue))
+		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingJiraIssue))
 		r.Get("/api/findings/sla", h.GetSLASummary)
 		r.Get("/api/findings/{id}/correlations", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingCorrelations))
 		r.Post("/api/findings/{id}/summary", appmw.RequireOwnership(store.Apps, "finding")(h.RequestFindingSummary))
 		r.Get("/api/findings/files", h.GetUniqueFiles)
 		r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
-		r.With(auth.RequireRole("admin", "analyst")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
+		r.With(auth.RequireRole("admin")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
 
 		// ── SSE Events ──
 		r.Get("/api/events", h.HandleSSEEvents)
@@ -179,8 +184,8 @@ func main() {
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
-			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
+			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
+			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
 		})
 
 		// ── Paid: Audit Log ──
@@ -192,7 +197,7 @@ func main() {
 		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.GetRiskAcceptanceByFinding)))
 			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
 			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.ApproveRiskAcceptance)))
 			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.RejectRiskAcceptance)))
 		})
@@ -200,8 +205,8 @@ func main() {
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.GetFindingComments)))
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.CreateFindingComment)))
-			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.DeleteFindingComment)))
+			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.CreateFindingComment)))
+			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(http.HandlerFunc(h.DeleteFindingComment)))
 		})
 
 		// ── Paid: Reports & Advanced Metrics ──
@@ -239,7 +244,7 @@ func main() {
 		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
 			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
+			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
 			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.ApproveRiskAcceptance))
 			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.RejectRiskAcceptance))
 		})
@@ -247,8 +252,8 @@ func main() {
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
-			r.With(auth.RequireRole("admin", "analyst")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
+			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
+			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
 		})
 
 		// ── Paid: AI Remediation ──
@@ -284,6 +289,9 @@ func main() {
 		// ── Free: Me ──
 		r.Get("/api/me", h.GetMe)
 
+		// ── Free: Config Status ──
+		r.Get("/api/config/status", h.GetConfigStatus)
+
 		// ── Paid: Policies & Suppressions ──
 		r.With(licSvc.RequireFeature(license.FeaturePolicies)).Group(func(r chi.Router) {
 			r.With(auth.RequireRole("admin")).Get("/api/policies", h.ListPolicies)
@@ -298,11 +306,11 @@ func main() {
 
 		// ── Paid: Scheduling ──
 		r.With(licSvc.RequireFeature(license.FeatureScheduling)).Group(func(r chi.Router) {
-			r.With(auth.RequireRole("admin")).Get("/api/schedules", h.ListSchedules)
-			r.With(auth.RequireRole("admin")).Get("/api/schedules/{scheduleID}", h.GetSchedule)
-			r.With(auth.RequireRole("admin")).Post("/api/schedules", h.CreateSchedule)
-			r.With(auth.RequireRole("admin")).Patch("/api/schedules/{scheduleID}", h.UpdateSchedule)
-			r.With(auth.RequireRole("admin")).Delete("/api/schedules/{scheduleID}", h.DeleteSchedule)
+	r.Get("/api/schedules", h.ListSchedules)
+	r.Get("/api/schedules/{scheduleID}", h.GetSchedule)
+	r.With(auth.RequireRole("admin")).Post("/api/schedules", h.CreateSchedule)
+	r.With(auth.RequireRole("admin")).Patch("/api/schedules/{scheduleID}", h.UpdateSchedule)
+	r.With(auth.RequireRole("admin")).Delete("/api/schedules/{scheduleID}", h.DeleteSchedule)
 		})
 
 		// ── Free: Webhooks ──
@@ -322,7 +330,7 @@ func main() {
 		// ── Paid: Integrations ──
 		r.With(licSvc.RequireFeature(license.FeatureIntegrations)).Group(func(r chi.Router) {
 			r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
-			r.With(auth.RequireRole("admin", "analyst")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
+			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
 			r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
 			r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
 		})

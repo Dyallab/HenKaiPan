@@ -104,7 +104,7 @@ func (h *Handler) CreateToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auditLog(r, "create", "api_token", t.ID, nil, map[string]any{
+	h.auditLog(r, "api_token.create", "api_token", t.ID, nil, map[string]any{
 		"name":       req.Name,
 		"project_id": projectID,
 	})
@@ -158,7 +158,7 @@ func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.auditLog(r, "delete", "api_token", id, nil, nil)
+	h.auditLog(r, "api_token.delete", "api_token", id, nil, nil)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 

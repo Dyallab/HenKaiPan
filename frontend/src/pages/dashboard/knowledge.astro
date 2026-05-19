@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Knowledge Center" active="knowledge">
 
@@ -146,8 +146,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
-  import type { Article } from '../../lib/api';
+  import { api } from '@lib/api';
+  import type { Article } from '@lib/api';
   import { marked } from 'marked';
 
   marked.setOptions({ gfm: true, breaks: true });

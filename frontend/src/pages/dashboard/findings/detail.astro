@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from "../../../layouts/DashboardLayout.astro";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="Finding Detail" active="findings">
@@ -94,6 +94,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         </a>
                         <button
                             id="run-analysis-btn"
+                            data-requires-config="ai.validation"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/15 transition-all disabled:cursor-not-allowed disabled:opacity-70"
                         >
                             <span class="material-symbols-outlined text-base"
@@ -103,6 +104,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         </button>
                         <button
                             id="kb-remediate-btn"
+                            data-requires-config="ai.remediation"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/15 transition-all"
                         >
                             <span class="material-symbols-outlined text-base"
@@ -112,6 +114,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
                         </button>
                         <button
                             id="request-ai-summary-btn"
+                            data-requires-config="ai.summary"
                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/15 transition-all"
                         >
                             <span class="material-symbols-outlined text-base"
@@ -881,11 +884,14 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
     import { toast } from "@lib/toast";
     import { z } from "zod";
     import { getSSEClient } from "@lib/sse";
+    import { applyConfigGuards } from "@lib/config";
     import type {
         AgentAnalysis,
         Finding,
         JiraIssueLink,
     } from "@lib/api";
+
+    applyConfigGuards();
 
     // Validation schemas
     const findingUpdateSchema = z.object({
@@ -1222,7 +1228,7 @@ import DashboardLayout from "../../../layouts/DashboardLayout.astro";
 
     let currentFinding: Finding | null = null;
     let currentJiraIssue: JiraIssueLink | null = null;
-    let currentUserRole: "admin" | "analyst" | "viewer" | null = null;
+    let currentUserRole: "admin" | "viewer" | null = null;
     let latestAnalysisUpdatedAt: string | null = null;
     let analysisPolling = false;
     let analysisPollTimer: number | null = null;

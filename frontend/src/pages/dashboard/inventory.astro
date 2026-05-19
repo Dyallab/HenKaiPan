@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Asset Inventory" active="inventory">
 
@@ -74,7 +74,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { api } from '../../lib/api';
+  import { api } from '@lib/api';
 
   let allApps: any[] = [];
   let allTeams: any[] = [];

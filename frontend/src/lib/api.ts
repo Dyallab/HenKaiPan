@@ -162,6 +162,14 @@ export const api = {
 
   getMe: () => req<User>("/api/me"),
 
+  getConfigStatus: () =>
+    req<{
+      ai: { remediation: boolean; summary: boolean; validation: boolean };
+      email_enabled: boolean;
+      frontend_url: boolean;
+      webhook_secret: boolean;
+    }>("/api/config/status"),
+
   // Knowledge Center
   getArticles: (q = "", scanner = "", tag = "", cwe_id = "", rule_id = "") =>
     req<Article[]>(
@@ -759,7 +767,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
-  role: "admin" | "analyst" | "viewer";
+  role: "admin" | "viewer";
   created_at: string;
   last_login?: string;
 }

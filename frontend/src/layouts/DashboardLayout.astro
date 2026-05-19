@@ -41,6 +41,7 @@ const navGroups = [
     },
     {
         label: "Administration",
+        requiredRole: "admin",
         items: [
             { id: "system", label: "System", href: "/dashboard/system", icon: "monitoring" },
             { id: "settings", label: "Settings", href: "/dashboard/settings", icon: "settings" },
@@ -111,7 +112,7 @@ const navGroups = [
             <!-- Nav -->
             <nav class="flex-1 overflow-y-auto px-2 space-y-4 py-3">
                 {navGroups.map((group) => (
-                    <section>
+                    <section data-required-role={group.requiredRole}>
                         <p class="px-2 pb-1 text-[9px] font-semibold uppercase tracking-[0.2em] text-iron-slate/50">
                             {group.label}
                         </p>
@@ -213,11 +214,23 @@ const navGroups = [
         </div>
 
         <script>
-            import { api } from "../lib/api";
-            import { getSSEClient } from "../lib/sse";
+            import { api } from "@lib/api";
+            import { getSSEClient } from "@lib/sse";
 
             let unreadCount = 0;
             let notificationsDropdownOpen = false;
+
+            // Hide nav groups that require a role the current user doesn't have
+            (async () => {
+                try {
+                    const me = await api.getMe();
+                    document.querySelectorAll<HTMLElement>('[data-required-role]').forEach(el => {
+                        if (me.role !== el.dataset.requiredRole) {
+                            el.remove();
+                        }
+                    });
+                } catch {}
+            })();
 
             window.addEventListener("api-error", ((e: CustomEvent) => {
                 if (e.detail.silent) return;

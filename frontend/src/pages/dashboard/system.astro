@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="System Health" active="system">
@@ -173,8 +173,8 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
     </div>
 
     <script>
-        import { api } from "../../lib/api";
-        import { getSSEClient } from "../../lib/sse";
+        import { api } from "@lib/api";
+        import { getSSEClient } from "@lib/sse";
 
         const STATUS_COLORS = {
             ok: "bg-emerald-500",

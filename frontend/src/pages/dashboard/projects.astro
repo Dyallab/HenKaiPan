@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Projects" active="projects">
 
@@ -223,8 +223,8 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-import { api } from '../../lib/api.ts';
-import type { Project, ProjectCoverage, CoverageReport } from '../../lib/api.ts';
+import { api } from '@lib/api.ts';
+import type { Project, ProjectCoverage, CoverageReport } from '@lib/api.ts';
 
 let allProjects: Project[] = [];
 let coverageData: Map<string, ProjectCoverage> = new Map();

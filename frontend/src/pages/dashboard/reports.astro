@@ -1,5 +1,5 @@
 ---
-import DashboardLayout from "../../layouts/DashboardLayout.astro";
+import DashboardLayout from "@layouts/DashboardLayout.astro";
 ---
 
 <DashboardLayout title="Executive Reports" active="reports">
@@ -307,13 +307,13 @@ import DashboardLayout from "../../layouts/DashboardLayout.astro";
 </DashboardLayout>
 
 <script>
-    import { api } from "../../lib/api";
+    import { api } from "@lib/api";
     import type {
         TrendPoint,
         RepoRiskScore,
         Finding,
         SLACompliance,
-    } from "../../lib/api";
+    } from "@lib/api";
 
     // ── SVG trend chart ──────────────────────────────────────────────────────────
 
