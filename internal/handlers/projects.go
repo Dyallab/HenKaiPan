@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"aspm/internal/github"
 	"aspm/internal/repository"
@@ -121,6 +122,8 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "projectID")
 
+	oldProject, _ := h.store.Apps.GetProjectByID(r.Context(), id)
+
 	var req struct {
 		Token string `json:"token"`
 	}
@@ -129,10 +132,26 @@ func (h *Handler) UpdateProjectGitHubToken(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if err := h.store.Apps.UpdateProjectGitHubToken(r.Context(), id, req.Token); err != nil {
+	var expiresAt *time.Time
+	if req.Token != "" {
+		v := github.ValidateToken(r.Context(), req.Token)
+		if !v.Valid {
+			writeError(w, r, http.StatusBadRequest, v.Error)
+			return
+		}
+		expiresAt = v.ExpiresAt
+	}
+
+	if err := h.store.Apps.UpdateProjectGitHubToken(r.Context(), id, req.Token, expiresAt); err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to update token")
 		return
 	}
+
+	action := "project.token.set"
+	if req.Token == "" {
+		action = "project.token.remove"
+	}
+	h.auditLog(r, action, "project", id, oldProject, nil)
 
 	w.WriteHeader(http.StatusNoContent)
 }

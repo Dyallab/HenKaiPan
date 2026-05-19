@@ -152,16 +152,17 @@ type App struct {
 }
 
 type Project struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	Description      string    `json:"description,omitempty"`
-	AppID            *string   `json:"app_id,omitempty"`
-	RepoURL          *string   `json:"repo_url,omitempty"`
-	Provider         string    `json:"provider,omitempty"`
-	DefaultBranch    string    `json:"default_branch,omitempty"`
-	ExternalRepoID   *string   `json:"external_repo_id,omitempty"`
-	HasToken         bool      `json:"has_token"`
-	CreatedAt        time.Time `json:"created_at"`
+	ID                    string    `json:"id"`
+	Name                  string    `json:"name"`
+	Description           string    `json:"description,omitempty"`
+	AppID                 *string   `json:"app_id,omitempty"`
+	RepoURL               *string   `json:"repo_url,omitempty"`
+	Provider              string    `json:"provider,omitempty"`
+	DefaultBranch         string    `json:"default_branch,omitempty"`
+	ExternalRepoID        *string   `json:"external_repo_id,omitempty"`
+	HasToken              bool      `json:"has_token"`
+	GitHubTokenExpiresAt  *time.Time `json:"github_token_expires_at,omitempty"`
+	CreatedAt             time.Time `json:"created_at"`
 }
 
 type TeamMetrics struct {

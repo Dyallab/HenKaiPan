@@ -183,7 +183,7 @@ type AppRepository interface {
 	CreateStandaloneProject(ctx context.Context, p ProjectCreate) (*models.Project, error)
 	BulkCreateProjects(ctx context.Context, appID string, projects []ProjectCreate) ([]BulkCreateResult, error)
 	UpdateProject(ctx context.Context, id string, upd ProjectUpdate) error
-	UpdateProjectGitHubToken(ctx context.Context, id, token string) error
+	UpdateProjectGitHubToken(ctx context.Context, id, token string, expiresAt *time.Time) error
 	GetProjectGitHubToken(ctx context.Context, id string) (string, error)
 	DeleteProject(ctx context.Context, id string) error
 	AssignProjectsToApp(ctx context.Context, appID string, projectIDs []string) (int64, error)
