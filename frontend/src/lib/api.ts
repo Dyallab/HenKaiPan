@@ -613,6 +613,7 @@ export interface MetricsSummary {
 
 export interface Scan {
   id: string;
+  project_id?: string;
   target: string;
   scanner: string;
   status: "pending" | "running" | "completed" | "failed";

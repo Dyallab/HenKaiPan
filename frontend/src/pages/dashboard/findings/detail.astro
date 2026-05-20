@@ -885,7 +885,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     import { z } from "zod";
     import { getSSEClient } from "@lib/sse";
     import { applyConfigGuards } from "@lib/config";
-    import { canWrite } from "@lib/auth";
+    import { getCurrentUser, canWrite } from "@lib/auth";
     import type {
         AgentAnalysis,
         Finding,
@@ -2164,7 +2164,8 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             }
         });
 
-    api.getMe().then((me) => {
+    getCurrentUser().then((me) => {
+        if (!me) return;
         currentUserRole = me.role;
         // Re-render risk acceptance to show/hide admin approval form
         if (findingId) {

@@ -1,0 +1,286 @@
+---
+import DashboardLayout from '@layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Project Detail" active="projects">
+
+<!-- Back link + actions -->
+<div class="flex items-center justify-between mb-5">
+  <a href="/dashboard/projects" class="flex items-center gap-1 text-sm text-slate-400 hover:text-cyan-400 transition-colors">
+    <span class="material-symbols-outlined text-base">arrow_back</span>
+    Back to Projects
+  </a>
+  <button id="run-scan-btn"
+    class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
+    <span class="material-symbols-outlined text-lg">rocket_launch</span>
+    Run Scan
+  </button>
+</div>
+
+<div id="loading" class="text-sm text-slate-500">Loading...</div>
+<div id="error" class="hidden text-sm text-red-400"></div>
+
+<div id="content" class="hidden space-y-6">
+
+  <!-- Project info card -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6">
+    <div class="flex items-start justify-between gap-4 flex-wrap mb-5">
+      <div class="min-w-0">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Project</p>
+        <h1 id="project-name" class="text-xl font-bold text-white"></h1>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span id="project-token-badge" class="hidden text-xs font-bold px-2 py-1 rounded"></span>
+        <span id="project-standalone-badge" class="hidden text-xs text-amber-500/70 bg-amber-500/10 px-2 py-1 rounded font-bold">Standalone</span>
+      </div>
+    </div>
+
+    <p id="project-desc" class="hidden text-sm text-slate-400 mb-5"></p>
+
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-5 border-t border-outline-variant/20">
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Repository</p>
+        <a id="project-repo" href="#" target="_blank" rel="noopener" class="text-sm text-cyan-400 hover:underline font-mono break-all"></a>
+        <p id="project-repo-none" class="text-sm text-slate-600 hidden">No repository configured</p>
+      </div>
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Default Branch</p>
+        <p id="project-branch" class="text-sm text-on-surface-variant font-mono"></p>
+      </div>
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Provider</p>
+        <p id="project-provider" class="text-sm text-on-surface-variant"></p>
+      </div>
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Created</p>
+        <p id="project-created" class="text-sm text-on-surface-variant"></p>
+      </div>
+      <div>
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Project ID</p>
+        <p id="project-id" class="text-sm text-slate-600 font-mono text-xs select-all"></p>
+      </div>
+      <div id="app-row" class="hidden">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">App</p>
+        <p id="project-app" class="text-sm text-on-surface-variant"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scans section -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="material-symbols-outlined text-slate-500 text-base">security_update_good</span>
+        <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Scan History</h2>
+      </div>
+      <span id="scans-total" class="text-xs text-slate-500 font-mono"></span>
+    </div>
+    <div id="scans-list" class="overflow-x-auto">
+      <p class="px-6 py-4 text-sm text-slate-500">Loading scans...</p>
+    </div>
+  </div>
+
+</div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '@lib/api';
+  import type { Scan } from '@lib/api';
+
+  const STATUS_DOT: Record<string, string> = {
+    completed: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]',
+    running:   'bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.5)]',
+    pending:   'bg-amber-400',
+    failed:    'bg-red-400 shadow-[0_0_6px_rgba(248,113,113,0.5)]',
+  };
+
+  const STATUS_TEXT: Record<string, string> = {
+    completed: 'text-emerald-400',
+    running:   'text-cyan-400',
+    pending:   'text-amber-400',
+    failed:    'text-red-400',
+  };
+
+  const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
+    semgrep:       { label: 'SAST',      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    gosec:         { label: 'SAST',      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    trivy:         { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    grype:         { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    'osv-scanner': { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    trufflehog:    { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    gitleaks:      { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    checkov:       { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    tfsec:         { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    kics:          { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    'trivy-image': { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    'grype-image': { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    nuclei:        { label: 'DAST',      color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+    all:           { label: 'All',       color: 'text-slate-300 bg-slate-500/10 border-slate-500/20' },
+    sast:          { label: 'SAST',      color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    sca:           { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    secrets:       { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    iac:           { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    containers:    { label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+  };
+
+  function scannerType(scanner: string) {
+    return SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+  }
+
+  function fmt(d?: string | null) {
+    return d ? new Date(d).toLocaleString() : '—';
+  }
+
+  const projectId = new URLSearchParams(window.location.search).get('id');
+
+  if (!projectId) {
+    window.location.href = '/dashboard/projects';
+  }
+
+  document.getElementById('run-scan-btn')!.addEventListener('click', () => {
+    window.location.href = `/dashboard/scans?project=${encodeURIComponent(projectId!)}`;
+  });
+
+  function renderScans(scans: Scan[]) {
+    const el = document.getElementById('scans-list')!;
+    document.getElementById('scans-total')!.textContent = `${scans.length} scan${scans.length !== 1 ? 's' : ''}`;
+
+    if (!scans.length) {
+      el.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-12 text-center">
+          <span class="material-symbols-outlined text-slate-700 text-5xl mb-3">security_update_good</span>
+          <p class="text-slate-400 font-semibold text-lg">No scans yet</p>
+          <p class="text-slate-600 text-sm mt-1">Run your first scan to start detecting vulnerabilities.</p>
+        </div>`;
+      return;
+    }
+
+    el.innerHTML = `
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-950/50 border-b border-slate-800">
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Target</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Type</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanner</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Findings</th>
+            <th class="text-right px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Started</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          ${scans.map(s => {
+            const type = scannerType(s.scanner);
+            const dot = STATUS_DOT[s.status] ?? 'bg-slate-600';
+            const txt = STATUS_TEXT[s.status] ?? 'text-slate-400';
+            return `
+              <tr class="hover:bg-slate-900/30 transition-colors cursor-pointer" data-scan-id="${s.id}">
+                <td class="px-6 py-4">
+                  <span class="font-mono text-sm text-on-surface-variant truncate max-w-xs block">${s.target}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${type.color}">${type.label}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="font-mono text-xs text-slate-400">${s.scanner}</span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full shrink-0 ${dot}"></div>
+                    <span class="text-xs font-bold capitalize ${txt}">${s.status}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-right">
+                  <span class="font-mono text-sm text-on-surface-variant">${s.finding_count}</span>
+                </td>
+                <td class="px-6 py-4 text-right text-xs text-slate-500 font-mono">
+                  ${new Date(s.created_at).toLocaleString()}
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+
+    el.querySelectorAll('tr[data-scan-id]').forEach(row => {
+      row.addEventListener('click', () => {
+        const scanId = (row as HTMLElement).dataset.scanId;
+        if (scanId) window.location.href = `/dashboard/scans/detail/?id=${scanId}`;
+      });
+    });
+  }
+
+  async function load() {
+    try {
+      const [project, scansData] = await Promise.all([
+        api.getProject(projectId!),
+        api.getScans(1, 200),
+      ]);
+
+      document.getElementById('loading')!.classList.add('hidden');
+      document.getElementById('content')!.classList.remove('hidden');
+
+      // Project info
+      document.getElementById('project-name')!.textContent = project.name;
+      document.getElementById('project-id')!.textContent = project.id;
+      document.getElementById('project-created')!.textContent = fmt(project.created_at);
+      document.getElementById('project-branch')!.textContent = project.default_branch || '—';
+      document.getElementById('project-provider')!.textContent = project.provider || '—';
+
+      // Description
+      if (project.description) {
+        const descEl = document.getElementById('project-desc')!;
+        descEl.textContent = project.description;
+        descEl.classList.remove('hidden');
+      }
+
+      // Repo URL
+      if (project.repo_url) {
+        const repoEl = document.getElementById('project-repo')!;
+        repoEl.href = project.repo_url;
+        repoEl.textContent = project.repo_url;
+      } else {
+        document.getElementById('project-repo-none')!.classList.remove('hidden');
+        document.getElementById('project-repo')!.classList.add('hidden');
+      }
+
+      // Token badge
+      if (project.has_token) {
+        const badge = document.getElementById('project-token-badge')!;
+        badge.textContent = 'Token Set';
+        badge.className = 'text-xs text-green-400 bg-green-500/10 border border-green-500/20 px-2 py-1 rounded font-bold';
+        badge.classList.remove('hidden');
+      }
+
+      // Standalone badge
+      if (!project.app_id) {
+        document.getElementById('project-standalone-badge')!.classList.remove('hidden');
+      }
+
+      // App row
+      if (project.app_id) {
+        document.getElementById('app-row')!.classList.remove('hidden');
+        document.getElementById('project-app')!.textContent = project.app_id;
+      }
+
+      // Filter scans by project_id
+      const projectScans = scansData.scans.filter(s => s.project_id === projectId);
+
+      // Sort by created_at descending
+      projectScans.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      renderScans(projectScans);
+
+      // Auto-refresh if any scan is running/pending
+      const hasActive = projectScans.some(s => s.status === 'running' || s.status === 'pending');
+      if (hasActive) {
+        setTimeout(load, 5000);
+      }
+    } catch (err) {
+      document.getElementById('loading')!.classList.add('hidden');
+      const errorEl = document.getElementById('error')!;
+      errorEl.textContent = err instanceof Error ? err.message : 'Failed to load project.';
+      errorEl.classList.remove('hidden');
+    }
+  }
+
+  load();
+</script>

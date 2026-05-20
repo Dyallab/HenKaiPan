@@ -1,6 +1,9 @@
 package handlers
 
-import "net/http"
+import (
+	"aspm/internal/license"
+	"net/http"
+)
 
 func (h *Handler) GetConfigStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -9,8 +12,11 @@ func (h *Handler) GetConfigStatus(w http.ResponseWriter, r *http.Request) {
 			"summary":     h.aiSummary,
 			"validation":  h.aiValidation,
 		},
-		"email_enabled":   h.emailEnabled,
-		"frontend_url":    h.frontendURL != "",
-		"webhook_secret":  h.webhookSecret != "",
+		"features": map[string]bool{
+			"risk_acceptance": h.license.HasFeature(license.FeatureRiskAcceptance),
+		},
+		"email_enabled":  h.emailEnabled,
+		"frontend_url":   h.frontendURL != "",
+		"webhook_secret": h.webhookSecret != "",
 	})
 }
