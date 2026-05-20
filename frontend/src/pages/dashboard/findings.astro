@@ -261,7 +261,26 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const file_path = (document.getElementById('filter-file') as HTMLSelectElement).value;
     const sortBy   = (document.getElementById('sort-credibility') as HTMLSelectElement).value;
 
-    const { findings, total } = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id, false, file_path);
+    let findings: Finding[] = [];
+    let total = 0;
+    try {
+      const result = await api.getFindings(severity, scanner, 1, 50, status, overdue, category, cve_id, false, file_path);
+      findings = result.findings;
+      total = result.total;
+    } catch (error: any) {
+      const el = document.getElementById('findings-table')!;
+      el.innerHTML = `<div class="flex flex-col items-center justify-center py-12 text-center">
+        <span class="material-symbols-outlined text-red-400 text-5xl mb-3">error</span>
+        <p class="text-red-300 font-semibold text-lg">Failed to load findings</p>
+        <p class="text-slate-500 text-sm mt-1">${escapeHTML(error?.message ?? 'Unknown error')}</p>
+        <button onclick="loadFindings()" class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
+          <span class="material-symbols-outlined text-sm">refresh</span>
+          Retry
+        </button>
+      </div>`;
+      document.getElementById('findings-total')!.textContent = '';
+      return;
+    }
     
     // Apply client-side sorting by credibility
     if (sortBy) {

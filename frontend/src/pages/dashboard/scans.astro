@@ -53,16 +53,6 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
             <div id="scan-target-badge" class="hidden mt-2"></div>
           </div>
 
-          <!-- Target URL -->
-          <div class="relative w-72" id="target-url-group">
-            <span id="target-url-icon" class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">link</span>
-            <input
-              id="scan-target"
-              type="text"
-              placeholder="Or enter URL directly"
-              class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all placeholder:text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-          </div>
         </div>
       </div>
 
@@ -364,15 +354,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         <span class="text-slate-500 ml-1">${escapeHtml(selectedProject.repoUrl)}</span>
       </div>`;
     } else {
-      const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
-      if (target) {
-        summary.innerHTML = `<div class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 rounded-lg px-3 py-2">
-          <span class="material-symbols-outlined text-sm">link</span>
-          Scanning URL: <span class="font-mono text-slate-400">${escapeHtml(target)}</span>
-        </div>`;
-      } else {
-        summary.innerHTML = 'No target selected. Go to <strong>Target</strong> tab first.';
-      }
+      summary.innerHTML = 'No target selected. Select an app or project in the <strong>Target</strong> tab first.';
     }
   }
 
@@ -380,9 +362,6 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
     const clearBtn = document.getElementById('scan-target-clear')!;
     const badge = document.getElementById('scan-target-badge')!;
-    const urlInput = document.getElementById('scan-target') as HTMLInputElement;
-    const urlIcon = document.getElementById('target-url-icon')!;
-    const urlGroup = document.getElementById('target-url-group')!;
 
     closeDropdown();
 
@@ -390,8 +369,6 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       selectedApp = { id: item.id, name: item.name, projectCount: item.projectCount || 0 };
       selectedProject = null;
       searchInput.value = item.name;
-      // Hide URL input when app is selected
-      urlGroup.classList.add('hidden');
       badge.innerHTML = `<div class="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 rounded-lg px-3 py-1.5">
         <span class="material-symbols-outlined text-sm">folder</span>
         Scanning all <strong>${item.projectCount}</strong> project${item.projectCount !== 1 ? 's' : ''} in <strong>${escapeHtml(item.name)}</strong>
@@ -401,11 +378,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       selectedProject = { id: item.id, name: item.name, repoUrl: item.repoUrl || '' };
       selectedApp = null;
       searchInput.value = item.name;
-      urlGroup.classList.remove('hidden');
-      urlInput.disabled = false;
-      urlInput.value = item.repoUrl || '';
-      urlInput.placeholder = 'Or enter URL directly';
-      badge.classList.add('hidden');
+      badge.innerHTML = `<div class="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5">
+        <span class="material-symbols-outlined text-sm">description</span>
+        Scanning project <strong>${escapeHtml(item.name)}</strong>
+        <span class="text-slate-500 ml-1">${escapeHtml(item.repoUrl || '')}</span>
+      </div>`;
+      badge.classList.remove('hidden');
     }
 
     clearBtn.classList.remove('hidden');
@@ -416,16 +394,10 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     selectedApp = null;
     selectedProject = null;
     const searchInput = document.getElementById('scan-target-search') as HTMLInputElement;
-    const urlInput = document.getElementById('scan-target') as HTMLInputElement;
-    const urlGroup = document.getElementById('target-url-group')!;
     const badge = document.getElementById('scan-target-badge')!;
     const clearBtn = document.getElementById('scan-target-clear')!;
 
     searchInput.value = '';
-    urlGroup.classList.remove('hidden');
-    urlInput.disabled = false;
-    urlInput.value = '';
-    urlInput.placeholder = 'Or enter URL directly';
     badge.classList.add('hidden');
     clearBtn.classList.add('hidden');
     searchInput.focus();
@@ -567,20 +539,17 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         msg.textContent = `Scan queued for all ${selectedApp.projectCount} projects in ${selectedApp.name}.`;
         msg.className = 'mt-3 text-sm text-emerald-400';
         clearSelection();
-      } else {
-        const target = (document.getElementById('scan-target') as HTMLInputElement).value.trim();
-        if (!target) {
-          msg.textContent = 'Enter a target URL or select an app/project.';
-          msg.className = 'mt-3 text-sm text-red-400';
-          btn.disabled = false;
-          btn.innerHTML = '<span class="material-symbols-outlined text-lg">rocket_launch</span> Run New Scan';
-          return;
-        }
-        await api.createScan(target, scanner, selectedProject?.id || undefined);
-        msg.textContent = 'Scan queued successfully.';
+      } else if (selectedProject) {
+        await api.createScan(selectedProject.repoUrl, scanner, selectedProject.id);
+        msg.textContent = `Scan queued for project ${selectedProject.name}.`;
         msg.className = 'mt-3 text-sm text-emerald-400';
-        (document.getElementById('scan-target') as HTMLInputElement).value = '';
         clearSelection();
+      } else {
+        msg.textContent = 'Select an app or project before running a scan.';
+        msg.className = 'mt-3 text-sm text-red-400';
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-lg">rocket_launch</span> Run New Scan';
+        return;
       }
       setTimeout(loadScans, 500);
     } catch (err: any) {
@@ -606,9 +575,6 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   });
   dropdown.addEventListener('click', handleDropdownClick);
   clearBtn.addEventListener('click', clearSelection);
-
-  // Update scanner summary when URL changes
-  document.getElementById('scan-target')!.addEventListener('input', updateScannerSummary);
 
   document.addEventListener('click', (e) => {
     const container = document.getElementById('target-combobox')!;
