@@ -580,7 +580,7 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 				-- Secret hash match (strongest correlation for secrets)
 				($10 <> '' AND f.secret_hash = $10)
 				OR ($4 <> '' AND f.rule_id = $4)
-				OR ($5 IS NOT NULL AND f.cve_id = $5)
+				OR ($5::text IS NOT NULL AND f.cve_id = $5)
 				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= $8)
 			)`,
 		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK, current.SecretHash,

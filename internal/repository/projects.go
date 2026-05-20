@@ -2,12 +2,15 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"aspm/internal/models"
 	"aspm/internal/secrets"
+
+	"github.com/jackc/pgx/v5"
 )
 
 func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Project, error) {
@@ -301,6 +304,9 @@ func (r *appRepo) GetProjectGitHubToken(ctx context.Context, id string) (string,
 	var token []byte
 	err := r.db.QueryRow(ctx, `SELECT github_token_encrypted FROM projects WHERE id = $1`, id).Scan(&token)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
 		return "", fmt.Errorf("get token: %w", err)
 	}
 	if token == nil || len(token) == 0 {
