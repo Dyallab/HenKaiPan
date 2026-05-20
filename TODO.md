@@ -39,14 +39,15 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`HenKaiPan-self-hosted/CHANGELOG.md`](../HenKaiPan-self-hosted/CHANGELOG.md)
 
-**Latest public release:** v1.7.0
-**Next planned release:** v1.8.0
+**Latest public release:** v1.15.0
+**Next planned release:** v1.16.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
-| v1.7.0 | `--skip-ollama` flag, auto-start stack, IP detection in summary |
+| v1.15.0 | Project search bar, detail page, risk acceptance feature flag, rate limit increases, auth fixes |
+| v1.14.0 | Private repo clone fix, findings loading fix, SQL correlation fix, scans page simplified |
 | v1.6.0 | Per-app scan scheduling, GitHub repo discovery, bulk project import, vuln inventory |
 | v1.5.1 | API Docker build fix (pnpm 11 compat) |
 | v1.5.0 | Scanner binary execution (no Docker socket) |
