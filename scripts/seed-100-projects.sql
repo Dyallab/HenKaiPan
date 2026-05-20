@@ -8,7 +8,6 @@
 
 DO $$
 DECLARE
-    v_repo_id UUID;
     v_project_id UUID;
     v_now TIMESTAMPTZ := NOW();
     v_projects TEXT[][] := ARRAY[
@@ -147,29 +146,12 @@ BEGIN
     FOREACH v_item SLICE 1 IN ARRAY v_projects
     LOOP
         -- v_item[1] = "org/repo" (full path), v_item[2] = display name, v_item[3] = description
-        -- Insert into repos table
-        INSERT INTO repos (name, url, created_at, updated_at)
-        VALUES (
-            v_item[2],
-            'https://github.com/' || v_item[1],
-            v_now,
-            v_now
-        )
-        ON CONFLICT (url) DO NOTHING
-        RETURNING id INTO v_repo_id;
-
-        -- If repo already existed, get its ID
-        IF v_repo_id IS NULL THEN
-            SELECT id INTO v_repo_id FROM repos WHERE url = 'https://github.com/' || v_item[1];
-        END IF;
-
         -- Insert into projects table as standalone project (app_id IS NULL)
-        INSERT INTO projects (name, description, app_id, repo_id, repo_url, provider, default_branch, created_at, updated_at)
+        INSERT INTO projects (name, description, app_id, repo_url, provider, default_branch, created_at, updated_at)
         VALUES (
             v_item[2],
             v_item[3],
             NULL,           -- standalone project (no app)
-            v_repo_id,
             'https://github.com/' || v_item[1],
             'github',
             'main',

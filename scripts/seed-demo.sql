@@ -12,7 +12,6 @@ DECLARE
     v_team_id    UUID;
     v_user_id    UUID;
     v_app_id     UUID;
-    v_repo_id    UUID;
     v_project_id UUID;
     v_scan1_id   UUID;
     v_scan2_id   UUID;
@@ -55,19 +54,11 @@ ON CONFLICT (name) DO NOTHING;
 
 SELECT id INTO v_app_id FROM apps WHERE name = 'Demo App';
 
--- ── Repo ─────────────────────────────────────────────────────────────────────
-
-INSERT INTO repos (id, name, url, created_at, updated_at)
-VALUES (gen_random_uuid(), 'demo-api', 'https://github.com/example/demo-api', v_now, v_now)
-ON CONFLICT (url) DO NOTHING;
-
-SELECT id INTO v_repo_id FROM repos WHERE url = 'https://github.com/example/demo-api';
-
 -- ── Project ──────────────────────────────────────────────────────────────────
 
-INSERT INTO projects (id, name, description, app_id, repo_id, repo_url, provider, default_branch, created_at, updated_at)
+INSERT INTO projects (id, name, description, app_id, repo_url, provider, default_branch, created_at, updated_at)
 VALUES (gen_random_uuid(), 'Demo API Service', 'Sample Node.js REST API for evaluation',
-        v_app_id, v_repo_id, 'https://github.com/example/demo-api', 'github', 'main', v_now, v_now)
+        v_app_id, 'https://github.com/example/demo-api', 'github', 'main', v_now, v_now)
 ON CONFLICT DO NOTHING
 RETURNING id INTO v_project_id;
 
@@ -82,8 +73,8 @@ v_batch2 := gen_random_uuid();
 
 -- ── Scan 1: completed semgrep scan ──────────────────────────────────────────
 
-INSERT INTO scans (id, repo_id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
-VALUES (gen_random_uuid(), v_repo_id, v_project_id, 'semgrep', 'completed',
+INSERT INTO scans (id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
+VALUES (gen_random_uuid(), v_project_id, 'semgrep', 'completed',
         'https://github.com/example/demo-api', v_batch1,
         v_now - interval '3 days', v_now - interval '3 days' + interval '10 seconds', v_now - interval '3 days' + interval '2 minutes')
 RETURNING id INTO v_scan1_id;
@@ -124,8 +115,8 @@ ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerpri
 
 -- ── Scan 2: completed trivy scan ─────────────────────────────────────────────
 
-INSERT INTO scans (id, repo_id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
-VALUES (gen_random_uuid(), v_repo_id, v_project_id, 'trivy', 'completed',
+INSERT INTO scans (id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
+VALUES (gen_random_uuid(), v_project_id, 'trivy', 'completed',
         'https://github.com/example/demo-api', v_batch1,
         v_now - interval '3 days', v_now - interval '3 days' + interval '5 seconds', v_now - interval '3 days' + interval '1 minute')
 RETURNING id INTO v_scan2_id;
@@ -154,8 +145,8 @@ ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerpri
 
 -- ── Scan 3: re-scan (dedup test) ────────────────────────────────────────────
 
-INSERT INTO scans (id, repo_id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
-VALUES (gen_random_uuid(), v_repo_id, v_project_id, 'semgrep', 'completed',
+INSERT INTO scans (id, project_id, scanner, status, target, scan_batch_id, created_at, started_at, completed_at)
+VALUES (gen_random_uuid(), v_project_id, 'semgrep', 'completed',
         'https://github.com/example/demo-api', v_batch2,
         v_now - interval '1 hour', v_now - interval '1 hour' + interval '8 seconds', v_now - interval '1 hour' + interval '90 seconds')
 RETURNING id INTO v_scan3_id;
@@ -172,8 +163,8 @@ ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerpri
 
 -- ── Scan 4: running (in-progress) ────────────────────────────────────────────
 
-INSERT INTO scans (id, repo_id, project_id, scanner, status, target, scan_batch_id, created_at, started_at)
-VALUES (gen_random_uuid(), v_repo_id, v_project_id, 'gitleaks', 'running',
+INSERT INTO scans (id, project_id, scanner, status, target, scan_batch_id, created_at, started_at)
+VALUES (gen_random_uuid(), v_project_id, 'gitleaks', 'running',
         'https://github.com/example/demo-api', v_batch2,
         v_now, v_now);
 
