@@ -283,6 +283,13 @@ Critical items that must be completed before v1.0 release.
 
 ### Tech Debt
 
+- [ ] **SQL Injection Audit**: Review all SQL queries for injection vulnerabilities
+  - [ ] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
+  - [ ] Verify parameterized queries are used everywhere (no string concatenation)
+  - [ ] Check repository layer (`internal/repository/`) for dynamic query building
+  - [ ] Review migration files for any dynamic SQL patterns
+  - [ ] Scan for `fmt.Sprintf` used with SQL statements (common injection vector)
+
 - [ ] **API versioning**: Migrate existing endpoints to `/api/v1/...`
   - [ ] Define migration strategy (co-locate `/api/` and `/api/v1/` during transition)
   - [ ] Migrate routes one by one (start with auth, then projects/scans/findings)
@@ -304,6 +311,13 @@ Critical items that must be completed before v1.0 release.
 - [ ] Custom scanner plugins
 
 ### Platform Health
+
+- [ ] **MCP Server for LLM Integration**: Expose HenKaiPan capabilities as an MCP server so LLMs/agents can interact with the platform programmatically
+  - [ ] Research MCP protocol and tool definitions
+  - [ ] Implement `tools/list` and `tools/call` endpoints
+  - [ ] Expose key operations: list projects, trigger scans, query findings, get scan status
+  - [ ] Authentication via API tokens (reuse existing token system)
+  - [ ] Documentation for integrating with Claude, Cursor, etc.
 
 - [ ] Scanner Health Dashboard — scanner failure rates, avg duration, success % table
 - [ ] Queue monitoring dashboard (Asynq metrics)

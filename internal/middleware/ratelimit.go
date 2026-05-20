@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	rateLimitWindow   = 60 // 1 minute window
-	rateLimitGeneral  = 100 // 100 requests per minute
-	rateLimitAuth     = 10  // 10 requests per minute for auth endpoints
-	rateLimitHeavy    = 60  // 60 requests per minute for heavy endpoints
+	rateLimitWindow   = 60  // 1 minute window
+	rateLimitGeneral  = 300 // 300 requests per minute (5/sec)
+	rateLimitAuth     = 20  // 20 requests per minute for auth endpoints
+	rateLimitHeavy    = 120 // 120 requests per minute for heavy endpoints
 )
 
 var rdb *redis.Client

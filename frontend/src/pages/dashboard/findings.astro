@@ -138,9 +138,10 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 <script>
   import { api } from '@lib/api';
   import type { Finding } from '@lib/api';
-  import { canWrite } from '@lib/auth';
+  import { getCurrentUser, canWrite } from '@lib/auth';
 
-  // Bulk actions state
+  // Ensure user is loaded before checking write access
+  await getCurrentUser();
   let selectedFindingIds: Set<string> = new Set();
   const hasWriteAccess = canWrite();
 
@@ -446,6 +447,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     return Array.from(checkboxes).map(cb => cb.dataset.findingId || '');
   }
 
+  if (hasWriteAccess) {
   document.getElementById('bulk-clear')!.addEventListener('click', () => {
     document.querySelectorAll('.finding-checkbox').forEach(cb => {
       (cb as HTMLInputElement).checked = false;
@@ -484,6 +486,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       alert(error.message ?? 'Failed to update findings');
     }
   });
+  }
 
   document.getElementById('filter-btn')!.addEventListener('click', loadFindings);
   document.getElementById('filter-overdue')!.addEventListener('change', loadFindings);

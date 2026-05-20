@@ -23,8 +23,8 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   </div>
 </div>
 
-<!-- Filter tabs -->
-<div class="flex gap-2 mb-4">
+<!-- Filter tabs + search -->
+<div class="flex gap-2 mb-4 items-center">
   <button data-filter="" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-cyan-500 text-slate-950">All</button>
   <button data-filter="with_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">With App</button>
   <button data-filter="without_app" class="filter-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white">Standalone</button>
@@ -32,6 +32,24 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   <button id="coverage-filter" class="px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20">
     <span class="material-symbols-outlined text-sm align-middle mr-1">warning</span>
     Needs Coverage
+  </button>
+</div>
+
+<!-- Search bar -->
+<div class="relative mb-4">
+  <span class="material-symbols-outlined text-slate-500 text-lg absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">search</span>
+  <input
+    id="project-search"
+    type="text"
+    placeholder="Search projects by name, URL, or description..."
+    class="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:bg-slate-800 transition-colors"
+  />
+  <button
+    id="clear-search"
+    class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+    title="Clear search"
+  >
+    <span class="material-symbols-outlined text-sm">close</span>
   </button>
 </div>
 
@@ -231,6 +249,7 @@ let coverageData: Map<string, ProjectCoverage> = new Map();
 let currentFilter = '';
 let showCoverageOnly = false;
 let currentProjectId: string | null = null;
+let searchQuery = '';
 
 async function loadCoverage() {
   const report = await api.getCoverageReport().catch(() => null);
@@ -280,15 +299,31 @@ function shouldShowProject(p: Project) {
   return true;
 }
 
+function matchesSearch(p: Project, query: string) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (
+    p.name.toLowerCase().includes(q) ||
+    (p.repo_url && p.repo_url.toLowerCase().includes(q)) ||
+    (p.description && p.description.toLowerCase().includes(q))
+  );
+}
+
 function renderProjects() {
   const container = document.getElementById('projects-list')!;
   const emptyState = document.getElementById('empty-state')!;
 
-  const filteredProjects = allProjects.filter(shouldShowProject);
+  const filteredProjects = allProjects.filter(p => shouldShowProject(p) && matchesSearch(p, searchQuery));
 
   if (!filteredProjects.length) {
     container.innerHTML = '';
-    if (showCoverageOnly) {
+    if (searchQuery) {
+      emptyState.innerHTML = `
+        <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">search_off</span>
+        <p class="text-slate-400 font-semibold text-lg">No projects match "${searchQuery}"</p>
+        <p class="text-slate-600 text-sm mt-1">Try a different search term.</p>
+      `;
+    } else if (showCoverageOnly) {
       emptyState.innerHTML = `
         <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">check_circle</span>
         <p class="text-slate-400 font-semibold text-lg">All projects covered!</p>
@@ -330,6 +365,11 @@ function renderProjects() {
           </div>
         </div>
         <div class="flex items-center gap-3 shrink-0 ml-4">
+          <a href="/dashboard/projects/detail?id=${encodeURIComponent(p.id)}"
+             class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 text-slate-300 border border-slate-600/30 rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-700 transition-colors">
+            <span class="material-symbols-outlined text-sm">visibility</span>
+            Detail
+          </a>
           <a href="/dashboard/scans?project=${encodeURIComponent(p.id)}"
              class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
             <span class="material-symbols-outlined text-sm">security_update_good</span>
@@ -456,6 +496,24 @@ document.getElementById('coverage-filter')!.addEventListener('click', () => {
     btn.className = 'px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors bg-slate-800 text-slate-400 hover:text-white border border-outline-variant/20';
   }
   renderProjects();
+});
+
+// Search input
+const searchInput = document.getElementById('project-search') as HTMLInputElement;
+const clearSearchBtn = document.getElementById('clear-search')!;
+
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value.trim();
+  clearSearchBtn.classList.toggle('hidden', !searchQuery);
+  renderProjects();
+});
+
+clearSearchBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  searchQuery = '';
+  clearSearchBtn.classList.add('hidden');
+  renderProjects();
+  searchInput.focus();
 });
 
 // Modal close

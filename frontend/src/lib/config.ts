@@ -4,6 +4,7 @@ let _status: Promise<ConfigStatus> | null = null;
 
 interface ConfigStatus {
     ai: { remediation: boolean; summary: boolean; validation: boolean };
+    features: { risk_acceptance: boolean };
     email_enabled: boolean;
     frontend_url: boolean;
     webhook_secret: boolean;
@@ -13,6 +14,7 @@ export async function getConfigStatus(): Promise<ConfigStatus> {
     if (!_status) {
         _status = api.getConfigStatus().catch(() => ({
             ai: { remediation: false, summary: false, validation: false },
+            features: { risk_acceptance: false },
             email_enabled: false,
             frontend_url: false,
             webhook_secret: false,
