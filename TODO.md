@@ -39,13 +39,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`HenKaiPan-self-hosted/CHANGELOG.md`](../HenKaiPan-self-hosted/CHANGELOG.md)
 
-**Latest public release:** v1.15.0
-**Next planned release:** v1.16.0
+**Latest public release:** v1.16.0
+**Next planned release:** v1.17.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.16.0 | SCA cross-scanner correlation, package matching, confidence score UI, corroborating scanners display |
 | v1.15.0 | Project search bar, detail page, risk acceptance feature flag, rate limit increases, auth fixes |
 | v1.14.0 | Private repo clone fix, findings loading fix, SQL correlation fix, scans page simplified |
 | v1.6.0 | Per-app scan scheduling, GitHub repo discovery, bulk project import, vuln inventory |
@@ -184,13 +185,15 @@ Critical items that must be completed before v1.0 release.
 
 | Item | Effort | Priority |
 |------|--------|----------|
-| Credibility badges in findings table | 0.5 day | Medium |
-| Credibility filters/sorting | 0.5 day | Medium |
-| Correlation details modal | 0.5 day | Low |
+| Credibility badges in findings table | ✅ Done | Medium |
+| Credibility filters/sorting | ✅ Done | Medium |
+| Correlation details modal | ✅ Done | Low |
 
-- [ ] Findings page — show credibility score and corroboration count badges
-- [ ] Add filters/sorting for credibility score
+- [x] Findings page — show credibility score and corroboration count badges
+- [x] Add filters/sorting for credibility score
 - [x] Correlation details endpoint (`GET /api/findings/{id}/correlations`)
+- [x] Corroborating scanner names displayed in findings list
+- [x] Dynamic correlation reason detection on detail page
 
 ### AI Notification Summaries (v0.6 pending)
 
@@ -364,5 +367,5 @@ Before tagging v1.0:
 - **Repos page**: Legacy, superseded by Projects
 - **Legacy repo references**: Some API endpoints still use "repo" terminology — migrate to "project"
 - **PDF reports**: Browser print stylesheet exists, verify it works correctly
-- **Credibility UI**: Backend done, frontend pending
+- **Credibility UI**: Complete — badges, sorting, corroborating scanner names, correlation reasons
 - **pnpm 11**: Frontend Docker build requires `--ignore-scripts` + explicit `pnpm rebuild esbuild sharp`
