@@ -36,6 +36,8 @@ type FindingRow struct {
 	CVEID       string // e.g. "CVE-2021-44228"
 	CWEID       string // e.g. "CWE-89"
 	SecretHash  string // SHA256 hash of detected secret value (for trufflehog/gitleaks correlation)
+	PkgName     string // package name for SCA correlation (e.g. "log4j", "express")
+	PkgVersion  string // package version for SCA correlation (e.g. "2.14.0", "4.18.2")
 }
 
 type ParserFunc func(output []byte) ([]FindingRow, error)

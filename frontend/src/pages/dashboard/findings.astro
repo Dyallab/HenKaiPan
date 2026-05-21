@@ -344,6 +344,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
             const corrobBadge = hasCorroboration
               ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300" title="Corroborated by ${f.corroboration_count} scanner(s)">+${f.corroboration_count}</span>`
               : '';
+            const corroboratingScanners = f.corroborating_scanners
+              ? `<span class="text-[10px] text-slate-500 font-mono" title="Corroborated by: ${escapeHTML(f.corroborating_scanners)}">${f.corroborating_scanners.split(',').slice(0, 2).join(', ')}${f.corroborating_scanners.split(',').length > 2 ? '…' : ''}</span>`
+              : '';
 			return `
               <tr class="group hover:bg-slate-900/30 transition-colors cursor-pointer ${f.false_positive ? 'opacity-50' : ''}" data-finding-id="${f.id}">
                 ${hasWriteAccess ? `<td class="px-5 py-3" onclick="event.stopPropagation()">
@@ -356,7 +359,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                      <div class="flex items-center gap-2 mt-1.5 flex-wrap">
                        <span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border ${scanner.color}">${scanner.label}</span>
                        ${f.ai_analyzed ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-purple-500/20 bg-purple-500/10 text-purple-300">AI analyzed</span>' : ''}
-                       ${hasCorroboration ? '<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300">Corroborated</span>' : ''}
+                        ${hasCorroboration ? `<span class="px-2 py-1 text-[10px] font-bold rounded uppercase tracking-wider border border-blue-500/20 bg-blue-500/10 text-blue-300" title="Corroborated by: ${f.corroborating_scanners || 'other scanners'}">Corroborated${f.corroborating_scanners ? ' (' + f.corroborating_scanners.split(',').slice(0, 2).join(', ') + ')' : ''}</span>` : ''}
                        ${f.assigned_to ? `<span class="text-[11px] text-cyan-400/80">Owner: ${f.assigned_to}</span>` : ''}
                      </div>
                    </a>
@@ -368,6 +371,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                   <div class="flex items-center gap-1 flex-wrap">
                     ${confidenceBadge}
                     ${corrobBadge}
+                    ${corroboratingScanners}
                   </div>
                 </td>
                 <td class="px-5 py-3 hidden xl:table-cell">${slaDisplay(f)}</td>
