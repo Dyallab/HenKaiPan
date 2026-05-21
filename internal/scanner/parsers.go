@@ -220,6 +220,8 @@ func ParseSARIF(data []byte) ([]FindingRow, error) {
 					row.Severity = msgSev
 				}
 				row.CVEID = strings.ToUpper(r.RuleID)
+				row.PkgName = pkg
+				row.PkgVersion = ver
 				if pkg != "" {
 					if ver != "" {
 						row.Title = fmt.Sprintf("%s in %s@%s", r.RuleID, pkg, ver)
@@ -344,6 +346,8 @@ func ParseGrype(data []byte) ([]FindingRow, error) {
 			FilePath:    fp,
 			Raw:         raw,
 			CVEID:       cve,
+			PkgName:     m.Artifact.Name,
+			PkgVersion:  m.Artifact.Version,
 		})
 	}
 	return rows, nil
@@ -417,6 +421,8 @@ func ParseOSV(data []byte) ([]FindingRow, error) {
 					Raw:         raw,
 					CVEID:       cve,
 					CWEID:       cwe,
+					PkgName:     pkg.Package.Name,
+					PkgVersion:  pkg.Package.Version,
 				})
 			}
 		}

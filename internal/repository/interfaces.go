@@ -49,6 +49,8 @@ type FindingInsert struct {
 	SecretHash  string
 	ProjectID   string
 	Fingerprint string
+	PkgName     string
+	PkgVersion  string
 }
 
 type ExportFilter struct {

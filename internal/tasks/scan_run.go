@@ -146,6 +146,8 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 				SecretHash: f.SecretHash,
 				ProjectID:  p.ProjectID,
 				Fingerprint: fingerprint,
+				PkgName:    f.PkgName,
+				PkgVersion: f.PkgVersion,
 			})
 			if err != nil {
 				log.Error("insert finding failed", "rule_id", f.RuleID, "err", err)

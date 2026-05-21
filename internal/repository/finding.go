@@ -39,7 +39,18 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		       ) AS ai_analyzed,
 		       COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
 		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
-		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz)
+		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz),
+		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, ''),
+		       COALESCE((
+		         SELECT string_agg(DISTINCT other.scanner, ',')
+		         FROM finding_correlations fc
+		         JOIN findings other ON other.id = CASE
+		           WHEN fc.finding_id_a = f.id THEN fc.finding_id_b
+		           ELSE fc.finding_id_a
+		         END
+		         WHERE fc.correlation_type = 'same_family_batch'
+		           AND (fc.finding_id_a = f.id OR fc.finding_id_b = f.id)
+		       ), '')
 		FROM findings f
 		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
 		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
@@ -80,7 +91,8 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 			&fi.Severity, &fi.FilePath, &fi.LineStart, &fi.LineEnd, &fi.CreatedAt,
 			&fi.Status, &fi.AssignedTo, &fi.FalsePositive, &fi.Notes, &fi.ResolvedAt, &fi.SLADeadline,
 			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount, &fi.AIAnalyzed, &fi.AISummary, &fi.SummaryState, &fi.Suppressed, &fi.RemediationSlug,
-			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt); err != nil {
+			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt,
+			&fi.PkgName, &fi.PkgVersion, &fi.CorroboratingScanners); err != nil {
 			return nil, 0, fmt.Errorf("scan findings row: %w", err)
 		}
 		fi.JiraIssue = buildFindingJiraIssue(hasJiraIssue, jiraID, fi.ID, jiraIssueKey, jiraIssueURL, jiraStatus, jiraCreatedAt)
@@ -179,7 +191,8 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
 		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count, COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
 		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
-		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz)
+		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz),
+		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, '')
 		FROM findings f
 		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
 		WHERE f.id = $1`, id).
@@ -187,7 +200,8 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
 			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState, &f.Suppressed, &f.RemediationSlug,
-			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt)
+			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt,
+			&f.PkgName, &f.PkgVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -221,7 +235,8 @@ func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.
 		SELECT id, scan_id, scanner, rule_id, title, COALESCE(description, ''), severity,
 		       file_path, line_start, line_end, code_snippet, created_at,
 		       status, assigned_to, false_positive, notes, resolved_at, sla_deadline,
-		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state
+		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state,
+		       COALESCE(pkg_name, ''), COALESCE(pkg_version, '')
 		FROM findings WHERE scan_id = $1
 		ORDER BY
 			CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
@@ -237,7 +252,8 @@ func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.
 		rows.Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
-			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState)
+			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState,
+			&f.PkgName, &f.PkgVersion)
 		findings = append(findings, f)
 	}
 	if findings == nil {
@@ -271,15 +287,16 @@ func (r *findingRepo) Insert(ctx context.Context, f FindingInsert) (string, erro
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO findings
 			(scan_id, scanner, rule_id, title, description, severity, file_path, line_start, line_end,
-			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash, project_id, fingerprint)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash, project_id, fingerprint,
+			 pkg_name, pkg_version)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
 		ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerprint IS NOT NULL
 		DO NOTHING
 		RETURNING id`,
 		f.ScanID, f.Scanner, f.RuleID, f.Title, f.Description,
 		f.Severity, f.FilePath, f.LineStart, f.LineEnd,
 		f.CodeSnippet, f.Raw, f.SLADeadline, f.CVEID, f.CWEID, f.Suppressed, f.SecretHash,
-		f.ProjectID, f.Fingerprint,
+		f.ProjectID, f.Fingerprint, f.PkgName, f.PkgVersion,
 	).Scan(&id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -490,7 +507,8 @@ func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
-		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count
+		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count,
+		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, '')
 		FROM findings f
 		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.scanner  = $2)
@@ -510,7 +528,8 @@ func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.
 		rows.Scan(&fi.ID, &fi.ScanID, &fi.Scanner, &fi.RuleID, &fi.Title, &fi.Description,
 			&fi.Severity, &fi.FilePath, &fi.LineStart, &fi.CreatedAt,
 			&fi.Status, &fi.AssignedTo, &fi.FalsePositive, &fi.Notes, &fi.ResolvedAt, &fi.SLADeadline,
-			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount)
+			&fi.CVEID, &fi.CWEID, &fi.ConfidenceScore, &fi.CorroborationCount,
+			&fi.PkgName, &fi.PkgVersion)
 		findings = append(findings, fi)
 	}
 	return findings, nil
@@ -528,6 +547,7 @@ type correlationContext struct {
 	SecretHash   string
 	Suppressed   bool
 	ScannerClass scanner.Category
+	PkgName      string
 }
 
 func (r *findingRepo) getCorrelationContext(ctx context.Context, findingID string) (*correlationContext, error) {
@@ -535,11 +555,11 @@ func (r *findingRepo) getCorrelationContext(ctx context.Context, findingID strin
 	err := r.db.QueryRow(ctx, `
 		SELECT f.id, f.scan_id, s.scan_batch_id, f.scanner, COALESCE(f.rule_id, ''),
 		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.cve_id, 
-		       COALESCE(f.secret_hash, ''), f.suppressed
+		       COALESCE(f.secret_hash, ''), f.suppressed, COALESCE(f.pkg_name, '')
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id
 		WHERE f.id = $1`, findingID,
-	).Scan(&current.FindingID, &current.ScanID, &current.BatchID, &current.Scanner, &current.RuleID, &current.FilePath, &current.LineStart, &current.CVEID, &current.SecretHash, &current.Suppressed)
+	).Scan(&current.FindingID, &current.ScanID, &current.BatchID, &current.Scanner, &current.RuleID, &current.FilePath, &current.LineStart, &current.CVEID, &current.SecretHash, &current.Suppressed, &current.PkgName)
 	if err != nil {
 		return nil, fmt.Errorf("get correlation context: %w", err)
 	}
@@ -575,15 +595,16 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 		WHERE s.scan_batch_id = $1
 		  AND f.id <> $2
 		  AND f.suppressed = FALSE
-		  AND ($9 OR f.scanner <> $3)
+		  AND ($10 OR f.scanner <> $3)
 		  AND (
 				-- Secret hash match (strongest correlation for secrets)
-				($10 <> '' AND f.secret_hash = $10)
+				($11 <> '' AND f.secret_hash = $11)
 				OR ($4 <> '' AND f.rule_id = $4)
 				OR ($5::text IS NOT NULL AND f.cve_id = $5)
 				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= $8)
+				OR ($12 <> '' AND f.pkg_name = $12)
 			)`,
-		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK, current.SecretHash,
+		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK, current.SecretHash, current.PkgName,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query batch matches: %w", err)

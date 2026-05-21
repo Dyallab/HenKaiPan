@@ -174,6 +174,11 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 >Overview</button
             >
             <button
+                data-tab-trigger="triage"
+                class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
+                >Triage</button
+            >
+            <button
                 data-tab-trigger="evidence"
                 class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors"
                 >Evidence</button
@@ -195,9 +200,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             >
         </div>
 
-        <div
-            class="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start"
-        >
+        <div class="space-y-6">
             <div class="space-y-6 min-w-0">
                 <section data-tab-panel="overview" class="tab-panel space-y-6">
                     <div class="grid md:grid-cols-2 gap-4">
@@ -274,7 +277,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         >
                             Affected Resource
                         </p>
-                        <div class="grid md:grid-cols-2 gap-4 text-sm">
+                        <div class="grid md:grid-cols-3 gap-4 text-sm">
                             <div>
                                 <p class="text-slate-500 mb-1">Location</p>
                                 <p
@@ -298,6 +301,12 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                         id="resource-scan-id"
                                         class="font-mono"></span>
                                 </a>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 mb-1">First seen</p>
+                                <p
+                                    id="overview-first-seen"
+                                    class="text-on-background"></p>
                             </div>
                         </div>
                     </div>
@@ -355,6 +364,96 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                             >
                             </p>
                         </div>
+                    </div>
+                </section>
+
+                <section
+                    data-tab-panel="triage"
+                    class="tab-panel hidden space-y-6"
+                >
+                    <div
+                        class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6 space-y-5 max-w-2xl"
+                    >
+                        <p
+                            class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
+                        >
+                            Triage Controls
+                        </p>
+                        <p class="text-sm text-slate-400">
+                            Update status, assign ownership, mark false positives, and add triage notes.
+                        </p>
+
+                        <div>
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                >Status</label
+                            >
+                            <select
+                                id="triage-status"
+                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all"
+                            >
+                                <option value="open">Open</option>
+                                <option value="in_review">In Review</option>
+                                <option value="accepted_risk">Accepted Risk</option>
+                                <option value="fixed">Fixed</option>
+                                <option value="verified">Verified</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                >Assigned To</label
+                            >
+                            <input
+                                id="triage-assigned"
+                                type="text"
+                                placeholder="username or email"
+                                autocomplete="off"
+                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
+                            />
+                        </div>
+
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input
+                                id="triage-fp"
+                                type="checkbox"
+                                class="mt-1 rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer"
+                            />
+                            <div>
+                                <p class="text-sm text-on-background font-medium">
+                                    False Positive
+                                </p>
+                                <p class="text-xs text-slate-500 mt-1">
+                                    Exclude the finding from operational triage
+                                    while preserving evidence.
+                                </p>
+                            </div>
+                        </label>
+
+                        <div>
+                            <label
+                                class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
+                                >Notes</label
+                            >
+                            <textarea
+                                id="triage-notes"
+                                rows="5"
+                                placeholder="Add triage context, mitigation notes, or acceptance rationale..."
+                                class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none"
+                            ></textarea>
+                        </div>
+
+                        <p id="triage-save-msg" class="text-xs hidden"></p>
+                        <button
+                            id="triage-save"
+                            class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-cyan-500 text-slate-950 text-sm font-bold hover:bg-cyan-400 transition-all active:scale-[0.99]"
+                        >
+                            <span class="material-symbols-outlined text-base"
+                                >save</span
+                            >
+                            Save Triage
+                        </button>
                     </div>
                 </section>
 
@@ -430,13 +529,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                             id="correlation-context"
                             class="hidden rounded-xl border border-blue-500/20 bg-blue-500/5 p-4"
                         >
-                            <p class="text-sm text-blue-200">
-                                <span class="font-semibold"
-                                    >Correlation by secret value:</span
-                                >
-                                This finding was corroborated by multiple scanners
-                                detecting the exact same secret value.
-                            </p>
                         </div>
                         <div id="correlation-list" class="space-y-3">
                             <p class="text-sm text-slate-500">
@@ -759,123 +851,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                     </div>
                 </section>
             </div>
-
-            <aside class="space-y-6 xl:sticky xl:top-6">
-                <div
-                    class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
-                >
-                    <p
-                        class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
-                    >
-                        Summary
-                    </p>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-slate-500">Severity</span><span
-                                id="side-severity"
-                                class="text-on-background"></span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-slate-500">Status</span><span
-                                id="side-status"
-                                class="text-on-background"></span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-slate-500">Scanner</span><span
-                                id="side-scanner"
-                                class="font-mono text-on-background"></span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-slate-500">First seen</span><span
-                                id="side-created"
-                                class="text-on-background text-right"></span>
-                        </div>
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-slate-500">SLA</span><span
-                                id="side-sla"
-                                class="text-on-background text-right"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    class="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-4"
-                >
-                    <p
-                        class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500"
-                    >
-                        Triage
-                    </p>
-                    <div>
-                        <label
-                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
-                            >Status</label
-                        >
-                        <select
-                            id="triage-status"
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all"
-                        >
-                            <option value="open">Open</option>
-                            <option value="in_review">In Review</option>
-                            <option value="accepted_risk">Accepted Risk</option>
-                            <option value="fixed">Fixed</option>
-                            <option value="verified">Verified</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label
-                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
-                            >Assigned To</label
-                        >
-                        <input
-                            id="triage-assigned"
-                            type="text"
-                            placeholder="username or email"
-                            autocomplete="off"
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600"
-                        />
-                    </div>
-                    <label class="flex items-start gap-3 cursor-pointer">
-                        <input
-                            id="triage-fp"
-                            type="checkbox"
-                            class="mt-1 rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer"
-                        />
-                        <div>
-                            <p class="text-sm text-on-background font-medium">
-                                False Positive
-                            </p>
-                            <p class="text-xs text-slate-500 mt-1">
-                                Exclude the finding from operational triage
-                                while preserving evidence.
-                            </p>
-                        </div>
-                    </label>
-                    <div>
-                        <label
-                            class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2 block"
-                            >Notes</label
-                        >
-                        <textarea
-                            id="triage-notes"
-                            rows="5"
-                            placeholder="Add triage context, mitigation notes, or acceptance rationale..."
-                            class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none"
-                        ></textarea>
-                    </div>
-                    <p id="triage-save-msg" class="text-xs hidden"></p>
-                    <button
-                        id="triage-save"
-                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-cyan-500 text-slate-950 text-sm font-bold hover:bg-cyan-400 transition-all active:scale-[0.99]"
-                    >
-                        <span class="material-symbols-outlined text-base"
-                            >save</span
-                        >
-                        Save Triage
-                    </button>
-                </div>
-            </aside>
-        </div>
     </div>
 </DashboardLayout>
 
@@ -1043,18 +1018,39 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         return `<div class="flex items-start justify-between gap-4 rounded-xl border border-outline-variant/20 bg-slate-950/40 px-4 py-3"><p class="text-sm text-slate-500">${label}</p><p class="text-sm text-on-background text-right">${value}</p></div>`;
     }
 
-    function renderCorrelations(findings: Finding[]) {
+    function detectCorrelationReason(base: Finding, correlated: Finding[]): string {
+        const reasons = new Set<string>();
+        for (const f of correlated) {
+            if (f.cve_id && base.cve_id && f.cve_id === base.cve_id) {
+                reasons.add('CVE match');
+            }
+            if (f.pkg_name && base.pkg_name && f.pkg_name === base.pkg_name) {
+                reasons.add('Package match');
+            }
+            if (f.rule_id === base.rule_id && !f.cve_id) {
+                reasons.add('Rule match');
+            }
+            if (f.file_path && base.file_path && f.file_path === base.file_path) {
+                reasons.add('Same file');
+            }
+        }
+        if (reasons.size === 0) return 'Batch correlation';
+        return Array.from(reasons).join(', ');
+    }
+
+    function renderCorrelations(base: Finding, findings: Finding[]) {
         const list = document.getElementById("correlation-list")!;
         const contextEl = document.getElementById("correlation-context")!;
         document.getElementById("correlation-count")!.textContent =
             `${findings.length} corroborated`;
 
-        // Show correlation context banner if there are corroborations from different scanners
         const uniqueScanners = new Set(findings.map((f) => f.scanner));
         const hasMultiScannerCorroboration = uniqueScanners.size > 1;
 
         if (hasMultiScannerCorroboration) {
             contextEl.classList.remove("hidden");
+            const reason = detectCorrelationReason(base, findings);
+            contextEl.innerHTML = `<p class="text-sm text-blue-200"><span class="font-semibold">Correlation reason:</span> ${reason} across ${uniqueScanners.size} different scanners.</p>`;
         } else {
             contextEl.classList.add("hidden");
         }
@@ -1576,18 +1572,10 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             renderTimelineRow("Notes", finding.notes || "No triage notes yet."),
         ].join("");
 
-        document.getElementById("side-severity")!.textContent =
-            finding.severity;
-        document.getElementById("side-status")!.textContent =
-            STATUS_LABELS[finding.status] ?? finding.status;
-        document.getElementById("side-scanner")!.textContent = finding.scanner;
-        document.getElementById("side-created")!.textContent = formatDate(
+        document.getElementById("overview-first-seen")!.textContent = formatDate(
             finding.created_at,
             true,
         );
-        document.getElementById("side-sla")!.textContent = finding.sla_deadline
-            ? formatDate(finding.sla_deadline, true)
-            : "No deadline";
 
         (document.getElementById("triage-status") as HTMLSelectElement).value =
             finding.status ?? "open";
@@ -1624,7 +1612,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     async function loadCorrelations() {
         try {
             const result = await api.getFindingCorrelations(findingId!);
-            renderCorrelations(result.findings ?? []);
+            renderCorrelations(currentFinding!, result.findings ?? []);
         } catch (error: any) {
             document.getElementById("correlation-list")!.innerHTML =
                 `<p class="text-sm text-red-400">${error.message ?? "Failed to load corroborating findings."}</p>`;

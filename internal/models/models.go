@@ -67,8 +67,8 @@ type Finding struct {
 	SLADeadline        *time.Time     `json:"sla_deadline,omitempty"`
 	CVEID              *string        `json:"cve_id,omitempty"`
 	CWEID              *string        `json:"cwe_id,omitempty"`
-	ConfidenceScore    *float64       `json:"-"`
-	CorroborationCount int            `json:"-"`
+	ConfidenceScore    *float64       `json:"confidence_score,omitempty"`
+	CorroborationCount int            `json:"corroboration_count"`
 	AIAnalyzed         bool           `json:"ai_analyzed"`
 	AISummary          string         `json:"ai_summary,omitempty"`
 	SummaryState       string         `json:"summary_state,omitempty"`
@@ -76,6 +76,9 @@ type Finding struct {
 	RemediationSlug    *string        `json:"remediation_slug,omitempty"`
 	JiraIssue          *JiraIssueLink `json:"jira_issue,omitempty"`
 	SecretHash         string         `json:"-"`
+	PkgName            string         `json:"pkg_name,omitempty"`
+	PkgVersion         string         `json:"pkg_version,omitempty"`
+	CorroboratingScanners string      `json:"corroborating_scanners,omitempty"`
 }
 
 type SLASummary struct {

@@ -655,6 +655,9 @@ export interface Finding {
   jira_issue?: JiraIssueLink;
   confidence_score?: number | null;
   corroboration_count?: number;
+  pkg_name?: string;
+  pkg_version?: string;
+  corroborating_scanners?: string;
 }
 
 export interface AgentAnalysis {
