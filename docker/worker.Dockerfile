@@ -1,11 +1,15 @@
 # Stage 1: Build worker binary
 FROM golang:1.26-alpine AS builder
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go build -o /worker ./cmd/worker
+RUN go build \
+    -ldflags "-X aspm/internal/handlers.Version=$VERSION -X aspm/internal/handlers.BuildDate=$BUILD_DATE" \
+    -o /worker ./cmd/worker
 
 # Stage 2: Install scanner binaries
 FROM alpine:3.22 AS scanners

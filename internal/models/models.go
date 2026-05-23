@@ -247,30 +247,6 @@ type Article struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
-type VulnSummary struct {
-	VulnID        string   `json:"vuln_id"`
-	CVEID         *string  `json:"cve_id,omitempty"`
-	CWEID         *string  `json:"cwe_id,omitempty"`
-	Title         string   `json:"title"`
-	Severity      string   `json:"severity"`
-	Scanners      []string `json:"scanners"`
-	AffectedCount int      `json:"affected_count"`
-	FindingCount  int      `json:"finding_count"`
-	OpenCount     int      `json:"open_count"`
-	FixedCount    int      `json:"fixed_count"`
-}
-
-type AffectedRepo struct {
-	RepoName        string   `json:"repo_name"`
-	RepoURL         string   `json:"repo_url"`
-	FindingCount    int      `json:"finding_count"`
-	OpenCount       int      `json:"open_count"`
-	FixedCount      int      `json:"fixed_count"`
-	Statuses        []string `json:"statuses"`
-	Assignees       []string `json:"assignees"`
-	NearestDeadline *string  `json:"nearest_deadline,omitempty"`
-}
-
 type AgentAnalysis struct {
 	ID           string    `json:"id"`
 	FindingID    string    `json:"finding_id"`
@@ -330,6 +306,42 @@ type RiskAcceptance struct {
 	ReviewNotes *string    `json:"review_notes,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+type EngineType = string
+
+const (
+	EngineSCA        EngineType = "sca"
+	EngineSAST       EngineType = "sast"
+	EngineSecrets    EngineType = "secrets"
+	EngineIaC        EngineType = "iac"
+	EngineContainers EngineType = "containers"
+	EngineDAST       EngineType = "dast"
+)
+
+type Vulnerability struct {
+	ID               string     `json:"id"`
+	VulnUID          string     `json:"vuln_uid"`
+	ProjectID        string     `json:"project_id"`
+	Title            string     `json:"title"`
+	Description      string     `json:"description,omitempty"`
+	Severity         Severity   `json:"severity"`
+	Status           string     `json:"status"`
+	EngineType       EngineType `json:"engine_type"`
+	PkgName          string     `json:"pkg_name,omitempty"`
+	PkgVersion       string     `json:"pkg_version,omitempty"`
+	CVEID            string     `json:"cve_id,omitempty"`
+	CWEID            string     `json:"cwe_id,omitempty"`
+	RuleID           string     `json:"rule_id,omitempty"`
+	SecretHash       string     `json:"secret_hash,omitempty"`
+	FilePath         string     `json:"file_path,omitempty"`
+	FirstSeenAt      time.Time  `json:"first_seen_at"`
+	LastSeenAt       time.Time  `json:"last_seen_at"`
+	FindingCount     int        `json:"finding_count"`
+	ScannerCoverage  []string   `json:"scanner_coverage"`
+	ConfidenceScore  *float64   `json:"confidence_score,omitempty"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
 }
 
 type UserNotification struct {

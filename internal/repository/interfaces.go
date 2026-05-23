@@ -390,19 +390,47 @@ type NotificationRepository interface {
 	GetUnreadCount(ctx context.Context, userID string) (int, error)
 }
 
-// ── Vulnerabilities ───────────────────────────────────────────────────────────
+// ── Vulnerability Model (canonical entity) ─────────────────────────────────────
 
-type VulnFilter struct {
+type VulnerabilityFilter struct {
+	ProjectID  string
 	Severities []string
+	EngineType string
+	Status     string
 	Search     string
 	OnlyOpen   bool
 	Page       int
 	Limit      int
+	SortBy     string
+}
+
+type VulnerabilityUpsert struct {
+	VulnUID     string
+	ProjectID   string
+	Title       string
+	Description string
+	Severity    string
+	EngineType  string
+	PkgName     string
+	PkgVersion  string
+	CVEID       string
+	CWEID       string
+	RuleID      string
+	SecretHash  string
+	FilePath    string
+	ScannerName string
 }
 
 type VulnerabilityRepository interface {
-	List(ctx context.Context, f VulnFilter) ([]models.VulnSummary, int, error)
-	GetAffected(ctx context.Context, vulnID string) ([]models.AffectedRepo, error)
+	Upsert(ctx context.Context, v VulnerabilityUpsert) (*models.Vulnerability, error)
+	GetByID(ctx context.Context, id string) (*models.Vulnerability, error)
+	GetByUID(ctx context.Context, projectID, vulnUID string) (*models.Vulnerability, error)
+	List(ctx context.Context, f VulnerabilityFilter) ([]models.Vulnerability, int, error)
+	GetAffectedFindings(ctx context.Context, vulnID string) ([]AffectedFinding, error)
+	GetProjectEngineSummaries(ctx context.Context) ([]ProjectEngineSummary, error)
+	RecalcConfidence(ctx context.Context, vulnID string) error
+	UpdateFindingVulnID(ctx context.Context, findingID, vulnID string) error
+	BackfillVulnerabilities(ctx context.Context) (int, error)
 }
 
 // ── Agent Analyses ────────────────────────────────────────────────────────────
@@ -581,7 +609,7 @@ type Stores struct {
 	Metrics        MetricsRepository
 	Knowledge      KnowledgeRepository
 	Policies       PolicyRepository
-	Vulns          VulnerabilityRepository
+	Vulnerabilities VulnerabilityRepository
 	Agents         AgentRepository
 	Webhooks       WebhookRepository
 	Settings       SettingsRepository

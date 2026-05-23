@@ -7,6 +7,7 @@ import (
 
 	"aspm/internal/models"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -76,50 +77,43 @@ func (r *webhookRepo) Create(ctx context.Context, wc WebhookCreate) (*models.Web
 func (r *webhookRepo) Update(ctx context.Context, id string, upd WebhookUpdate) (*models.Webhook, error) {
 	var w models.Webhook
 	var eventsRaw []byte
-	
-	query := `UPDATE webhooks SET `
-	args := []interface{}{id}
-	argIdx := 2
-	setClauses := []string{}
+
+	args := pgx.NamedArgs{"id": id}
+	var setClauses []string
 
 	if upd.Label != nil {
-		setClauses = append(setClauses, fmt.Sprintf("label = $%d", argIdx))
-		args = append(args, *upd.Label)
-		argIdx++
+		setClauses = append(setClauses, "label = @label")
+		args["label"] = *upd.Label
 	}
 	if upd.URL != nil {
-		setClauses = append(setClauses, fmt.Sprintf("url = $%d", argIdx))
-		args = append(args, *upd.URL)
-		argIdx++
+		setClauses = append(setClauses, "url = @url")
+		args["url"] = *upd.URL
 	}
 	if upd.DeliveryType != nil {
-		setClauses = append(setClauses, fmt.Sprintf("delivery_type = $%d", argIdx))
-		args = append(args, *upd.DeliveryType)
-		argIdx++
+		setClauses = append(setClauses, "delivery_type = @delivery_type")
+		args["delivery_type"] = *upd.DeliveryType
 	}
 	if upd.Events != nil {
 		eventsJSON, _ := json.Marshal(upd.Events)
-		setClauses = append(setClauses, fmt.Sprintf("events = $%d", argIdx))
-		args = append(args, eventsJSON)
-		argIdx++
+		setClauses = append(setClauses, "events = @events")
+		args["events"] = eventsJSON
 	}
 	if upd.Enabled != nil {
-		setClauses = append(setClauses, fmt.Sprintf("enabled = $%d", argIdx))
-		args = append(args, *upd.Enabled)
-		argIdx++
+		setClauses = append(setClauses, "enabled = @enabled")
+		args["enabled"] = *upd.Enabled
 	}
 
 	if len(setClauses) == 0 {
 		return r.GetByID(ctx, id)
 	}
 
-	query += setClauses[0]
+	query := `UPDATE webhooks SET ` + setClauses[0]
 	for i := 1; i < len(setClauses); i++ {
 		query += ", " + setClauses[i]
 	}
-	query += fmt.Sprintf(" WHERE id = $1 RETURNING id, label, url, delivery_type, events, enabled, last_delivery, delivery_count, error_count, last_error, created_at")
+	query += ` WHERE id = @id RETURNING id, label, url, delivery_type, events, enabled, last_delivery, delivery_count, error_count, last_error, created_at`
 
-	err := r.db.QueryRow(ctx, query, args...).Scan(&w.ID, &w.Label, &w.URL, &w.DeliveryType, &eventsRaw, &w.Enabled, &w.LastDelivery, &w.DeliveryCount, &w.ErrorCount, &w.LastError, &w.CreatedAt)
+	err := r.db.QueryRow(ctx, query, args).Scan(&w.ID, &w.Label, &w.URL, &w.DeliveryType, &eventsRaw, &w.Enabled, &w.LastDelivery, &w.DeliveryCount, &w.ErrorCount, &w.LastError, &w.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update webhook: %w", err)
 	}
@@ -161,19 +155,30 @@ func (r *webhookRepo) UpdateDeliveryStats(ctx context.Context, id string, succes
 		UPDATE webhooks 
 		SET last_delivery = NOW(),
 		    delivery_count = delivery_count + 1,
-		    error_count = error_count + CASE WHEN $1 THEN 0 ELSE 1 END,
-		    last_error = CASE WHEN $1 THEN NULL ELSE $2 END
-		WHERE id = $3`
+		    error_count = error_count + CASE WHEN @success THEN 0 ELSE 1 END,
+		    last_error = CASE WHEN @success THEN NULL ELSE @error_msg END
+		WHERE id = @id`
 	
-	_, err := r.db.Exec(ctx, query, success, errorMsg, id)
+	_, err := r.db.Exec(ctx, query, pgx.NamedArgs{
+		"success":    success,
+		"error_msg":  errorMsg,
+		"id":         id,
+	})
 	return err
 }
 
 func (r *webhookRepo) LogDelivery(ctx context.Context, l WebhookDeliveryInsert) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO webhook_delivery_logs (webhook_id, event_type, payload, status_code, response_body, error_message)
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		l.WebhookID, l.EventType, l.Payload, l.StatusCode, l.ResponseBody, l.ErrorMessage)
+		VALUES (@webhook_id, @event_type, @payload, @status_code, @response_body, @error_message)`,
+		pgx.NamedArgs{
+			"webhook_id":    l.WebhookID,
+			"event_type":    l.EventType,
+			"payload":       l.Payload,
+			"status_code":   l.StatusCode,
+			"response_body": l.ResponseBody,
+			"error_message": l.ErrorMessage,
+		})
 	return err
 }
 

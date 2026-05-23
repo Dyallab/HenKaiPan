@@ -146,7 +146,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             </h3>
             <div
                 id="version-info"
-                class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"
+                class="grid grid-cols-2 gap-4 text-sm"
             >
                 <div>
                     <p class="text-xs text-slate-500">Version</p>
@@ -155,18 +155,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 <div>
                     <p class="text-xs text-slate-500">Build Date</p>
                     <p id="build-date" class="text-slate-300">--</p>
-                </div>
-                <div>
-                    <p class="text-xs text-slate-500">Commit</p>
-                    <p id="commit" class="text-slate-300 font-mono text-xs">
-                        --
-                    </p>
-                </div>
-                <div>
-                    <p class="text-xs text-slate-500">Go Version</p>
-                    <p id="go-version" class="text-slate-300 font-mono text-xs">
-                        --
-                    </p>
                 </div>
             </div>
         </div>
@@ -237,8 +225,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         function updateVersion(data) {
             document.getElementById("version").textContent = data.version;
             document.getElementById("build-date").textContent = data.build_date;
-            document.getElementById("commit").textContent = data.commit;
-            document.getElementById("go-version").textContent = data.go_version;
         }
 
         async function fetchHealth() {

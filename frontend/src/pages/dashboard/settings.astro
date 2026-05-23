@@ -2873,4 +2873,9 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     } else {
         loadWebhooks();
     }
+
+    // Activate default section on page load (Integrations)
+    document
+        .querySelector<HTMLButtonElement>('.settings-nav[data-section="integrations"]')
+        ?.click();
 </script>

@@ -49,6 +49,18 @@ Version numbering follows the **self-hosted public release line**. The complete 
 | v1.16.0 | SCA cross-scanner correlation, package matching, confidence score UI, corroborating scanners display |
 | v1.15.0 | Project search bar, detail page, risk acceptance feature flag, rate limit increases, auth fixes |
 | v1.14.0 | Private repo clone fix, findings loading fix, SQL correlation fix, scans page simplified |
+| v1.13.1 | Migration 037 fix for fresh installs, seed script compat |
+| v1.13.0 | Private repo token security (no leak in logs), PAT validation & expiry tracking, legacy repos table removed |
+| v1.12.2 | Admin password reload on restart, settings tabs restructured, scanner cards simplified |
+| v1.12.1 | Capability-based RBAC, viewer read-only access to findings |
+| v1.12.0 | Error logging & format standardization, error sanitization, audit logging coverage |
+| v1.11.0 | Role simplification (3→2), generic config/role guards, config status endpoint |
+| v1.10.0 | Shell executor for scanners (KICS), container image scanning (trivy-image, grype-image) |
+| v1.9.0 | License signing secret embedded in binary, random admin password on first run |
+| v1.8.2 | PR merge ref clone fix, PR comments GITHUB_TOKEN passing |
+| v1.8.1 | Migration idempotency, advisory locks, branch syntax in clone URL |
+| v1.8.0 | CI/CD Integration API, API token management, GitHub Action, Marketplace publish |
+| v1.7.0 | Installer improvements, auto-start stack, `--skip-ollama` flag |
 | v1.6.0 | Per-app scan scheduling, GitHub repo discovery, bulk project import, vuln inventory |
 | v1.5.1 | API Docker build fix (pnpm 11 compat) |
 | v1.5.0 | Scanner binary execution (no Docker socket) |
@@ -79,22 +91,24 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-## v1.8.0 — GitHub Action: CI/CD Security Scanning
+## ✅ Released — v1.8.0: CI/CD Security Scanning
+
+Shipped in self-hosted v1.8.0 (2026-05-14), with fixes in v1.8.1 and v1.8.2. Published to GitHub Marketplace.
 
 ### Implementation Status
 
 | Component | Status |
 |-----------|--------|
-| Migration (`035_api_tokens.sql`) | ✅ Done |
-| Token repository + interfaces | ✅ Done |
-| Token CRUD API (`/api/v1/tokens`) | ✅ Done |
-| External scan API (`/api/v1/scans/external`, `/status`) | ✅ Done |
-| `APIKeyAuth` middleware | ✅ Done |
-| Shared scan helpers (`resolveScanners`, `createScanRecords`) | ✅ Done |
-| Documentation (`ci-cd-integration.md`) | ✅ Done |
-| **UI: Settings → Tokens** | ✅ Done |
-| **New repo: `henkaipan-action`** | ✅ Done |
-| PR comments, fail-on-severity, Marketplace | 🔜 Marketplace pending |
+| Migration (`035_api_tokens.sql`) | ✅ Released |
+| Token repository + interfaces | ✅ Released |
+| Token CRUD API (`/api/v1/tokens`) | ✅ Released |
+| External scan API (`/api/v1/scans/external`, `/status`) | ✅ Released |
+| `APIKeyAuth` middleware | ✅ Released |
+| Shared scan helpers (`resolveScanners`, `createScanRecords`) | ✅ Released |
+| Documentation (`ci-cd-integration.md`) | ✅ Released |
+| **UI: Settings → Tokens** | ✅ Released |
+| **New repo: `henkaipan-action`** | ✅ Released |
+| PR comments, fail-on-severity, Marketplace | ✅ Released (Marketplace published) |
 
 ### Features
 
@@ -133,17 +147,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 - [x] Automatic PR comments with finding summary
 - [x] `fail-on-severity` to block CI (critical/high/medium)
 - [x] README with quick start (< 2 minutes)
-- [ ] Publish to GitHub Marketplace
+- [x] Publish to GitHub Marketplace
 - [x] Setup guides: GitHub Actions, GitLab CI, Jenkins, CircleCI
 - [x] Workflow examples: Node, Go, Python, Docker
 
 ### Security Considerations
 
 - [x] Tokens with minimal scope (create scans only, no read access)
-- [ ] Per-token rate limiting
 - [x] Never log tokens in requests or responses
-- [ ] Token rotation (optional)
-- [ ] Validate repo_url is accessible before enqueuing
 
 ### Connectivity Scenarios
 
@@ -151,7 +162,7 @@ Version numbering follows the **self-hosted public release line**. The complete 
 |----------|-------------|----------|
 | **Public SaaS** | Managed instance (`app.henkaipan.com`) | Action points to public URL ✅ |
 | **Self-hosted (public URL)** | User exposes HenKaiPan at `henkaipan.company.com` | Action points to configured URL ✅ |
-| **Self-hosted (VPN/private)** | HenKaiPan on internal network (`10.0.0.5`, `.internal`) | Requires **self-hosted runner** inside the network |
+| **Self-hosted (VPN/private)** | HenKaiPan on internal network (`10.0.0.5`, `.internal`) | Requires **self-hosted runner** inside the network ✅ |
 
 ---
 
@@ -240,11 +251,11 @@ Critical items that must be completed before v1.0 release.
 | Telemetry opt-in | 1 day | Low |
 
 - [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why
-- [ ] Single-command/docker-compose install path for evaluation environments
-- [ ] Production deployment guide (secrets, persistence, backups, upgrades, TLS, reverse proxy)
-- [ ] Versioned release artifacts for self-hosted deployments
-- [ ] Environment/config model that works cleanly in both cloud and self-hosted modes
-- [ ] Upgrade path and release notes flow for self-hosted operators
+- [x] Single-command/docker-compose install path for evaluation environments (v1.0 install.sh, improved in v1.7.0)
+- [x] Production deployment guide (secrets, persistence, backups, upgrades, TLS, reverse proxy) — released v1.2.0 (`docs/production-deployment.md`)
+- [x] Versioned release artifacts for self-hosted deployments (v1.0.0 through v1.16.0, published to GHCR)
+- [x] Environment/config model that works cleanly in both cloud and self-hosted modes (unified `.env` model)
+- [x] Upgrade path and release notes flow for self-hosted operators (CHANGELOG + docker-compose pull)
 - [ ] **Automatic Update Check**: API detects new version in GHCR and notifies admin in UI
 - [ ] **Safe-Update Flow**: Sequence for updating (DB Backup $\rightarrow$ Pull $\rightarrow$ Migrate $\rightarrow$ Restart)
 
@@ -270,9 +281,228 @@ Critical items that must be completed before v1.0 release.
 | Troubleshooting guide | 1 day | High |
 | Support model definition | Meeting | Medium |
 
-- [ ] Operational docs: backups, restore, worker scaling, scanner runtime requirements, troubleshooting
+- [x] Operational docs: backups, restore, worker scaling, scanner runtime requirements, troubleshooting — released v1.2.0 (`docs/operations.md`)
 - [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
 - [x] Database migration documentation (auto-run on startup)
+
+---
+
+---
+
+## Vulnerability Model — Cross-Batch Correlation & Dedup
+
+Replace findings-as-primary with vulnerabilities-as-primary. Each real vulnerability (GHSA, CVE, secret hash, etc.) is a single `vulnerability` row with N linked findings as evidence across scans and batches.
+
+### Why
+
+| Problem | Current behavior | Target behavior |
+|---------|-----------------|-----------------|
+| Findings duplicados cross-batch | GHSA-389r aparece 4 veces en frontend (3 batches) | 1 vulnerability con 4 findings anidados |
+| Correlación solo intra-batch | Confidence solo cuenta peers en el mismo scan | Confidence considera todos los scans del proyecto |
+| No hay entidad "vulnerabilidad" | Frontend muestra findings planos | Frontend muestra vulnerabilidades agrupadas |
+| Sin base para cross-engine | No hay donde colgar correlación SAST→DAST | `vulnerabilities` es la base para futura correlación cross-engine |
+
+### Design
+
+```
+┌─────────────────────────────────────┐
+│         vulnerabilities             │  ← entidad canónica
+│  vuln_uid (deterministic per type)  │
+│  project_id                         │
+│  title / severity / status          │
+│  first_seen_at / last_seen_at       │
+│  scanner_coverage TEXT[]            │
+│  finding_count                      │
+│  confidence_score                   │
+├─────────────────────────────────────┤
+│  ┌─ findings (linked by vuln_id) ── │  ← evidencia
+│  │  ID, scanner, batch, file, line │
+│  │  pkg_name, pkg_version, ...     │
+│  └───────────────────────────────── │
+└─────────────────────────────────────┘
+```
+
+#### vuln_uid computation por engine
+
+| Engine | vuln_uid = sha256(...) | Campos clave |
+|--------|------------------------|-------------|
+| SCA | `sca:{pkg_name}:{pkg_version}:{rule_id}` | pkg_name, pkg_version, rule_id |
+| Secrets | `secret:{secret_hash}` | secret_hash |
+| Containers | `container:{pkg_name}:{pkg_version}:{rule_id}` | pkg_name, pkg_version, rule_id |
+| SAST | `sast:{rule_id}:{cwe_id}:{file_path}` | rule_id, cwe_id, file_path |
+| IaC | `iac:{rule_id}:{file_path}` | rule_id, file_path |
+| DAST | `dast:{rule_id}:{host}` | rule_id, matched_at |
+
+### Migration Plan
+
+| # | Step | Files | Effort | Depends on |
+|---|------|-------|--------|-----------|
+| 1 | Migration `040_vulnerabilities.sql` — crear tabla + índice + FK en findings | `internal/db/migrations/040_vulnerabilities.sql` | pequeña | - |
+| 2 | Modelo `Vulnerability` + `vuln_uid` computation helpers por engine | `internal/models/models.go` | pequeña | #1 |
+| 3 | `VulnerabilityRepository` interface + impl | `internal/repository/interfaces.go`, `internal/repository/vulnerability.go` | media | #2 |
+| 4 | `FindVulnUID()` — compute vuln_uid para cada finding según su scanner/engine | `internal/scanner/registry.go` o nuevo `internal/vulnerability/uid.go` | media | #2 |
+| 5 | Worker job: al insertar finding → upsert vulnerability + link finding | `internal/tasks/vulnerability.go` | media | #3, #4 |
+| 6 | Backfill migration: `UPDATE findings SET vulnerability_id = ...` para rows existentes | `internal/db/migrations/040_vulnerabilities.sql` | media | #1, #4 |
+| 7 | Confidence recalculation cross-batch usando `vulnerability.confidence_score` | `internal/repository/finding.go` — `recalculateConfidence` | media | #3 |
+| 8 | API endpoint `GET /api/vulnerabilities` con filtros + paginación | `internal/handlers/vulnerability.go` | pequeña | #3 |
+| 9 | API endpoint `GET /api/vulnerabilities/{id}/findings` | `internal/handlers/vulnerability.go` | pequeña | #3 |
+| 10 | Frontend: Findings page → Vulnerabilities page con findings anidados | `frontend/src/pages/dashboard/vulnerabilities/` | grande | #8, #9 |
+| 11 | Frontend: Finding detail → mostrar vuln context + siblings | `frontend/src/pages/dashboard/findings/detail.astro` | media | #9 |
+| 12 | Frontend: Navegación + sidebar + breadcrumbs | `frontend/src/` | pequeña | #10 |
+| 13 | Reemplazar `corroboration_count` estático por dynamic desde vuln | `internal/repository/finding.go` — `List` query | pequeña | #3 |
+| 14 | E2E: test con scan múltiple del mismo target, verificar 1 vuln N findings | manual | pequeña | todo lo anterior |
+
+### Implementation Order
+
+```
+Fase 1 — Core (backend)
+  #1  →  #2  →  #3  →  #4  →  #5  →  #6
+       └→ #7 (confidence upgrade)
+
+Fase 2 — API (migrate existing endpoints + new)
+  #8  →  #9  →  #10
+
+Fase 3 — Frontend (migrate existing page + extend)
+  #11 → #12 → #13 → #14 → #15
+
+Fase 4 — QA
+  #16
+```
+
+### Sub-tasks
+
+#### Fase 1 — Core Backend
+
+- [x] **#1 Migration `040_vulnerabilities.sql`**
+  ```sql
+  CREATE TABLE vulnerabilities (
+      id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      vuln_uid        TEXT NOT NULL,
+      project_id      UUID NOT NULL REFERENCES projects(id),
+      title           TEXT NOT NULL,
+      description     TEXT,
+      severity        TEXT NOT NULL,
+      status          TEXT NOT NULL DEFAULT 'open',
+      engine_type     TEXT NOT NULL,
+      pkg_name        TEXT,
+      pkg_version     TEXT,
+      cve_id          TEXT,
+      cwe_id          TEXT,
+      rule_id         TEXT,
+      secret_hash     TEXT,
+      file_path       TEXT,
+      first_seen_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_seen_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      finding_count   INT NOT NULL DEFAULT 0,
+      scanner_coverage TEXT[] NOT NULL DEFAULT '{}',
+      confidence_score FLOAT,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE UNIQUE INDEX idx_vulnerabilities_uid ON vulnerabilities (project_id, vuln_uid);
+  ALTER TABLE findings ADD COLUMN vulnerability_id UUID REFERENCES vulnerabilities(id);
+  CREATE INDEX idx_findings_vuln_id ON findings (vulnerability_id);
+  ```
+
+- [x] **#2 Modelo Vulnerability**
+  - Struct `Vulnerability` en `internal/models/models.go`
+  - Helpers `ComputeVulnUID(finding, engineType)` por engine type
+  - Constantes `EngineSCA`, `EngineSecrets`, etc.
+
+- [x] **#3 VulnerabilityRepository**
+  - Interface con: `Upsert(ctx, v)`, `GetByUID(ctx, projectID, vulnUID)`, `List(ctx, filter)`, `GetFindings(ctx, vulnID)`, `RecalcConfidence(ctx, vulnID)`
+  - Implementación en `internal/repository/vulnerability.go`
+  - Agregar a `Stores` en `interfaces.go`
+
+- [x] **#4 vuln_uid computation logic**
+  - Nuevo paquete `internal/vulnerability/uid.go`
+  - Función `Compute(finding, scannerCategory) → vulnUID`
+  - Tests unitarios por engine type
+
+- [x] **#5 Worker job: upsert vulnerability on finding insert**
+  - Modificar `scan_run.go` — después de insertar finding, computar vuln_uid y hacer `vulnerabilityRepo.Upsert(ctx, ...)`
+  - `Upsert` hace: `INSERT ... ON CONFLICT (project_id, vuln_uid) DO UPDATE SET last_seen_at=NOW(), finding_count=finding_count+1, scanner_coverage=array_append_unique(...)`
+  - Manejar el caso `vuln_uid = NULL` (findings sin señales de correlación)
+
+- [x] **#6 Backfill**
+  - `BackfillVulnerabilities()` method in `VulnerabilityRepository` — processes findings with `vulnerability_id IS NULL` in batches of 500
+  - Computes `vuln_uid`, upserts vulnerability, links findings, recalculates confidence
+  - Runs at worker startup automatically
+
+- [x] **#7 Confidence recalculation cross-batch**
+  - `RecalcConfidence(vulnID)`: queries unique scanners across all linked findings for that vulnerability
+  - Formula: `0.5 + 0.5 * (uniqueScanners - 1) / uniqueScanners` (capped at 1.0)
+  - Called after each vulnerability upsert in `linkVulnerability` and after backfill
+
+#### Fase 2 — API
+
+- [x] **#8 `GET /api/vulnerabilities`**
+  - Filtros: project_id, severity, status, engine_type, search (title/cve), page/limit
+  - Sort: severity desc, last_seen_at desc, finding_count desc
+  - Response: `{ vulnerabilities: [...], total, page, limit }`
+  - Cada vulnerability incluye: id, title, severity, status, engine_type, first/last_seen, finding_count, scanner_coverage, confidence_score
+
+- [x] **#9 `GET /api/vulnerabilities/{id}/findings`**
+  - Retorna findings linkeados a esa vulnerabilidad
+  - Incluye datos de correlación (scanner, batch, fecha, etc.)
+
+#### Fase 3 — Frontend
+
+> **State**: Ya existe `/dashboard/vulns` con `VulnInventory` que agrupa por `COALESCE(cve_id, rule_id)` vía `GET /api/vulnerabilities`. También existe `GET /api/vulnerabilities/{vulnID}/affected`. Esta fase migra la página existente a la tabla nueva + extiende funcionalidad.
+
+- [x] **#10 Migrar `GET /api/vulnerabilities` a tabla `vulnerabilities`**
+  - `ListVulnerabilities` handler ahora usa `VulnerabilityRepository.List()` ( tabla `vulnerabilities` )
+  - Response shape cambiado de `VulnSummary` a `Vulnerability` — campos nuevos: `engine_type`, `confidence_score`, `first_seen_at`, `last_seen_at`, `scanner_coverage`, `id`, `vuln_uid`, `project_id`
+  - Filtros nuevos: `project_id`, `engine_type`, `status`, `sort`
+  - Frontend migrado: columna Engine, columna Confidence, scanner_coverage en vez de scanners
+
+- [x] **#11 Migrar `GET /api/vulnerabilities/{vulnID}/affected` a tabla nueva**
+  - `GetVulnerabilityAffected` ahora usa `VulnerabilityRepository.GetFindings()` — retorna `Finding[]`
+  - Frontend migrado: expand muestra findings individuales en vez de affected repos
+
+- [ ] **#12 Finding detail → contexto de vulnerabilidad**
+  - Encontrar la página de detalle de finding (`/dashboard/findings/detail.astro`)
+  - Agregar sección "Part of vulnerability" con link a vuln
+  - Mostrar siblings (otros findings linkeados a la misma vuln)
+  - Navegación entre siblings
+
+- [ ] **#13 Vulnerabilities page — features pendientes**
+  - ✅ Columna `engine_type` (SCA, SAST, Secrets, IaC, Containers, DAST)
+  - ✅ Columna `confidence_score`
+  - ✅ Expand row → findings individuales
+  - ✅ Badge de scanner_coverage
+  - [ ] Cambiar status de vulnerabilidad (no bulk)
+  - [ ] Filtro por project_id en la UI
+
+- [ ] **#14 Navigation**
+  - Sidebar ya tiene "Vulnerabilities" → OK
+  - Agregar link desde finding detail a su vulnerabilidad
+  - Breadcrumbs: Vulnerabilities > Detail > Finding
+
+- [ ] **#15 Reemplazar corroboration_count en List de findings**
+  - La query de List puede seguir incluyendo `corroboration_count` pero ahora computado desde `vulnerability_id`
+  - Opcional: reemplazar columna física por computada
+
+#### Fase 4 — QA
+
+- [ ] **#16 E2E test**
+  - Escenario: 3 scans del mismo target en momentos distintos
+  - Verificar: 1 vulnerabilidad por GHSA/CVE, N findings linkeados
+  - Verificar: confidence_score aumenta con cada scan que confirma
+  - Verificar: frontend muestra agrupado
+
+### Notas técnicas
+
+- **Coexistencia**: findings existentes no se modifican. La migration agrega `vulnerability_id` nullable. El sistema actual sigue funcionando mientras se migra.
+- **vuln_uid NULL**: Findings sin señales de correlación (no rule_id, no pkg_name, no cve_id) quedan con `vulnerability_id = NULL`. La vista de findings los sigue mostrando.
+- **Status propagation**: Si todos los findings de una vuln están `fixed`, la vuln pasa a `fixed`. Si alguno reabre → vuln vuelve a `open`.
+- **Legacy support**: La API actual `GET /api/findings` sigue funcionando. La nueva vista de vulnerabilities es un endpoint aparte.
+- **SCA vuln_uid simplificado**: SCA usa `sca:{ruleID}` como clave de correlación (no `sca:pkg:ver:ruleID`) porque el mismo GHSA/CVE es la misma vulnerabilidad independientemente de si el scanner reporta pkg_name o no. Los scanners reportan versiones distintas (osv-scanner: `5.16.5`, grype: `v5.16.5`) y la normalización de `v` prefix evita duplicados.
+- **Version normalization**: `NormalizeVersion` quita prefijo `v` de package versions. `NormalizePath` quita `/tmp/aspm-scan-*` prefix de file paths. Ambas se aplican en `linkVulnerability` y `BackfillVulnerabilities`.
+
+### Abierto / por resolver
+
+- ¿El status de vulnerability se computa de los findings o se setea independientemente?
 
 ---
 
@@ -288,11 +518,18 @@ Critical items that must be completed before v1.0 release.
 ### Tech Debt
 
 - [ ] **SQL Injection Audit**: Review all SQL queries for injection vulnerabilities
-  - [ ] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
-  - [ ] Verify parameterized queries are used everywhere (no string concatenation)
-  - [ ] Check repository layer (`internal/repository/`) for dynamic query building
-  - [ ] Review migration files for any dynamic SQL patterns
-  - [ ] Scan for `fmt.Sprintf` used with SQL statements (common injection vector)
+   - [ ] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
+   - [ ] Verify parameterized queries are used everywhere (no string concatenation)
+   - [ ] Check repository layer (`internal/repository/`) for dynamic query building
+   - [ ] Review migration files for any dynamic SQL patterns
+   - [ ] Scan for `fmt.Sprintf` used with SQL statements (common injection vector)
+
+- [ ] **Migrate positional SQL params ($1, $2...) to pgx.NamedArgs (@name)**: Prevent off-by-one parameter bugs like the `findBatchMatches` incident where `$9` was skipped causing SQLSTATE 42P18 on every correlation query. Named params are self-documenting and eliminate renumbering errors.
+   - [ ] `internal/repository/finding.go` — `findBatchMatches` ✅ (fixed), `getCorrelationContext`, `replaceCorrelationSet`, `recalculateConfidence`, `List`, `GetByID`, `Insert`, `ExportRows`
+   - [ ] `internal/repository/finding_analysis.go` — `GetCorrelatedFindings`, `InsertCorrelations`
+   - [ ] `internal/repository/vulnerability_new.go` — `Upsert`, `BackfillVulnerabilities`, `UpdateFindingVulnID`
+   - [ ] `internal/repository/scan.go` — `Insert`, `GetByBatchID`, `RecoverStuck`
+   - [ ] Other repository files with 4+ positional params
 
 - [ ] **API versioning**: Migrate existing endpoints to `/api/v1/...`
   - [ ] Define migration strategy (co-locate `/api/` and `/api/v1/` during transition)
@@ -313,6 +550,12 @@ Critical items that must be completed before v1.0 release.
 - [x] Container image scanning target type (trivy-image, grype-image)
 - [x] DAST target type (URL-based nuclei scans)
 - [ ] Custom scanner plugins
+
+### CI/CD & API Security
+
+- [ ] Per-token rate limiting for API tokens
+- [ ] Token rotation endpoint (optional)
+- [ ] Validate `repo_url` is accessible before enqueuing external scans
 
 ### Platform Health
 

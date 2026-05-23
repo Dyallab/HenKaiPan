@@ -13,7 +13,7 @@ func NewPostgresStores(db *pgxpool.Pool, redisAddr string) Stores {
 		Metrics:        &metricsRepo{db},
 		Knowledge:      &knowledgeRepo{db},
 		Policies:       &policyRepo{db},
-		Vulns:          &vulnRepo{db},
+		Vulnerabilities: &vulnerabilityRepo{db},
 		Agents:         &agentRepo{db},
 		Webhooks:       &webhookRepo{db},
 		Settings:       &settingsRepo{db},

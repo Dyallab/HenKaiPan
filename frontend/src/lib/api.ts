@@ -232,14 +232,29 @@ export const api = {
     open = true,
     page = 1,
     limit = 100,
-  ) =>
-    req<{ vulnerabilities: VulnSummary[]; total: number }>(
-      `/api/vulnerabilities?severity=${encodeURIComponent(serializeMultiValue(severity))}&q=${encodeURIComponent(q)}&open=${open}&page=${page}&limit=${limit}`,
-    ),
+    engineType?: string,
+  ) => {
+    const params = new URLSearchParams();
+    const sev = serializeMultiValue(severity);
+    if (sev) params.set("severity", sev);
+    if (q) params.set("q", q);
+    params.set("open", String(open));
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (engineType) params.set("engine_type", engineType);
+    return req<{ vulnerabilities: VulnSummary[]; total: number }>(
+      `/api/vulnerabilities?${params.toString()}`,
+    );
+  },
 
   getVulnerabilityAffected: (vulnID: string) =>
-    req<AffectedRepo[]>(
+    req<AffectedFinding[]>(
       `/api/vulnerabilities/${encodeURIComponent(vulnID)}/affected`,
+    ),
+
+  getVulnerabilityEngineSummary: () =>
+    req<ProjectEngineSummary[]>(
+      "/api/vulnerabilities/engine-summary",
     ),
 
   getUsers: () => req<User[]>("/api/users"),
@@ -803,16 +818,75 @@ export interface Article {
 }
 
 export interface VulnSummary {
-  vuln_id: string;
+  id: string;
+  vuln_uid: string;
+  project_id: string;
+  title: string;
+  description?: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  status: string;
+  engine_type: string;
+  pkg_name?: string;
+  pkg_version?: string;
   cve_id?: string;
   cwe_id?: string;
-  title: string;
-  severity: "critical" | "high" | "medium" | "low" | "info";
-  scanners: string[];
-  affected_count: number;
+  rule_id?: string;
+  secret_hash?: string;
+  file_path?: string;
+  first_seen_at: string;
+  last_seen_at: string;
   finding_count: number;
-  open_count: number;
-  fixed_count: number;
+  scanner_coverage: string[];
+  confidence_score?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AffectedFinding {
+  id: string;
+  scan_id: string;
+  scanner: string;
+  rule_id: string;
+  title: string;
+  description: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  file_path: string;
+  line_start: number;
+  line_end: number;
+  code_snippet?: string;
+  created_at: string;
+  status: "open" | "in_review" | "accepted_risk" | "fixed" | "verified";
+  assigned_to?: string;
+  false_positive: boolean;
+  notes?: string;
+  resolved_at?: string;
+  sla_deadline?: string;
+  cve_id?: string;
+  cwe_id?: string;
+  confidence_score?: number | null;
+  corroboration_count: number;
+  ai_analyzed: boolean;
+  ai_summary?: string;
+  summary_state?: string;
+  suppressed: boolean;
+  remediation_slug?: string;
+  pkg_name?: string;
+  pkg_version?: string;
+  project_id: string;
+  project_name: string;
+  app_id?: string;
+  app_name?: string;
+  repo_url?: string;
+}
+
+export interface ProjectEngineSummary {
+  project_id: string;
+  project_name: string;
+  app_id?: string;
+  app_name?: string;
+  by_engine: Record<string, number>;
+  total_vulns: number;
+  total_open: number;
 }
 
 export interface App {

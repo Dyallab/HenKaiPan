@@ -126,6 +126,7 @@ func main() {
 
 	r.Get("/api/health", h.GetHealth)
 	r.Get("/api/version", h.GetVersion)
+	r.Get("/api/version/check", h.GetVersionCheck)
 
 	r.Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
@@ -182,6 +183,7 @@ func main() {
 		// ── Free: Vulnerability Inventory ──
 		r.Get("/api/vulnerabilities", h.ListVulnerabilities)
 		r.Get("/api/vulnerabilities/{vulnID}/affected", h.GetVulnerabilityAffected)
+		r.Get("/api/vulnerabilities/engine-summary", h.GetVulnerabilityEngineSummary)
 
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {

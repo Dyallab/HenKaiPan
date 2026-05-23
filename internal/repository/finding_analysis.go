@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"aspm/internal/models"
@@ -31,7 +32,7 @@ func (r *agentRepo) UpsertAnalysis(ctx context.Context, ins AgentAnalysisInsert)
 	var a models.AgentAnalysis
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO agent_analyses (finding_id, agent_type, confidence, fp_likelihood, reasoning, raw_output)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES (@finding_id, @agent_type, @confidence, @fp_likelihood, @reasoning, @raw_output)
 		ON CONFLICT (finding_id, agent_type) DO UPDATE SET
 			confidence    = EXCLUDED.confidence,
 			fp_likelihood = EXCLUDED.fp_likelihood,
@@ -40,7 +41,14 @@ func (r *agentRepo) UpsertAnalysis(ctx context.Context, ins AgentAnalysisInsert)
 			updated_at    = NOW()
 		RETURNING id, finding_id, agent_type, confidence, fp_likelihood,
 		          COALESCE(reasoning, ''), raw_output, created_at, updated_at
-	`, ins.FindingID, ins.AgentType, ins.Confidence, ins.FPLikelihood, ins.Reasoning, ins.RawOutput).Scan(
+	`, pgx.NamedArgs{
+		"finding_id":    ins.FindingID,
+		"agent_type":    ins.AgentType,
+		"confidence":    ins.Confidence,
+		"fp_likelihood": ins.FPLikelihood,
+		"reasoning":     ins.Reasoning,
+		"raw_output":    ins.RawOutput,
+	}).Scan(
 		&a.ID, &a.FindingID, &a.AgentType, &a.Confidence, &a.FPLikelihood,
 		&a.Reasoning, &a.RawOutput, &a.CreatedAt, &a.UpdatedAt,
 	)
@@ -64,7 +72,7 @@ func (r *agentRepo) GetCorrelatedFindings(ctx context.Context, findingID string)
 			WHEN fc.finding_id_a = f1.id THEN fc.finding_id_b
 			ELSE fc.finding_id_a
 		END
-		WHERE fc.correlation_type = 'same_family_batch'
+		WHERE fc.correlation_type IN ('same_family_batch', 'same_signal')
 		  AND (fc.finding_id_a = f1.id OR fc.finding_id_b = f1.id)
 		  AND f2.suppressed = false
 		LIMIT 20
@@ -103,9 +111,13 @@ func (r *agentRepo) InsertCorrelations(ctx context.Context, findingID string, co
 		}
 		_, err := r.db.Exec(ctx, `
 			INSERT INTO finding_correlations (finding_id_a, finding_id_b, correlation_type)
-			VALUES ($1, $2, $3)
+			VALUES (@finding_id_a, @finding_id_b, @correlation_type)
 			ON CONFLICT (finding_id_a, finding_id_b) DO NOTHING
-		`, a, b, correlationType)
+		`, pgx.NamedArgs{
+			"finding_id_a":     a,
+			"finding_id_b":     b,
+			"correlation_type": correlationType,
+		})
 		if err != nil {
 			return err
 		}

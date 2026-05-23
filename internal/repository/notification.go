@@ -6,6 +6,7 @@ import (
 
 	"aspm/internal/models"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,9 +22,16 @@ func (r *notificationRepo) Create(ctx context.Context, n NotificationCreate) (*m
 	var notif models.UserNotification
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO user_notifications (user_id, title, message, type, entity_type, entity_id)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES (@user_id, @title, @message, @type, @entity_type, @entity_id)
 		RETURNING id, user_id, title, message, type, entity_type, entity_id, read, created_at`,
-		n.UserID, n.Title, n.Message, n.Type, n.EntityType, n.EntityID,
+		pgx.NamedArgs{
+			"user_id":     n.UserID,
+			"title":       n.Title,
+			"message":     n.Message,
+			"type":        n.Type,
+			"entity_type": n.EntityType,
+			"entity_id":   n.EntityID,
+		},
 	).Scan(
 		&notif.ID, &notif.UserID, &notif.Title, &notif.Message, &notif.Type,
 		&notif.EntityType, &notif.EntityID, &notif.Read, &notif.CreatedAt,

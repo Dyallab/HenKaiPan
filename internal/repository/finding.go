@@ -27,7 +27,7 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	}
 	offset := (f.Page - 1) * f.Limit
 
-	rows, err := r.db.Query(ctx, `
+rows, err := r.db.Query(ctx, `
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.line_end, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
@@ -53,29 +53,42 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 		       ), '')
 		FROM findings f
 		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
-		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
-		  AND ($2 = '' OR f.scanner = $2)
-		  AND ($3 = '' OR f.status = $3)
-		  AND ($4 = FALSE OR (f.sla_deadline < NOW() AND f.status NOT IN ('fixed','verified','accepted_risk')))
-		  AND ($5 = '' OR (
-		        ($5 = 'sast'       AND f.scanner IN ('semgrep','gosec')) OR
-		        ($5 = 'sca'        AND f.scanner IN ('trivy','grype','osv-scanner')) OR
-		        ($5 = 'secrets'    AND f.scanner IN ('trufflehog','gitleaks')) OR
-		        ($5 = 'iac'        AND f.scanner IN ('checkov','tfsec','kics')) OR
-		        ($5 = 'containers' AND f.scanner IN ('trivy-image','grype-image')) OR
-		        ($5 = 'dast'       AND f.scanner IN ('nuclei'))
+		WHERE (@severities::text[] IS NULL OR f.severity = ANY(@severities))
+		  AND (@scanner = '' OR f.scanner = @scanner)
+		  AND (@status = '' OR f.status = @status)
+		  AND (@overdue = FALSE OR (f.sla_deadline < NOW() AND f.status NOT IN ('fixed','verified','accepted_risk')))
+		  AND (@category = '' OR (
+		        (@category = 'sast'       AND f.scanner IN ('semgrep','gosec')) OR
+		        (@category = 'sca'        AND f.scanner IN ('trivy','grype','osv-scanner')) OR
+		        (@category = 'secrets'    AND f.scanner IN ('trufflehog','gitleaks')) OR
+		        (@category = 'iac'        AND f.scanner IN ('checkov','tfsec','kics')) OR
+		        (@category = 'containers' AND f.scanner IN ('trivy-image','grype-image')) OR
+		        (@category = 'dast'       AND f.scanner IN ('nuclei'))
 		      ))
-		  AND ($6 = '' OR f.cve_id ILIKE '%' || $6 || '%')
-		  AND ($7 = TRUE OR f.suppressed = FALSE)
-		  AND ($10 = '' OR f.file_path = $10)
+		  AND (@cve_search = '' OR f.cve_id ILIKE '%' || @cve_search || '%')
+		  AND (@show_suppressed = TRUE OR f.suppressed = FALSE)
+		  AND (@file_path = '' OR f.file_path = @file_path)
 		ORDER BY
-			CASE WHEN $11 = 'confidence_desc' THEN COALESCE(f.confidence_score, 0) END DESC,
-			CASE WHEN $11 = 'confidence_asc' THEN COALESCE(f.confidence_score, 0) END ASC,
-			CASE WHEN $11 = 'corroborated' THEN f.corroboration_count END DESC,
+			CASE WHEN @sort_by = 'confidence_desc' THEN COALESCE(f.confidence_score, 0) END DESC,
+			CASE WHEN @sort_by = 'confidence_asc' THEN COALESCE(f.confidence_score, 0) END ASC,
+			CASE WHEN @sort_by = 'corroborated' THEN f.corroboration_count END DESC,
 			`+SeverityOrderSQL+`,
 			f.created_at DESC
-		LIMIT $8 OFFSET $9`,
-		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.Limit, offset, f.FilePath, f.SortBy)
+		LIMIT @limit OFFSET @offset`,
+		pgx.NamedArgs{
+			"severities":      f.Severities,
+			"scanner":         f.Scanner,
+			"status":          f.Status,
+			"overdue":         f.Overdue,
+			"category":        f.Category,
+			"cve_search":      f.CVESearch,
+			"show_suppressed": f.ShowSuppressed,
+			"file_path":       f.FilePath,
+			"sort_by":         f.SortBy,
+			"limit":           f.Limit,
+			"offset":          offset,
+		},
+	)
 	if err != nil {
 		return nil, 0, fmt.Errorf("findings list: %w", err)
 	}
@@ -108,21 +121,30 @@ func (r *findingRepo) List(ctx context.Context, f FindingFilter) ([]models.Findi
 	var total int
 	r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM findings
-		WHERE ($1::text[] IS NULL OR severity = ANY($1)) AND ($2='' OR scanner=$2)
-		  AND ($3='' OR status=$3)
-		  AND ($4 = FALSE OR (sla_deadline < NOW() AND status NOT IN ('fixed','verified','accepted_risk')))
-		  AND ($5 = '' OR (
-		        ($5 = 'sast'       AND scanner IN ('semgrep','gosec')) OR
-		        ($5 = 'sca'        AND scanner IN ('trivy','grype','osv-scanner')) OR
-		        ($5 = 'secrets'    AND scanner IN ('trufflehog','gitleaks')) OR
-		        ($5 = 'iac'        AND scanner IN ('checkov','tfsec','kics')) OR
-		        ($5 = 'containers' AND scanner IN ('trivy-image','grype-image')) OR
-		        ($5 = 'dast'       AND scanner IN ('nuclei'))
+		WHERE (@severities::text[] IS NULL OR severity = ANY(@severities)) AND (@scanner='' OR scanner=@scanner)
+		  AND (@status='' OR status=@status)
+		  AND (@overdue = FALSE OR (sla_deadline < NOW() AND status NOT IN ('fixed','verified','accepted_risk')))
+		  AND (@category = '' OR (
+		        (@category = 'sast'       AND scanner IN ('semgrep','gosec')) OR
+		        (@category = 'sca'        AND scanner IN ('trivy','grype','osv-scanner')) OR
+		        (@category = 'secrets'    AND scanner IN ('trufflehog','gitleaks')) OR
+		        (@category = 'iac'        AND scanner IN ('checkov','tfsec','kics')) OR
+		        (@category = 'containers' AND scanner IN ('trivy-image','grype-image')) OR
+		        (@category = 'dast'       AND scanner IN ('nuclei'))
 		      ))
-		  AND ($6 = '' OR cve_id ILIKE '%' || $6 || '%')
-		  AND ($7 = TRUE OR suppressed = FALSE)
-		  AND ($8 = '' OR file_path = $8)`,
-		f.Severities, f.Scanner, f.Status, f.Overdue, f.Category, f.CVESearch, f.ShowSuppressed, f.FilePath,
+		  AND (@cve_search = '' OR cve_id ILIKE '%' || @cve_search || '%')
+		  AND (@show_suppressed = TRUE OR suppressed = FALSE)
+		  AND (@file_path = '' OR file_path = @file_path)`,
+		pgx.NamedArgs{
+			"severities":      f.Severities,
+			"scanner":         f.Scanner,
+			"status":          f.Status,
+			"overdue":         f.Overdue,
+			"category":        f.Category,
+			"cve_search":      f.CVESearch,
+			"show_suppressed": f.ShowSuppressed,
+			"file_path":       f.FilePath,
+		},
 	).Scan(&total)
 
 	return findings, total, nil
@@ -265,17 +287,23 @@ func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.
 func (r *findingRepo) Update(ctx context.Context, id string, upd FindingUpdate) (*models.Finding, error) {
 	_, err := r.db.Exec(ctx, `
 		UPDATE findings SET
-			status         = COALESCE($2, status),
-			assigned_to    = CASE WHEN $3 = '' THEN NULL ELSE COALESCE($3, assigned_to) END,
-			false_positive = COALESCE($4, false_positive),
-			notes          = COALESCE($5, notes),
+			status         = COALESCE(@status, status),
+			assigned_to    = CASE WHEN @assigned_to = '' THEN NULL ELSE COALESCE(@assigned_to, assigned_to) END,
+			false_positive = COALESCE(@false_positive, false_positive),
+			notes          = COALESCE(@notes, notes),
 			resolved_at    = CASE
-				WHEN $2 IN ('fixed','verified') THEN NOW()
-				WHEN $2 IS NOT NULL THEN NULL
+				WHEN @status IN ('fixed','verified') THEN NOW()
+				WHEN @status IS NOT NULL THEN NULL
 				ELSE resolved_at
 			END
-		WHERE id = $1`,
-		id, upd.Status, upd.AssignedTo, upd.FalsePositive, upd.Notes)
+		WHERE id = @id`,
+		pgx.NamedArgs{
+			"id":             id,
+			"status":         upd.Status,
+			"assigned_to":    upd.AssignedTo,
+			"false_positive": upd.FalsePositive,
+			"notes":          upd.Notes,
+		})
 	if err != nil {
 		return nil, fmt.Errorf("update finding: %w", err)
 	}
@@ -289,14 +317,34 @@ func (r *findingRepo) Insert(ctx context.Context, f FindingInsert) (string, erro
 			(scan_id, scanner, rule_id, title, description, severity, file_path, line_start, line_end,
 			 code_snippet, raw, sla_deadline, cve_id, cwe_id, suppressed, secret_hash, project_id, fingerprint,
 			 pkg_name, pkg_version)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+		VALUES (@scan_id, @scanner, @rule_id, @title, @description, @severity, @file_path, @line_start, @line_end,
+		        @code_snippet, @raw, @sla_deadline, @cve_id, @cwe_id, @suppressed, @secret_hash, @project_id, @fingerprint,
+		        @pkg_name, @pkg_version)
 		ON CONFLICT (project_id, fingerprint) WHERE project_id IS NOT NULL AND fingerprint IS NOT NULL
 		DO NOTHING
 		RETURNING id`,
-		f.ScanID, f.Scanner, f.RuleID, f.Title, f.Description,
-		f.Severity, f.FilePath, f.LineStart, f.LineEnd,
-		f.CodeSnippet, f.Raw, f.SLADeadline, f.CVEID, f.CWEID, f.Suppressed, f.SecretHash,
-		f.ProjectID, f.Fingerprint, f.PkgName, f.PkgVersion,
+		pgx.NamedArgs{
+			"scan_id":      f.ScanID,
+			"scanner":      f.Scanner,
+			"rule_id":      f.RuleID,
+			"title":        f.Title,
+			"description":  f.Description,
+			"severity":     f.Severity,
+			"file_path":    f.FilePath,
+			"line_start":   f.LineStart,
+			"line_end":     f.LineEnd,
+			"code_snippet": f.CodeSnippet,
+			"raw":          f.Raw,
+			"sla_deadline": f.SLADeadline,
+			"cve_id":       f.CVEID,
+			"cwe_id":       f.CWEID,
+			"suppressed":   f.Suppressed,
+			"secret_hash":  f.SecretHash,
+			"project_id":   f.ProjectID,
+			"fingerprint":  f.Fingerprint,
+			"pkg_name":     f.PkgName,
+			"pkg_version":  f.PkgVersion,
+		},
 	).Scan(&id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -592,19 +640,30 @@ func (r *findingRepo) findBatchMatches(ctx context.Context, current *correlation
 		SELECT f.id, f.scanner
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id
-		WHERE s.scan_batch_id = $1
-		  AND f.id <> $2
+		WHERE s.scan_batch_id = @batch_id
+		  AND f.id <> @finding_id
 		  AND f.suppressed = FALSE
-		  AND ($10 OR f.scanner <> $3)
+		  AND (@same_scanner_ok OR f.scanner <> @scanner)
 		  AND (
-				-- Secret hash match (strongest correlation for secrets)
-				($11 <> '' AND f.secret_hash = $11)
-				OR ($4 <> '' AND f.rule_id = $4)
-				OR ($5::text IS NOT NULL AND f.cve_id = $5)
-				OR ($6 <> '' AND f.file_path = $6 AND ABS(f.line_start - $7) <= $8)
-				OR ($12 <> '' AND f.pkg_name = $12)
+				(@secret_hash <> '' AND f.secret_hash = @secret_hash)
+				OR (@rule_id <> '' AND f.rule_id = @rule_id)
+				OR (@cve_id::text IS NOT NULL AND f.cve_id = @cve_id)
+				OR (@file_path <> '' AND f.file_path = @file_path AND ABS(f.line_start - @line_start) <= @line_threshold)
+				OR (@pkg_name <> '' AND f.pkg_name = @pkg_name)
 			)`,
-		current.BatchID, current.FindingID, current.Scanner, current.RuleID, current.CVEID, current.FilePath, current.LineStart, lineThreshold, sameScannerOK, current.SecretHash, current.PkgName,
+		pgx.NamedArgs{
+			"batch_id":        current.BatchID,
+			"finding_id":      current.FindingID,
+			"scanner":         current.Scanner,
+			"rule_id":         current.RuleID,
+			"cve_id":          current.CVEID,
+			"file_path":       current.FilePath,
+			"line_start":      current.LineStart,
+			"line_threshold":  lineThreshold,
+			"same_scanner_ok": sameScannerOK,
+			"secret_hash":     current.SecretHash,
+			"pkg_name":        current.PkgName,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("query batch matches: %w", err)

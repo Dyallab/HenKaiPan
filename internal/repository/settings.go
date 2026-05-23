@@ -96,17 +96,23 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 	var out models.NotificationSettings
 	err = r.db.QueryRow(ctx, `
 		UPDATE notification_settings
-		SET alert_critical = $1,
-		    alert_high = $2,
-		    alert_scan_complete = $3,
-		    alert_scan_failed = $4,
-		    alert_sla_breach = $5,
-		    email_recipients = $6,
+		SET alert_critical = @alert_critical,
+		    alert_high = @alert_high,
+		    alert_scan_complete = @alert_scan_complete,
+		    alert_scan_failed = @alert_scan_failed,
+		    alert_sla_breach = @alert_sla_breach,
+		    email_recipients = @email_recipients,
 		    updated_at = NOW()
 		WHERE singleton = TRUE
 		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, updated_at`,
-		current.AlertCritical, current.AlertHigh, current.AlertScanComplete, current.AlertScanFailed,
-		current.AlertSLABreach, emailRecipientsJSON,
+		pgx.NamedArgs{
+			"alert_critical":      current.AlertCritical,
+			"alert_high":          current.AlertHigh,
+			"alert_scan_complete": current.AlertScanComplete,
+			"alert_scan_failed":   current.AlertScanFailed,
+			"alert_sla_breach":    current.AlertSLABreach,
+			"email_recipients":    emailRecipientsJSON,
+		},
 	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update notification settings: %w", err)
@@ -206,22 +212,24 @@ func (r *settingsRepo) UpsertJiraIntegration(ctx context.Context, upd JiraIntegr
 
 	_, err = r.db.Exec(ctx, `
 		UPDATE jira_integrations
-		SET base_url = $1,
-		    user_email = $2,
-		    project_key = $3,
-		    issue_type = $4,
-		    labels = $5,
-		    enabled = $6,
-		    token = $7,
+		SET base_url = @base_url,
+		    user_email = @user_email,
+		    project_key = @project_key,
+		    issue_type = @issue_type,
+		    labels = @labels,
+		    enabled = @enabled,
+		    token = @token,
 		    updated_at = NOW()
 		WHERE singleton = TRUE`,
-		currentCreds.BaseURL,
-		currentCreds.UserEmail,
-		currentCreds.ProjectKey,
-		currentCreds.IssueType,
-		labelsJSON,
-		currentCreds.Enabled,
-		encryptedToken,
+		pgx.NamedArgs{
+			"base_url":     currentCreds.BaseURL,
+			"user_email":   currentCreds.UserEmail,
+			"project_key":  currentCreds.ProjectKey,
+			"issue_type":   currentCreds.IssueType,
+			"labels":       labelsJSON,
+			"enabled":      currentCreds.Enabled,
+			"token":        encryptedToken,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("update jira integration: %w", err)

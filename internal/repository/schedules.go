@@ -7,6 +7,7 @@ import (
 
 	"aspm/internal/models"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -83,9 +84,15 @@ func (r *scheduleRepo) Create(ctx context.Context, s ScanScheduleCreate) (*model
 	var out models.ScanSchedule
 	err := scanSchedule(&out, r.db.QueryRow(ctx, `
 		INSERT INTO scan_schedules (project_id, app_id, scanner, scanner_type, cron_expr)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES (@project_id, @app_id, @scanner, @scanner_type, @cron_expr)
 		RETURNING `+scheduleCols,
-		projectID, s.AppID, s.Scanner, s.ScannerType, s.CronExpr))
+		pgx.NamedArgs{
+			"project_id":   projectID,
+			"app_id":       s.AppID,
+			"scanner":      s.Scanner,
+			"scanner_type": s.ScannerType,
+			"cron_expr":    s.CronExpr,
+		}))
 	if err != nil {
 		return nil, fmt.Errorf("create schedule: %w", err)
 	}
@@ -94,43 +101,37 @@ func (r *scheduleRepo) Create(ctx context.Context, s ScanScheduleCreate) (*model
 
 func (r *scheduleRepo) Update(ctx context.Context, id string, upd ScanScheduleUpdate) (*models.ScanSchedule, error) {
 	var out models.ScanSchedule
-	query := `UPDATE scan_schedules SET `
-	args := []interface{}{id}
-	argIdx := 2
+	args := pgx.NamedArgs{"id": id}
 	var sets []string
 
 	if upd.Scanner != nil {
-		sets = append(sets, fmt.Sprintf("scanner = $%d", argIdx))
-		args = append(args, *upd.Scanner)
-		argIdx++
+		sets = append(sets, "scanner = @scanner")
+		args["scanner"] = *upd.Scanner
 	}
 	if upd.ScannerType != nil {
-		sets = append(sets, fmt.Sprintf("scanner_type = $%d", argIdx))
-		args = append(args, *upd.ScannerType)
-		argIdx++
+		sets = append(sets, "scanner_type = @scanner_type")
+		args["scanner_type"] = *upd.ScannerType
 	}
 	if upd.CronExpr != nil {
-		sets = append(sets, fmt.Sprintf("cron_expr = $%d", argIdx))
-		args = append(args, *upd.CronExpr)
-		argIdx++
+		sets = append(sets, "cron_expr = @cron_expr")
+		args["cron_expr"] = *upd.CronExpr
 	}
 	if upd.Enabled != nil {
-		sets = append(sets, fmt.Sprintf("enabled = $%d", argIdx))
-		args = append(args, *upd.Enabled)
-		argIdx++
+		sets = append(sets, "enabled = @enabled")
+		args["enabled"] = *upd.Enabled
 	}
 
 	if len(sets) == 0 {
 		return r.GetByID(ctx, id)
 	}
 
-	query += sets[0]
+	query := `UPDATE scan_schedules SET ` + sets[0]
 	for i := 1; i < len(sets); i++ {
 		query += ", " + sets[i]
 	}
-	query += fmt.Sprintf(" WHERE id = $1 RETURNING "+scheduleCols)
+	query += ` WHERE id = @id RETURNING ` + scheduleCols
 
-	err := r.db.QueryRow(ctx, query, args...).
+	err := r.db.QueryRow(ctx, query, args).
 		Scan(&out.ID, &out.ProjectID, &out.Scanner, &out.ScannerType, &out.CronExpr, &out.Enabled, &out.LastRun, &out.NextRun, &out.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update schedule: %w", err)
@@ -168,7 +169,11 @@ func (r *scheduleRepo) ListDue(ctx context.Context) ([]models.ScanSchedule, erro
 func (r *scheduleRepo) MarkRun(ctx context.Context, id string, nextRun *time.Time) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE scan_schedules
-		SET last_run = NOW(), next_run = $2
-		WHERE id = $1`, id, nextRun)
+		SET last_run = NOW(), next_run = @next_run
+		WHERE id = @id`,
+		pgx.NamedArgs{
+			"id":       id,
+			"next_run": nextRun,
+		})
 	return err
 }

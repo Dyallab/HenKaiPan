@@ -152,6 +152,9 @@ const navGroups = [
                     <span class="material-symbols-outlined text-sm">logout</span>
                     Log Out
                 </button>
+                <div id="sidebar-version" class="hidden px-2 py-1">
+                    <span class="text-[9px] text-iron-slate/50 font-mono tracking-tight"></span>
+                </div>
             </div>
         </aside>
 
@@ -201,8 +204,11 @@ const navGroups = [
                         </div>
                     </div>
 
-                    <div class="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-iridescent-glow text-lg">person</span>
+                    <div class="flex items-center gap-2">
+                        <span id="username-display" class="text-xs text-iron-slate font-medium"></span>
+                        <div class="w-8 h-8 rounded-full border border-white/10 bg-white/5 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-iridescent-glow text-lg">person</span>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -219,13 +225,20 @@ const navGroups = [
 
             let unreadCount = 0;
             let notificationsDropdownOpen = false;
+            let currentUser: { username: string; role: string } | null = null;
 
-            // Hide nav groups that require a role the current user doesn't have
+            // Load current user info
             (async () => {
                 try {
-                    const me = await api.getMe();
+                    currentUser = await api.getMe();
+                    // Show username in top bar
+                    const nameEl = document.getElementById("username-display");
+                    if (nameEl && currentUser) {
+                        nameEl.textContent = currentUser.username;
+                    }
+                    // Hide nav groups that require a role the current user doesn't have
                     document.querySelectorAll<HTMLElement>('[data-required-role]').forEach(el => {
-                        if (me.role !== el.dataset.requiredRole) {
+                        if (currentUser?.role !== el.dataset.requiredRole) {
                             el.remove();
                         }
                     });
@@ -367,11 +380,85 @@ const navGroups = [
                 updateNotificationBadge();
             });
 
+            // Auth guard: wait for currentUser to load, redirect on failure
+            (async () => {
+                // Give the first getMe() call a moment to complete
+                for (let i = 0; i < 50; i++) {
+                    if (currentUser) return;
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                window.location.href = "/login";
+            })();
+
+            // ── Version display + update check ──
             (async () => {
                 try {
-                    await api.getMe();
+                    const verEl = document.getElementById("sidebar-version");
+                    const verSpan = verEl?.querySelector("span");
+                    if (!verEl || !verSpan) return;
+
+                    const version = await api.get("/api/version");
+                    const v = version.version || "dev";
+                    verSpan.textContent = v;
+                    verEl.classList.remove("hidden");
+
+                    // Only check for updates if not dev build
+                    if (v === "dev") return;
+
+                    const check = await api.get("/api/version/check");
+                    if (!check.update_available) return;
+
+                    // Show once per version (localStorage)
+                    const notified = localStorage.getItem("hkp_notified_version");
+                    if (notified === check.latest_version) return;
+
+                    localStorage.setItem("hkp_notified_version", check.latest_version);
+
+                    verSpan.textContent = `${v} · ↑ ${check.latest_version}`;
+
+                    // Create top-left toast
+                    const toastEl = document.createElement("div");
+                    toastEl.className = "fixed top-4 left-4 z-50 flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 max-w-sm animate-slide-in";
+                    toastEl.setAttribute("role", "alert");
+
+                    const icon = document.createElement("span");
+                    icon.className = "material-symbols-outlined ms-fill text-xl text-amber-400";
+                    icon.textContent = "new_releases";
+
+                    const msg = document.createElement("span");
+                    msg.className = "text-sm text-amber-300";
+                    msg.textContent = `New version available: ${check.latest_version}`;
+
+                    const link = document.createElement("a");
+                    link.href = check.latest_url || "#";
+                    link.target = "_blank";
+                    link.className = "text-xs font-bold text-amber-400 hover:text-amber-300 underline transition-colors shrink-0";
+                    link.textContent = "View release →";
+
+                    const closeBtn = document.createElement("button");
+                    closeBtn.className = "ml-auto text-amber-400/60 hover:text-amber-300 transition-colors";
+                    closeBtn.setAttribute("aria-label", "Dismiss");
+                    closeBtn.innerHTML = '<span class="material-symbols-outlined ms-fill text-lg">close</span>';
+                    closeBtn.onclick = () => {
+                        toastEl.style.animation = "slide-out 300ms ease-out forwards";
+                        setTimeout(() => toastEl.remove(), 300);
+                    };
+
+                    toastEl.appendChild(icon);
+                    toastEl.appendChild(msg);
+                    toastEl.appendChild(link);
+                    toastEl.appendChild(closeBtn);
+                    document.body.appendChild(toastEl);
+
+                    // Auto-dismiss after 15s
+                    setTimeout(() => {
+                        if (document.body.contains(toastEl)) {
+                            toastEl.style.animation = "slide-out 300ms ease-out forwards";
+                            setTimeout(() => toastEl.remove(), 300);
+                        }
+                    }, 15000);
                 } catch {
-                    window.location.href = "/login";
+                    // Silently ignore — version check is non-critical
                 }
             })();
         </script>
