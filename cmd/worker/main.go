@@ -37,6 +37,12 @@ func main() {
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 
+	if n, err := store.Vulnerabilities.BackfillVulnerabilities(context.Background()); err != nil {
+		slog.Error("vulnerability backfill failed", "err", err)
+	} else if n > 0 {
+		slog.Info("vulnerability backfill completed", "findings_linked", n)
+	}
+
 	if n, err := store.Scans.RecoverStuck(context.Background()); err == nil && n > 0 {
 		slog.Info("recovered stuck scans", "count", n)
 	}
@@ -65,7 +71,7 @@ func main() {
 	srv := queue.NewServer(cfg.RedisAddr, 5)
 
 	mux := asynq.NewServeMux()
-	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Policies, store.Webhooks, store.Settings, store.Apps, queueClient, notifications))
+	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Vulnerabilities, store.Policies, store.Webhooks, store.Settings, store.Apps, queueClient, notifications))
 	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
 	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(emailSender))
 	mux.HandleFunc(tasks.TypeDigestSend, tasks.HandleDigestSend(store, emailSender, cfg.FrontendURL))

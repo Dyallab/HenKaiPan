@@ -7,6 +7,7 @@ import (
 
 	"aspm/internal/models"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -53,8 +54,18 @@ func (r *auditRepo) Log(ctx context.Context, entry AuditLogEntry) error {
 
 	_, err = r.db.Exec(ctx, `
 		INSERT INTO audit_logs (user_id, user_email, action, entity_type, entity_id, old_value, new_value, ip_address, user_agent)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-		entry.UserID, entry.UserEmail, entry.Action, entry.EntityType, entry.EntityID, oldJSON, newJSON, ipAddr, userAgent)
+		VALUES (@user_id, @user_email, @action, @entity_type, @entity_id, @old_value, @new_value, @ip_address, @user_agent)`,
+		pgx.NamedArgs{
+			"user_id":     entry.UserID,
+			"user_email":  entry.UserEmail,
+			"action":      entry.Action,
+			"entity_type": entry.EntityType,
+			"entity_id":   entry.EntityID,
+			"old_value":   oldJSON,
+			"new_value":   newJSON,
+			"ip_address":  ipAddr,
+			"user_agent":  userAgent,
+		})
 	return err
 }
 
@@ -71,12 +82,18 @@ func (r *auditRepo) List(ctx context.Context, filter AuditFilter) ([]models.Audi
 		SELECT id, user_id, user_email, action, entity_type, entity_id,
 		       old_value, new_value, COALESCE(ip_address::text, ''), COALESCE(user_agent, ''), created_at
 		FROM audit_logs
-		WHERE ($1 = '' OR user_id::text = $1)
-		  AND ($2 = '' OR entity_type = $2)
-		  AND ($3 = '' OR action = $3)
+		WHERE (@user_id = '' OR user_id::text = @user_id)
+		  AND (@entity_type = '' OR entity_type = @entity_type)
+		  AND (@action = '' OR action = @action)
 		ORDER BY created_at DESC
-		LIMIT $4 OFFSET $5`,
-		filter.UserID, filter.EntityType, filter.Action, filter.Limit, offset)
+		LIMIT @limit OFFSET @offset`,
+		pgx.NamedArgs{
+			"user_id":     filter.UserID,
+			"entity_type": filter.EntityType,
+			"action":      filter.Action,
+			"limit":       filter.Limit,
+			"offset":      offset,
+		})
 	if err != nil {
 		return nil, 0, fmt.Errorf("audit list: %w", err)
 	}
@@ -104,10 +121,14 @@ func (r *auditRepo) List(ctx context.Context, filter AuditFilter) ([]models.Audi
 	var total int
 	r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM audit_logs
-		WHERE ($1 = '' OR user_id::text = $1)
-		  AND ($2 = '' OR entity_type = $2)
-		  AND ($3 = '' OR action = $3)`,
-		filter.UserID, filter.EntityType, filter.Action).Scan(&total)
+		WHERE (@user_id = '' OR user_id::text = @user_id)
+		  AND (@entity_type = '' OR entity_type = @entity_type)
+		  AND (@action = '' OR action = @action)`,
+		pgx.NamedArgs{
+			"user_id":     filter.UserID,
+			"entity_type": filter.EntityType,
+			"action":      filter.Action,
+		}).Scan(&total)
 
 	return logs, total, nil
 }
@@ -118,9 +139,15 @@ func (r *riskAcceptanceRepo) Create(ctx context.Context, req RiskAcceptanceCreat
 	var ra models.RiskAcceptance
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO risk_acceptances (finding_id, user_id, rationale, expires_at, status)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES (@finding_id, @user_id, @rationale, @expires_at, @status)
 		RETURNING id, finding_id, user_id, rationale, expires_at, approved_by, approved_at, status, review_notes, created_at, updated_at`,
-		req.FindingID, req.UserID, req.Rationale, req.ExpiresAt, req.Status).Scan(
+		pgx.NamedArgs{
+			"finding_id": req.FindingID,
+			"user_id":    req.UserID,
+			"rationale":  req.Rationale,
+			"expires_at": req.ExpiresAt,
+			"status":     req.Status,
+		}).Scan(
 		&ra.ID, &ra.FindingID, &ra.UserID, &ra.Rationale, &ra.ExpiresAt, &ra.ApprovedBy, &ra.ApprovedAt, &ra.Status, &ra.ReviewNotes, &ra.CreatedAt, &ra.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create risk acceptance: %w", err)
@@ -179,11 +206,16 @@ func (r *riskAcceptanceRepo) List(ctx context.Context, filter RiskAcceptanceFilt
 	rows, err := r.db.Query(ctx, `
 		SELECT id, finding_id, user_id, rationale, expires_at, approved_by, approved_at, status, review_notes, created_at, updated_at
 		FROM risk_acceptances
-		WHERE ($1::text IS NULL OR status = $1)
-		  AND ($2::uuid IS NULL OR finding_id = $2)
+		WHERE (@status::text IS NULL OR status = @status)
+		  AND (@finding_id::uuid IS NULL OR finding_id = @finding_id)
 		ORDER BY created_at DESC
-		LIMIT $3 OFFSET $4`,
-		filter.Status, filter.FindingID, filter.Limit, offset)
+		LIMIT @limit OFFSET @offset`,
+		pgx.NamedArgs{
+			"status":     filter.Status,
+			"finding_id": filter.FindingID,
+			"limit":      filter.Limit,
+			"offset":     offset,
+		})
 	if err != nil {
 		return nil, 0, fmt.Errorf("risk acceptance list: %w", err)
 	}
@@ -204,9 +236,12 @@ func (r *riskAcceptanceRepo) List(ctx context.Context, filter RiskAcceptanceFilt
 	var total int
 	r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM risk_acceptances
-		WHERE ($1::text IS NULL OR status = $1)
-		  AND ($2::uuid IS NULL OR finding_id = $2)`,
-		filter.Status, filter.FindingID).Scan(&total)
+		WHERE (@status::text IS NULL OR status = @status)
+		  AND (@finding_id::uuid IS NULL OR finding_id = @finding_id)`,
+		pgx.NamedArgs{
+			"status":     filter.Status,
+			"finding_id": filter.FindingID,
+		}).Scan(&total)
 
 	return ras, total, nil
 }

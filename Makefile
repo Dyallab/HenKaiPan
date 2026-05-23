@@ -9,7 +9,7 @@ VERSION ?= dev
 BUILD_DATE ?= $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-LDFLAGS := -ldflags "-X aspm/internal/handlers.Version=$(VERSION) -X aspm/internal/handlers.BuildDate=$(BUILD_DATE) -X aspm/internal/handlers.Commit=$(COMMIT)"
+LDFLAGS := -ldflags "-X aspm/internal/handlers.Version=$(VERSION) -X aspm/internal/handlers.BuildDate=$(BUILD_DATE)"
 
 dev-infra:
 	docker compose up postgres redis -d

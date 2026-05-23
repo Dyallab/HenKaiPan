@@ -8,12 +8,16 @@ RUN pnpm build
 
 # Stage 2: Build Go API
 FROM golang:1.26-alpine AS builder
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=frontend /app/frontend/dist ./cmd/api/frontend-dist
-RUN go build -tags embed_frontend -o /api ./cmd/api
+RUN go build \
+    -ldflags "-X aspm/internal/handlers.Version=$VERSION -X aspm/internal/handlers.BuildDate=$BUILD_DATE" \
+    -tags embed_frontend -o /api ./cmd/api
 
 # Stage 3: Runtime
 FROM alpine:3.22.4

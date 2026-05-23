@@ -17,6 +17,7 @@ import (
 	"aspm/internal/config"
 	"aspm/internal/repository"
 	"aspm/internal/scanner"
+	"aspm/internal/vulnerability"
 
 	"github.com/hibiken/asynq"
 )
@@ -56,7 +57,7 @@ func computeFingerprint(scanner, ruleID, filePath string, lineStart int) string 
 }
 
 // HandleScan runs a queued scan job for any configured scanner.
-func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, apps repository.AppRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
+func HandleScan(scans repository.ScanRepository, findings repository.FindingRepository, vulnerabilities repository.VulnerabilityRepository, policies repository.PolicyRepository, webhooks repository.WebhookRepository, settings repository.SettingsRepository, apps repository.AppRepository, queue *asynq.Client, notifications NotificationConfig) asynq.HandlerFunc {
 	return func(ctx context.Context, t *asynq.Task) error {
 		p, err := UnmarshalScanPayload(t.Payload())
 		if err != nil {
@@ -160,6 +161,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			if err := findings.RefreshBatchCorrelation(ctx, findingID); err != nil {
 				log.Warn("refresh batch correlation failed", "finding_id", findingID, "err", err)
 			}
+			linkVulnerability(ctx, vulnerabilities, findingID, p.ProjectID, sc, f, cveID, cweID, log)
 			if strings.TrimSpace(f.Description) == "" {
 				// Auto-summary disabled: summaries are only generated on explicit user request.
 				// To re-enable, uncomment: enqueueFindingSummary(ctx, findings, queue, findingID)
@@ -747,4 +749,57 @@ func formatLocation(path string, line int) string {
 		return fmt.Sprintf("%s:%d", path, line)
 	}
 	return path
+}
+
+func linkVulnerability(ctx context.Context, vulns repository.VulnerabilityRepository, findingID, projectID string, sc scanner.Scanner, f scanner.FindingRow, cveID, cweID *string, log *slog.Logger) {
+	normVersion := vulnerability.NormalizeVersion(f.PkgVersion)
+	normPath := vulnerability.NormalizePath(f.FilePath)
+	vulnUID := vulnerability.ComputeVulnUID(sc.Category, f.RuleID, f.PkgName, f.PkgVersion, derefStr(cveID), f.SecretHash, f.FilePath)
+	if vulnUID == "" {
+		return
+	}
+
+	engineType := vulnerability.EngineTypeFromCategory(sc.Category)
+	if engineType == "" {
+		return
+	}
+
+	cveStr := derefStr(cveID)
+	cweStr := derefStr(cweID)
+
+	vuln, err := vulns.Upsert(ctx, repository.VulnerabilityUpsert{
+		VulnUID:     vulnUID,
+		ProjectID:   projectID,
+		Title:       f.Title,
+		Description: f.Description,
+		Severity:    normalizeSeverity(f.Severity),
+		EngineType:  string(engineType),
+		PkgName:     f.PkgName,
+		PkgVersion:  normVersion,
+		CVEID:       cveStr,
+		CWEID:       cweStr,
+		RuleID:      f.RuleID,
+		SecretHash:  f.SecretHash,
+		FilePath:    normPath,
+		ScannerName: sc.Name,
+	})
+	if err != nil {
+		log.Warn("upsert vulnerability failed", "vuln_uid", vulnUID, "err", err)
+		return
+	}
+
+	if err := vulns.UpdateFindingVulnID(ctx, findingID, vuln.ID); err != nil {
+		log.Warn("link finding to vulnerability failed", "finding_id", findingID, "vuln_id", vuln.ID, "err", err)
+	}
+
+	if err := vulns.RecalcConfidence(ctx, vuln.ID); err != nil {
+		log.Warn("recalc vulnerability confidence failed", "vuln_id", vuln.ID, "err", err)
+	}
+}
+
+func derefStr(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

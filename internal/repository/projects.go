@@ -165,9 +165,16 @@ func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCre
 	var p models.Project
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO projects (name, description, app_id, repo_url, provider, default_branch)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		VALUES (@name, @description, @app_id, @repo_url, @provider, @default_branch)
 		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, created_at`,
-		pc.Name, pc.Description, nilOrUUID(appID), pc.RepoURL, pc.Provider, pc.DefaultBranch,
+		pgx.NamedArgs{
+			"name":           pc.Name,
+			"description":    pc.Description,
+			"app_id":         nilOrUUID(appID),
+			"repo_url":       pc.RepoURL,
+			"provider":       pc.Provider,
+			"default_branch": pc.DefaultBranch,
+		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
 		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.CreatedAt)
 	if err != nil {
@@ -180,9 +187,15 @@ func (r *appRepo) CreateStandaloneProject(ctx context.Context, pc ProjectCreate)
 	var p models.Project
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO projects (name, description, repo_url, provider, default_branch)
-		VALUES ($1, $2, $3, $4, $5)
+		VALUES (@name, @description, @repo_url, @provider, @default_branch)
 		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, created_at`,
-		pc.Name, pc.Description, pc.RepoURL, pc.Provider, pc.DefaultBranch,
+		pgx.NamedArgs{
+			"name":           pc.Name,
+			"description":    pc.Description,
+			"repo_url":       pc.RepoURL,
+			"provider":       pc.Provider,
+			"default_branch": pc.DefaultBranch,
+		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
 		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.CreatedAt)
 	if err != nil {
@@ -255,19 +268,29 @@ func (r *appRepo) BulkCreateProjects(ctx context.Context, appID string, projects
 func (r *appRepo) UpdateProject(ctx context.Context, id string, upd ProjectUpdate) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE projects SET
-			name            = COALESCE($2, name),
-			description     = COALESCE($3, description),
-			repo_url        = COALESCE($4, repo_url),
-			provider        = COALESCE($5, provider),
-			default_branch  = COALESCE($6, default_branch),
-			external_repo_id = COALESCE($7, external_repo_id),
+			name            = COALESCE(@name, name),
+			description     = COALESCE(@description, description),
+			repo_url        = COALESCE(@repo_url, repo_url),
+			provider        = COALESCE(@provider, provider),
+			default_branch  = COALESCE(@default_branch, default_branch),
+			external_repo_id = COALESCE(@external_repo_id, external_repo_id),
 			app_id          = CASE
-			                  WHEN $8::text IS NULL THEN app_id
-			                  WHEN $8::text = '' THEN NULL
-			                  ELSE $8::uuid
+			                  WHEN @app_id_text IS NULL THEN app_id
+			                  WHEN @app_id_text = '' THEN NULL
+			                  ELSE @app_id_text::uuid
 			                END,
 			updated_at      = NOW()
-		WHERE id = $1`, id, upd.Name, upd.Description, upd.RepoURL, upd.Provider, upd.DefaultBranch, upd.ExternalRepoID, upd.AppID)
+		WHERE id = @id`,
+		pgx.NamedArgs{
+			"id":                id,
+			"name":              upd.Name,
+			"description":       upd.Description,
+			"repo_url":         upd.RepoURL,
+			"provider":          upd.Provider,
+			"default_branch":   upd.DefaultBranch,
+			"external_repo_id":  upd.ExternalRepoID,
+			"app_id_text":       upd.AppID,
+		})
 	return err
 }
 
