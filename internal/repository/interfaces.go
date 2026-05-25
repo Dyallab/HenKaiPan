@@ -430,6 +430,7 @@ type VulnerabilityRepository interface {
 	GetProjectEngineSummaries(ctx context.Context) ([]ProjectEngineSummary, error)
 	RecalcConfidence(ctx context.Context, vulnID string) error
 	UpdateFindingVulnID(ctx context.Context, findingID, vulnID string) error
+	UpdateStatus(ctx context.Context, id, status string) error
 	BackfillVulnerabilities(ctx context.Context) (int, error)
 }
 

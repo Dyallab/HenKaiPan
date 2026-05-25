@@ -28,6 +28,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 class="hover:text-cyan-300 transition-colors">Findings</a
             >
             <span>/</span>
+            <a id="breadcrumb-vuln" href="/dashboard/vulns" class="hidden hover:text-cyan-300 transition-colors after:content-['/'] after:ml-2 after:text-slate-600 after:pointer-events-none">Vulnerability</a>
             <span id="breadcrumb-id" class="font-mono text-slate-400"></span>
         </div>
 
@@ -307,6 +308,25 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                 <p
                                     id="overview-first-seen"
                                     class="text-on-background"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        id="vulnerability-context"
+                        class="hidden bg-surface-container-low border border-outline-variant/20 rounded-2xl p-5 space-y-3"
+                    >
+                        <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">
+                            Vulnerability Context
+                        </p>
+                        <div class="flex items-center gap-3">
+                            <span class="material-symbols-outlined text-slate-500 text-lg">bug_report</span>
+                            <div>
+                                <p class="text-sm text-on-background">Part of a vulnerability group</p>
+                                <a id="vuln-link" href="#" class="text-xs text-cyan-300 hover:text-cyan-200 transition-colors inline-flex items-center gap-1">
+                                    <span class="material-symbols-outlined text-sm">open_in_new</span>
+                                    <span id="vuln-link-label">View vulnerability details</span>
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -1449,6 +1469,20 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         document.title = `${finding.title} — HenKaiPan`;
         document.getElementById("breadcrumb-id")!.textContent =
             finding.id.slice(0, 8);
+
+        // Vulnerability context
+        const vulnCtx = document.getElementById('vulnerability-context')!;
+        const vulnBreadcrumb = document.getElementById('breadcrumb-vuln')!;
+        if (finding.vulnerability_id) {
+          vulnCtx.classList.remove('hidden');
+          vulnBreadcrumb.classList.remove('hidden');
+          const vulnLink = document.getElementById('vuln-link') as HTMLAnchorElement;
+          vulnLink.href = `/dashboard/vulns`;
+        } else {
+          vulnCtx.classList.add('hidden');
+          vulnBreadcrumb.classList.add('hidden');
+        }
+
         document.getElementById("finding-title")!.textContent = finding.title;
         document.getElementById("finding-subtitle")!.textContent =
             `${locationLabel(finding)} · ${finding.scanner} · ${scanner.label}`;

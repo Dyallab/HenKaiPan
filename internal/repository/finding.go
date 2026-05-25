@@ -214,16 +214,18 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count, COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
 		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
 		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz),
-		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, '')
+		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, ''),
+		       f.vulnerability_id
 		FROM findings f
 		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
-		WHERE f.id = $1`, id).
+		WHERE f.id = $1`).
 		Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
 			&f.CVEID, &f.CWEID, &f.ConfidenceScore, &f.CorroborationCount, &f.AISummary, &f.SummaryState, &f.Suppressed, &f.RemediationSlug,
 			&hasJiraIssue, &jiraID, &jiraIssueKey, &jiraIssueURL, &jiraStatus, &jiraCreatedAt,
-			&f.PkgName, &f.PkgVersion)
+			&f.PkgName, &f.PkgVersion,
+			&f.VulnerabilityID)
 	if err != nil {
 		return nil, err
 	}

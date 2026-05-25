@@ -184,6 +184,7 @@ func main() {
 		r.Get("/api/vulnerabilities", h.ListVulnerabilities)
 		r.Get("/api/vulnerabilities/{vulnID}/affected", h.GetVulnerabilityAffected)
 		r.Get("/api/vulnerabilities/engine-summary", h.GetVulnerabilityEngineSummary)
+		r.With(auth.RequireRole("admin")).Patch("/api/vulnerabilities/{vulnID}/status", h.UpdateVulnerabilityStatus)
 
 		// ── Paid: Comments ──
 		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
