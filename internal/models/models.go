@@ -79,6 +79,7 @@ type Finding struct {
 	PkgName            string         `json:"pkg_name,omitempty"`
 	PkgVersion         string         `json:"pkg_version,omitempty"`
 	CorroboratingScanners string      `json:"corroborating_scanners,omitempty"`
+	VulnerabilityID      *string      `json:"vulnerability_id,omitempty"`
 }
 
 type SLASummary struct {

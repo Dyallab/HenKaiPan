@@ -233,6 +233,7 @@ export const api = {
     page = 1,
     limit = 100,
     engineType?: string,
+    projectId?: string,
   ) => {
     const params = new URLSearchParams();
     const sev = serializeMultiValue(severity);
@@ -242,6 +243,7 @@ export const api = {
     params.set("page", String(page));
     params.set("limit", String(limit));
     if (engineType) params.set("engine_type", engineType);
+    if (projectId) params.set("project_id", projectId);
     return req<{ vulnerabilities: VulnSummary[]; total: number }>(
       `/api/vulnerabilities?${params.toString()}`,
     );
@@ -255,6 +257,12 @@ export const api = {
   getVulnerabilityEngineSummary: () =>
     req<ProjectEngineSummary[]>(
       "/api/vulnerabilities/engine-summary",
+    ),
+
+  updateVulnerabilityStatus: (vulnID: string, status: string) =>
+    req<VulnSummary>(
+      `/api/vulnerabilities/${encodeURIComponent(vulnID)}/status`,
+      { method: "PATCH", body: JSON.stringify({ status }) },
     ),
 
   getUsers: () => req<User[]>("/api/users"),
@@ -673,6 +681,7 @@ export interface Finding {
   pkg_name?: string;
   pkg_version?: string;
   corroborating_scanners?: string;
+  vulnerability_id?: string;
 }
 
 export interface AgentAnalysis {

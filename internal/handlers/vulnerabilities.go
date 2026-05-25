@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 
@@ -40,6 +41,38 @@ func (h *Handler) GetVulnerabilityAffected(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	writeJSON(w, http.StatusOK, findings)
+}
+
+func (h *Handler) UpdateVulnerabilityStatus(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "vulnID")
+
+	var req struct {
+		Status string `json:"status"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	validStatuses := map[string]bool{"open": true, "in_review": true, "accepted_risk": true, "fixed": true, "verified": true}
+	if !validStatuses[req.Status] {
+		writeError(w, r, http.StatusBadRequest, "invalid status: must be one of open, in_review, accepted_risk, fixed, verified")
+		return
+	}
+
+	if err := h.store.Vulnerabilities.UpdateStatus(r.Context(), id, req.Status); err != nil {
+		slog.ErrorContext(r.Context(), "failed to update vulnerability status", "error", err, "vuln_id", id)
+		writeError(w, r, http.StatusInternalServerError, "failed to update vulnerability status")
+		return
+	}
+
+	vuln, err := h.store.Vulnerabilities.GetByID(r.Context(), id)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "vulnerability not found after update")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, vuln)
 }
 
 func (h *Handler) GetVulnerabilityEngineSummary(w http.ResponseWriter, r *http.Request) {

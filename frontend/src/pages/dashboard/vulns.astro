@@ -3,6 +3,13 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 ---
 <DashboardLayout title="Vulnerability Inventory" active="vulns">
 
+  <!-- Breadcrumbs -->
+  <div class="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-[0.22em] font-bold mb-4">
+    <a href="/dashboard" class="hover:text-cyan-300 transition-colors">Dashboard</a>
+    <span>/</span>
+    <span class="text-slate-400">Vulnerabilities</span>
+  </div>
+
   <!-- Header -->
   <div class="flex items-center justify-between mb-5">
     <div>
@@ -81,11 +88,15 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
             </label>
     </fieldset>
 
-    <div class="relative flex-1 min-w-[220px]">
+    <div class="relative flex-1 min-w-[180px]">
       <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
       <input id="filter-q" type="text" placeholder="Search CVE, rule ID, title, or package…"
         class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600" />
     </div>
+
+    <select id="filter-project" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[160px]">
+      <option value="">All Projects</option>
+    </select>
 
     <label class="flex items-center gap-2 px-3 py-2 bg-surface-container border border-outline-variant/30 rounded-lg cursor-pointer">
       <input id="filter-open" type="checkbox" checked class="rounded border-slate-600 bg-surface-container text-amber-400 focus:ring-0 cursor-pointer" />
@@ -110,10 +121,11 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
           <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanners</th>
           <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Findings</th>
           <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Confidence</th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Status</th>
         </tr>
       </thead>
       <tbody id="vuln-tbody">
-        <tr><td colspan="7" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading vulnerabilities…</td></tr>
+        <tr><td colspan="8" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading vulnerabilities…</td></tr>
       </tbody>
     </table>
   </div>
@@ -131,6 +143,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 <script>
   import { api, type AffectedFinding } from '@lib/api';
   import type { VulnSummary } from '@lib/api';
+  import { toast } from '@lib/toast';
 
   const SEV_COLOR: Record<string, string> = {
     critical: 'text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20',
@@ -169,6 +182,15 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     return `<span class="${color} text-xs font-bold">${pct}%</span>`;
   }
 
+  const STATUS_OPTIONS = ['open', 'in_review', 'accepted_risk', 'fixed', 'verified'];
+  const STATUS_LABELS: Record<string, string> = {
+    open: 'Open',
+    in_review: 'In Review',
+    accepted_risk: 'Accepted Risk',
+    fixed: 'Fixed',
+    verified: 'Verified',
+  };
+
   let currentPage = 1;
   let totalVulns  = 0;
   const PAGE_LIMIT = 100;
@@ -183,21 +205,31 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     return Array.from(document.querySelectorAll<HTMLInputElement>('[data-engine-filter]:checked')).map((input) => input.value);
   }
 
+  async function loadProjects() {
+    try {
+      const projects = await api.getProjects();
+      const select = document.getElementById('filter-project') as HTMLSelectElement;
+      select.innerHTML = '<option value="">All Projects</option>' +
+        projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    } catch { /* projects unavailable */ }
+  }
+
   async function load() {
     const severity = selectedSeverities();
     const engines  = selectedEngines();
     const q        = (document.getElementById('filter-q')        as HTMLInputElement).value.trim();
     const onlyOpen = (document.getElementById('filter-open')     as HTMLInputElement).checked;
+    const projectId = (document.getElementById('filter-project') as HTMLSelectElement).value;
 
     const tbody = document.getElementById('vuln-tbody')!;
-    tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading…</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading…</td></tr>`;
 
     try {
       // If multiple engines selected, we need to make multiple calls or pick one
       // For simplicity, if none selected, fetch all; if one selected, filter by it
       const engineType = engines.length === 1 ? engines[0] : undefined;
 
-      const { vulnerabilities: vulns, total } = await api.getVulnerabilities(severity, q, onlyOpen, currentPage, PAGE_LIMIT, engineType);
+      const { vulnerabilities: vulns, total } = await api.getVulnerabilities(severity, q, onlyOpen, currentPage, PAGE_LIMIT, engineType, projectId);
       totalVulns = total;
 
       document.getElementById('sum-total')!.textContent    = String(total);
@@ -206,7 +238,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       document.getElementById('sum-findings')!.textContent = String(totalFindings);
 
       if (!vulns.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-12 text-center text-slate-500 text-sm">No vulnerabilities match your filters.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-12 text-center text-slate-500 text-sm">No vulnerabilities match your filters.</td></tr>`;
         return;
       }
 
@@ -223,9 +255,26 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         if (row) await expandRow(vid, tbody, row as HTMLTableRowElement);
       }
 
+      // Attach status change handlers
+      tbody.querySelectorAll<HTMLSelectElement>('.vuln-status-select').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const vulnId = sel.dataset.vulnId!;
+          const newStatus = sel.value;
+          const oldStatus = sel.dataset.currentStatus;
+          try {
+            await api.updateVulnerabilityStatus(vulnId, newStatus);
+            sel.dataset.currentStatus = newStatus;
+            toast(`Status updated to ${STATUS_LABELS[newStatus] ?? newStatus}`, 'success');
+          } catch (e: any) {
+            sel.value = oldStatus!;
+            toast(e.message ?? 'Failed to update status', 'error');
+          }
+        });
+      });
+
       updatePagination();
     } catch (e: any) {
-      tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-error text-sm">${e.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-8 text-center text-error text-sm">${e.message}</td></tr>`;
     }
   }
 
@@ -275,6 +324,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
           <span class="inline-flex items-center justify-center w-8 h-8 rounded-full ${v.finding_count > 0 ? 'bg-goldenrod/10 text-goldenrod font-bold border border-goldenrod/20' : 'text-slate-500'} text-sm">${v.finding_count}</span>
         </td>
         <td class="px-3 py-2.5 text-center">${confBadge(v.confidence_score)}</td>
+        <td class="px-3 py-2.5 text-center">
+          <select class="vuln-status-select text-[10px] font-bold uppercase tracking-wider bg-surface-container border border-outline-variant/30 text-on-background rounded px-1 py-0.5 focus:outline-none focus:border-cyan-500 cursor-pointer"
+            data-vuln-id="${v.id}" data-current-status="${v.status}" onclick="event.stopPropagation()">
+            ${STATUS_OPTIONS.map(s => `<option value="${s}" ${v.status === s ? 'selected' : ''}>${STATUS_LABELS[s]}</option>`).join('')}
+          </select>
+        </td>
       </tr>`;
   }
 
@@ -302,7 +357,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const placeholder = document.createElement('tr');
     placeholder.dataset.detailFor = vulnId;
     placeholder.innerHTML = `
-      <td colspan="7" class="px-6 pb-4 pt-2 bg-slate-950/60">
+      <td colspan="8" class="px-6 pb-4 pt-2 bg-slate-950/60">
         <div class="text-xs text-slate-500 animate-pulse">Loading findings…</div>
       </td>`;
     row.insertAdjacentElement('afterend', placeholder);
@@ -321,7 +376,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
     if (!findings.length) {
       placeholder.innerHTML = `
-        <td colspan="7" class="px-5 pb-4 pt-2 bg-slate-950/60">
+        <td colspan="8" class="px-5 pb-4 pt-2 bg-slate-950/60">
           <p class="text-xs text-slate-500">No findings linked to this vulnerability.</p>
         </td>`;
       return;
@@ -336,7 +391,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     }
 
     placeholder.innerHTML = `
-      <td colspan="7" class="px-5 pb-4 pt-2 bg-slate-950/60">
+      <td colspan="8" class="px-5 pb-4 pt-2 bg-slate-950/60">
         <div class="space-y-3">
           <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">
             Affected Resources (${findings.length} findings across ${byProject.size} project${byProject.size > 1 ? 's' : ''})
@@ -422,11 +477,13 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     });
     (document.getElementById('filter-q')        as HTMLInputElement).value  = '';
     (document.getElementById('filter-open')     as HTMLInputElement).checked = true;
+    (document.getElementById('filter-project') as HTMLSelectElement).value = '';
     currentPage = 1;
     load();
   });
   document.getElementById('prev-btn')!.addEventListener('click', () => { currentPage--; load(); });
   document.getElementById('next-btn')!.addEventListener('click', () => { currentPage++; load(); });
 
+  loadProjects();
   load();
 </script>
