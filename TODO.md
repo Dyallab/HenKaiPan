@@ -39,13 +39,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.18.0 (2026-05-25)
-**Next planned:** v1.19.0
+**Current release:** v1.19.0 (2026-05-28)
+**Next planned:** v1.19.1
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.19.0 | MCP Server for LLM Integration (SSE transport, 7 tools), finding detail vulnerability context card, vuln page status dropdown + project filter, breadcrumb navigation, `corroboration_count`→dynamic subquery migration, E2E vulnerability correlation test |
 | v1.18.0 | Vulnerability status management (PATCH endpoint + UI dropdown), project filter on vulns page, breadcrumb navigation, vulnerability context in finding detail, finding model enriched with `vulnerability_id` |
 | v1.17.0 | Vulnerability model — cross-batch correlation & dedup, vuln_uid per engine, automatic linking + backfill, cross-batch confidence scoring, version check endpoint, repository layer migrated to named params |
 | v1.16.0 | SCA cross-scanner correlation, package matching, confidence score UI, corroborating scanners display |
@@ -76,38 +77,11 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-## 🔜 v1.19.0 — Planned
+## 🔜 v1.19.1 — Planned
 
-### Vulnerability Model — remaining items
+### Fixes
 
-Core backend (#1-#11) shipped in v1.17.0. Frontend features (#12-#14) shipped incrementally in v1.18.0.
-
-- [ ] **#12 Finding detail — siblings navigation**: Show siblings (other findings linked to the same vulnerability) on finding detail page + navigation between siblings (prev/next)
-- [x] **#12a Vulnerability Context card** (finding detail → link to vuln) — shipped v1.18.0
-- [x] **#13a Status dropdown on vulns page** — shipped v1.18.0
-- [x] **#13b Project filter on vulns page** — shipped v1.18.0
-- [x] **#14a Breadcrumb navigation** — shipped v1.18.0
-- [x] **#15 Replace `corroboration_count`**: Replaced physical column with dynamic subquery — `COUNT(DISTINCT scanner) FROM findings WHERE vulnerability_id = f.vulnerability_id`. Removed SET from recalculateConfidence. Field kept in Go model + JSON response for backward compat.
-- [x] **#16 E2E test**: Created `scripts/e2e-vulnerability-correlation.sql` — seeds 3 batches with overlapping vuln_uids, verifies 1 vuln per uid, N findings linked, scanner_coverage accumulation, confidence_score progression, uncoupled independence, and dynamic corroboration_count
-
-**Open:** Status propagation — if all findings of a vuln are `fixed`, should the vuln auto-close? If any reopens, should vuln reopen? Currently status is set independently via PATCH.
-
-### MCP Server for LLM Integration
-
-Expose HenKaiPan capabilities as an MCP server so LLMs/agents (Claude, Cursor, etc.) can interact with the platform programmatically. Reuses existing API token system for auth.
-
-- [x] **Research**: Review MCP protocol specification (tools/list, tools/call, SSE transport)
-- [x] **Implement MCP endpoint**: New route `/v1/mcp` with SSE transport for tool discovery + invocation
-- [x] **Tools exposed**:
-  - `list_projects` — list projects with filters
-  - `create_project` — create a new project
-  - `trigger_scan` — start a scan on a project
-  - `get_scan_status` — poll scan progress
-  - `query_findings` — search findings with severity/status filters
-  - `get_vulnerabilities` — list vulnerabilities with filters
-  - `get_dashboard_summary` — high-level security posture
-- [x] **Auth**: Reuse existing `X-API-Key` header + token validation middleware
-- [x] **Documentation**: Integration guide at `HenKaiPan-docs/src/app/architecture/mcp-integration.md`
+- [ ] **MCP SSE endpoint event format**: `SSEClientTransport` (used by OpenCode, Claude Desktop, Cursor) expects the SSE `endpoint` event data to be a plain URL string, not JSON. Server was sending `{"endpoint":"/v1/mcp?...","session_id":"..."}` causing malformed POST URL (`/v1/{"endpoint"...}` → 404). Fixed by sending `/v1/mcp?session_id=xxx` as plain URL data.
 
 ---
 
@@ -205,4 +179,4 @@ Expose HenKaiPan capabilities as an MCP server so LLMs/agents (Claude, Cursor, e
 
 ---
 
-*Última actualización: 2026-05-28*
+*Última actualización: 2026-05-29*
