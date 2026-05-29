@@ -138,6 +138,12 @@ func main() {
 		r.Get("/{id}/status", h.GetExternalScanStatus)
 	})
 
+	r.Route("/v1/mcp", func(r chi.Router) {
+		r.Use(handlers.APIKeyAuth(store))
+		r.Get("/", h.HandleMCP)
+		r.Post("/", h.HandleMCP)
+	})
+
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware)
 
