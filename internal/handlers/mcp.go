@@ -151,11 +151,7 @@ func (h *Handler) HandleMCP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 
-	endpointJSON, _ := json.Marshal(map[string]string{
-		"endpoint":   "/v1/mcp?session_id=" + sessionID,
-		"session_id": sessionID,
-	})
-	fmt.Fprintf(w, "event: endpoint\ndata: %s\n\n", endpointJSON)
+	fmt.Fprintf(w, "event: endpoint\ndata: /v1/mcp?session_id=%s\n\n", sessionID)
 	flusher.Flush()
 
 	heartbeat := time.NewTicker(30 * time.Second)
