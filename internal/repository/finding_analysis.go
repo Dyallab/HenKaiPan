@@ -64,7 +64,14 @@ func (r *agentRepo) GetCorrelatedFindings(ctx context.Context, findingID string)
 		       f2.severity, f2.file_path, f2.line_start, f2.line_end,
 		       COALESCE(f2.code_snippet, ''), f2.created_at, f2.status,
 		       f2.assigned_to, f2.false_positive, f2.notes, f2.resolved_at,
-		       f2.sla_deadline, f2.cve_id, f2.cwe_id, f2.confidence_score, f2.corroboration_count, f2.suppressed, f2.remediation_slug,
+		       f2.sla_deadline, f2.cve_id, f2.cwe_id, f2.confidence_score,
+		       COALESCE((
+		         SELECT COUNT(DISTINCT subq.scanner)
+		         FROM findings subq
+		         WHERE subq.vulnerability_id = f2.vulnerability_id
+		           AND subq.vulnerability_id IS NOT NULL
+		       ), 0) AS corroboration_count,
+		       f2.suppressed, f2.remediation_slug,
 		       COALESCE(f2.pkg_name, ''), COALESCE(f2.pkg_version, '')
 		FROM finding_correlations fc
 		JOIN findings f1 ON f1.id = $1

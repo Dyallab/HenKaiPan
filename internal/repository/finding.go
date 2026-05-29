@@ -31,7 +31,13 @@ rows, err := r.db.Query(ctx, `
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.line_end, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
-		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count,
+		       f.cve_id, f.cwe_id, f.confidence_score,
+		       COALESCE((
+		         SELECT COUNT(DISTINCT subq.scanner)
+		         FROM findings subq
+		         WHERE subq.vulnerability_id = f.vulnerability_id
+		           AND subq.vulnerability_id IS NOT NULL
+		       ), 0) AS corroboration_count,
 		       EXISTS (
 		         SELECT 1
 		         FROM agent_analyses aa
@@ -71,7 +77,7 @@ rows, err := r.db.Query(ctx, `
 		ORDER BY
 			CASE WHEN @sort_by = 'confidence_desc' THEN COALESCE(f.confidence_score, 0) END DESC,
 			CASE WHEN @sort_by = 'confidence_asc' THEN COALESCE(f.confidence_score, 0) END ASC,
-			CASE WHEN @sort_by = 'corroborated' THEN f.corroboration_count END DESC,
+			CASE WHEN @sort_by = 'corroborated' THEN (SELECT COUNT(DISTINCT subq2.scanner) FROM findings subq2 WHERE subq2.vulnerability_id = f.vulnerability_id AND subq2.vulnerability_id IS NOT NULL) END DESC,
 			`+SeverityOrderSQL+`,
 			f.created_at DESC
 		LIMIT @limit OFFSET @offset`,
@@ -211,7 +217,14 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''), f.severity,
 		       f.file_path, f.line_start, f.line_end, f.code_snippet, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
-		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count, COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
+		       f.cve_id, f.cwe_id, f.confidence_score,
+		       COALESCE((
+		         SELECT COUNT(DISTINCT subq.scanner)
+		         FROM findings subq
+		         WHERE subq.vulnerability_id = f.vulnerability_id
+		           AND subq.vulnerability_id IS NOT NULL
+		       ), 0) AS corroboration_count,
+		       COALESCE(f.ai_summary, ''), f.summary_state, f.suppressed, f.remediation_slug,
 		       j.id IS NOT NULL, COALESCE(j.id::text, ''), COALESCE(j.issue_key, ''),
 		       COALESCE(j.issue_url, ''), COALESCE(j.status, ''), COALESCE(j.created_at, 'epoch'::timestamptz),
 		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, ''),
@@ -259,7 +272,14 @@ func (r *findingRepo) GetByScanID(ctx context.Context, scanID string) ([]models.
 		SELECT id, scan_id, scanner, rule_id, title, COALESCE(description, ''), severity,
 		       file_path, line_start, line_end, code_snippet, created_at,
 		       status, assigned_to, false_positive, notes, resolved_at, sla_deadline,
-		       cve_id, cwe_id, confidence_score, corroboration_count, COALESCE(ai_summary, ''), summary_state,
+		       cve_id, cwe_id, confidence_score,
+		       COALESCE((
+		         SELECT COUNT(DISTINCT subq.scanner)
+		         FROM findings subq
+		         WHERE subq.vulnerability_id = findings.vulnerability_id
+		           AND subq.vulnerability_id IS NOT NULL
+		       ), 0) AS corroboration_count,
+		       COALESCE(ai_summary, ''), summary_state,
 		       COALESCE(pkg_name, ''), COALESCE(pkg_version, '')
 		FROM findings WHERE scan_id = $1
 		ORDER BY
@@ -557,7 +577,13 @@ func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.created_at,
 		       f.status, f.assigned_to, f.false_positive, f.notes, f.resolved_at, f.sla_deadline,
-		       f.cve_id, f.cwe_id, f.confidence_score, f.corroboration_count,
+		       f.cve_id, f.cwe_id, f.confidence_score,
+		       COALESCE((
+		         SELECT COUNT(DISTINCT subq.scanner)
+		         FROM findings subq
+		         WHERE subq.vulnerability_id = f.vulnerability_id
+		           AND subq.vulnerability_id IS NOT NULL
+		       ), 0) AS corroboration_count,
 		       COALESCE(f.pkg_name, ''), COALESCE(f.pkg_version, '')
 		FROM findings f
 		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
@@ -780,9 +806,8 @@ func (r *findingRepo) recalculateConfidence(ctx context.Context, findingID strin
 
 	if _, err := r.db.Exec(ctx, `
 		UPDATE findings
-		SET confidence_score = $2,
-		    corroboration_count = $3
-		WHERE id = $1`, findingID, score, corroboratedCount); err != nil {
+		SET confidence_score = $2
+		WHERE id = $1`, findingID, score); err != nil {
 		return fmt.Errorf("update finding confidence: %w", err)
 	}
 	return nil
