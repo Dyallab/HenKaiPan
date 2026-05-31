@@ -12,70 +12,54 @@ RUN go build \
     -o /worker ./cmd/worker
 
 # Stage 2: Install scanner binaries
+# All scanner versions pinned in one layer for deterministic Docker caching.
+# With cache-from: type=gha, this layer is reused across builds when versions don't change.
 FROM alpine:3.22 AS scanners
 
-# Install base dependencies
-RUN apk add --no-cache \
-    ca-certificates \
-    curl \
-    bash \
-    git \
-    unzip
-
-# Install Semgrep + Checkov (need Python runtime)
-RUN apk add --no-cache python3 py3-pip && \
-    pip install --no-cache-dir --break-system-packages semgrep checkov
-
-# Install Trivy (SCA)
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
-
+ARG TRIVY_VERSION=0.60.0
 ARG GITLEAKS_VERSION=8.30.1
-
-# Install Gitleaks (Secrets)
-RUN curl -sL https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz | tar xz && \
-    mv gitleaks /usr/local/bin/
-
-# Install Grype (SCA)
-RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
-
-# Install OSV-Scanner (SCA)
-RUN curl -sLo /usr/local/bin/osv-scanner https://github.com/google/osv-scanner/releases/latest/download/osv-scanner_linux_amd64 && \
-    chmod +x /usr/local/bin/osv-scanner
-
+ARG GRYPE_VERSION=0.90.0
+ARG OSV_SCANNER_VERSION=2.0.0
 ARG TRUFFLEHOG_VERSION=3.95.2
-
-# Install TruffleHog (Secrets)
-RUN curl -sL https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz -o trufflehog.tar.gz && \
-    tar xzf trufflehog.tar.gz && \
-    mv trufflehog /usr/local/bin/ && \
-    rm trufflehog.tar.gz
-
-# Install TFSec (IaC)
-RUN curl -sLo /usr/local/bin/tfsec https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 && \
-    chmod +x /usr/local/bin/tfsec
-
+ARG TFSEC_VERSION=1.28.13
 ARG KICS_VERSION=2.1.20
-
-# Install KICS (IaC)
-RUN curl -sL https://github.com/Checkmarx/kics/releases/download/v${KICS_VERSION}/kics_${KICS_VERSION}_linux_amd64.tar.gz -o kics.tar.gz && \
-    tar xzf kics.tar.gz -C /tmp && \
-    mv /tmp/kics /usr/local/bin/ && \
-    rm -f kics.tar.gz
-
 ARG NUCLEI_VERSION=3.8.0
 ARG GOSEC_VERSION=2.26.1
 
-# Install Nuclei (DAST)
-RUN curl -sL https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip -o nuclei.zip && \
-    unzip -o nuclei.zip && \
-    mv nuclei /usr/local/bin/ && \
-    rm nuclei.zip
-
-# Install Gosec (SAST)
-RUN curl -sL https://github.com/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz -o gosec.tar.gz && \
-    tar xzf gosec.tar.gz && \
-    mv gosec /usr/local/bin/ && \
-    rm gosec.tar.gz
+RUN apk add --no-cache \
+    ca-certificates curl bash git unzip python3 py3-pip && \
+    # Semgrep + Checkov (Python scanners)
+    pip install --no-cache-dir --break-system-packages semgrep checkov && \
+    # ── Binary scanners ──
+    # Trivy (SCA)
+    curl -sL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /tmp && \
+    mv /tmp/trivy /usr/local/bin/ && \
+    # Gitleaks (Secrets)
+    curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz && \
+    mv gitleaks /usr/local/bin/ && \
+    # Grype (SCA)
+    curl -sL "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
+    mv /tmp/grype /usr/local/bin/ && \
+    # OSV-Scanner (SCA)
+    curl -sLo /usr/local/bin/osv-scanner "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" && \
+    chmod +x /usr/local/bin/osv-scanner && \
+    # TruffleHog (Secrets)
+    curl -sL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" | tar xz && \
+    mv trufflehog /usr/local/bin/ && \
+    # TFSec (IaC)
+    curl -sLo /usr/local/bin/tfsec "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" && \
+    chmod +x /usr/local/bin/tfsec && \
+    # KICS (IaC)
+    curl -sL "https://github.com/Checkmarx/kics/releases/download/v${KICS_VERSION}/kics_${KICS_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
+    mv /tmp/kics /usr/local/bin/ && \
+    # Nuclei (DAST)
+    curl -sL "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" -o /tmp/nuclei.zip && \
+    unzip -o /tmp/nuclei.zip -d /tmp && \
+    mv /tmp/nuclei /usr/local/bin/ && \
+    rm /tmp/nuclei.zip && \
+    # Gosec (SAST)
+    curl -sL "https://github.com/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz" | tar xz && \
+    mv gosec /usr/local/bin/
 
 # Stage 3: Final minimal image
 FROM alpine:3.22

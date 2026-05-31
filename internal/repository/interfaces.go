@@ -244,6 +244,7 @@ type MetricsRepository interface {
 	RiskScores(ctx context.Context) ([]models.RepoRiskScore, error)
 	TeamMetrics(ctx context.Context) ([]models.TeamMetrics, error)
 	SLACompliance(ctx context.Context) (*models.SLACompliance, error)
+	ScannerHealth(ctx context.Context) ([]models.ScannerHealth, error)
 	PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error)
 }
 

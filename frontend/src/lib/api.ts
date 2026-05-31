@@ -389,6 +389,9 @@ export const api = {
   getCoverageReport: (days?: number) =>
     req<CoverageReport>(`/api/coverage${days ? `?days=${days}` : ""}`),
 
+  getScannerHealth: () =>
+    req<ScannerHealth[]>(`/api/metrics/scanner-health`),
+
   getFindingComments: (findingId: string) =>
     req<FindingComment[]>(`/api/findings/${findingId}/comments`),
 
@@ -1069,4 +1072,15 @@ export interface CoverageReport {
   covered_projects: number;
   uncovered_projects: number;
   projects: ProjectCoverage[];
+}
+
+export interface ScannerHealth {
+  scanner: string;
+  total_scans: number;
+  successful_scans: number;
+  failed_scans: number;
+  success_rate: number;
+  avg_duration_seconds: number;
+  last_success_at?: string;
+  last_failure_at?: string;
 }
