@@ -50,3 +50,12 @@ func (h *Handler) GetSLACompliance(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, s)
 }
+
+func (h *Handler) GetScannerHealth(w http.ResponseWriter, r *http.Request) {
+	health, err := h.store.Metrics.ScannerHealth(r.Context())
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "failed to get scanner health")
+		return
+	}
+	writeJSON(w, http.StatusOK, health)
+}

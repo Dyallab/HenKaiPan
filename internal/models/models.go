@@ -145,6 +145,17 @@ type SLACompliance struct {
 	Percent float64 `json:"percent"`
 }
 
+type ScannerHealth struct {
+	Scanner            string     `json:"scanner"`
+	TotalScans         int        `json:"total_scans"`
+	SuccessfulScans    int        `json:"successful_scans"`
+	FailedScans        int        `json:"failed_scans"`
+	SuccessRate        float64    `json:"success_rate"`
+	AvgDurationSeconds float64    `json:"avg_duration_seconds"`
+	LastSuccessAt      *time.Time `json:"last_success_at,omitempty"`
+	LastFailureAt      *time.Time `json:"last_failure_at,omitempty"`
+}
+
 type App struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`

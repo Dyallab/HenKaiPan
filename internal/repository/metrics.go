@@ -215,6 +215,44 @@ func (r *metricsRepo) SLACompliance(ctx context.Context) (*models.SLACompliance,
 	return &s, nil
 }
 
+// ScannerHealth returns per-scanner health metrics
+func (r *metricsRepo) ScannerHealth(ctx context.Context) ([]models.ScannerHealth, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			scanner,
+			COUNT(*)::int,
+			COUNT(*) FILTER (WHERE status = 'completed')::int,
+			COUNT(*) FILTER (WHERE status = 'failed')::int,
+			COALESCE(AVG(EXTRACT(EPOCH FROM (completed_at - started_at)))
+				FILTER (WHERE status = 'completed' AND started_at IS NOT NULL AND completed_at IS NOT NULL), 0)::float8,
+			MAX(completed_at) FILTER (WHERE status = 'completed'),
+			MAX(completed_at) FILTER (WHERE status = 'failed')
+		FROM scans
+		GROUP BY scanner
+		ORDER BY scanner`)
+	if err != nil {
+		return nil, fmt.Errorf("scanner health: %w", err)
+	}
+	defer rows.Close()
+
+	var results []models.ScannerHealth
+	for rows.Next() {
+		var s models.ScannerHealth
+		if err := rows.Scan(&s.Scanner, &s.TotalScans, &s.SuccessfulScans,
+			&s.FailedScans, &s.AvgDurationSeconds, &s.LastSuccessAt, &s.LastFailureAt); err != nil {
+			return nil, fmt.Errorf("scanner health scan: %w", err)
+		}
+		if s.TotalScans > 0 {
+			s.SuccessRate = float64(s.SuccessfulScans) / float64(s.TotalScans) * 100
+		}
+		results = append(results, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("scanner health rows: %w", err)
+	}
+	return results, nil
+}
+
 // PrometheusStats returns metrics for Prometheus exposition
 func (r *metricsRepo) PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error) {
 	err = r.db.QueryRow(ctx, `

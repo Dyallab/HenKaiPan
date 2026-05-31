@@ -1,0 +1,203 @@
+---
+import DashboardLayout from "@layouts/DashboardLayout.astro";
+---
+
+<DashboardLayout title="Scanner Health" active="scanner-health">
+    <div class="space-y-8">
+        <!-- Header -->
+        <div class="border-b border-slate-800 pb-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-bold text-on-background">
+                        Scanner Health
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Per-scanner success rates, average duration, and recent activity.
+                    </p>
+                </div>
+                <div id="refresh-indicator" class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500">Auto-refresh: 60s</span>
+                    <button id="refresh-btn" class="p-2 rounded-lg hover:bg-slate-800 transition-colors" title="Refresh now">
+                        <span class="material-symbols-outlined text-slate-400 text-lg">refresh</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Overview Cards -->
+        <div id="overview-cards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5">
+                <p class="text-xs text-slate-500 uppercase tracking-wider">Active Scanners</p>
+                <p id="active-scanners" class="text-2xl font-bold text-slate-200 mt-2">--</p>
+            </div>
+            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5">
+                <p class="text-xs text-slate-500 uppercase tracking-wider">Total Scans</p>
+                <p id="total-scans" class="text-2xl font-bold text-slate-200 mt-2">--</p>
+            </div>
+            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5">
+                <p class="text-xs text-slate-500 uppercase tracking-wider">Overall Success</p>
+                <p id="overall-success" class="text-2xl font-bold text-slate-200 mt-2">--</p>
+            </div>
+            <div class="bg-surface-container border border-outline-variant/20 rounded-xl p-5">
+                <p class="text-xs text-slate-500 uppercase tracking-wider">Avg Duration</p>
+                <p id="avg-duration" class="text-2xl font-bold text-slate-200 mt-2">--</p>
+            </div>
+        </div>
+
+        <!-- Health Table -->
+        <div class="bg-surface-container border border-outline-variant/20 rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-900/50">
+                            <th class="text-left px-5 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Scanner</th>
+                            <th class="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Success Rate</th>
+                            <th class="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden md:table-cell">Avg Duration</th>
+                            <th class="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Total</th>
+                            <th class="text-center px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden sm:table-cell">Failed</th>
+                            <th class="text-left px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider hidden lg:table-cell">Last Success</th>
+                        </tr>
+                    </thead>
+                    <tbody id="health-table-body">
+                        <tr>
+                            <td colspan="6" class="text-center py-12 text-slate-500">
+                                <span class="material-symbols-outlined text-4xl mb-3 block">hourglass</span>
+                                Loading scanner health data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        import { api } from "@lib/api";
+        import type { ScannerHealth } from "@lib/api";
+
+        function getSuccessColor(rate: number): string {
+            if (rate >= 95) return "text-emerald-400";
+            if (rate >= 80) return "text-amber-400";
+            return "text-rose-400";
+        }
+
+        function getSuccessBg(rate: number): string {
+            if (rate >= 95) return "bg-emerald-500";
+            if (rate >= 80) return "bg-amber-500";
+            return "bg-rose-500";
+        }
+
+        function formatDuration(seconds: number): string {
+            if (seconds < 1) return "<1s";
+            if (seconds < 60) return `${Math.round(seconds)}s`;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return `${mins}m ${secs}s`;
+        }
+
+        function formatTime(isoString?: string): string {
+            if (!isoString) return "--";
+            const date = new Date(isoString);
+            const now = new Date();
+            const diffMs = now.getTime() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return "Just now";
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString();
+        }
+
+        function updateOverview(data: ScannerHealth[]) {
+            const total = data.reduce((sum, s) => sum + s.total_scans, 0);
+            const successful = data.reduce((sum, s) => sum + s.successful_scans, 0);
+            const overallRate = total > 0 ? ((successful / total) * 100).toFixed(1) : "--";
+            const totalDuration = data.reduce((sum, s) => sum + (s.avg_duration_seconds * s.successful_scans), 0);
+            const totalSuccessful = data.reduce((sum, s) => sum + s.successful_scans, 0);
+            const avgDuration = totalSuccessful > 0 ? totalDuration / totalSuccessful : 0;
+
+            document.getElementById("active-scanners")!.textContent = String(data.filter(s => s.total_scans > 0).length);
+            document.getElementById("total-scans")!.textContent = String(total);
+            document.getElementById("overall-success")!.textContent = `${overallRate}%`;
+            document.getElementById("avg-duration")!.textContent = formatDuration(avgDuration);
+        }
+
+        function renderTable(data: ScannerHealth[]) {
+            const tbody = document.getElementById("health-table-body")!;
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-12 text-slate-500">No scan data available yet. Run some scans to see health metrics.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((s) => {
+                const rate = s.total_scans > 0 ? s.success_rate : 0;
+                const colorClass = getSuccessColor(rate);
+                const barColor = getSuccessBg(rate);
+
+                return `
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                    <td class="px-5 py-3.5">
+                        <div class="flex items-center gap-2.5">
+                            <span class="material-symbols-outlined text-slate-400 text-lg">security</span>
+                            <span class="font-medium text-slate-200">${escapeHtml(s.scanner)}</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3.5">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-16 bg-slate-700 rounded-full h-1.5 overflow-hidden">
+                                <div class="h-full ${barColor} rounded-full transition-all" style="width: ${rate}%"></div>
+                            </div>
+                            <span class="${colorClass} font-mono text-xs font-semibold min-w-[3.5rem] text-right">${rate.toFixed(1)}%</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3.5 text-center hidden md:table-cell">
+                        <span class="text-slate-400 font-mono text-xs">${formatDuration(s.avg_duration_seconds)}</span>
+                    </td>
+                    <td class="px-4 py-3.5 text-center hidden sm:table-cell">
+                        <span class="text-slate-300 font-mono text-xs">${s.total_scans}</span>
+                    </td>
+                    <td class="px-4 py-3.5 text-center hidden sm:table-cell">
+                        <span class="${s.failed_scans > 0 ? 'text-rose-400' : 'text-slate-500'} font-mono text-xs">${s.failed_scans}</span>
+                    </td>
+                    <td class="px-4 py-3.5 hidden lg:table-cell">
+                        <span class="text-slate-500 text-xs">${formatTime(s.last_success_at)}</span>
+                    </td>
+                </tr>`;
+            }).join("");
+        }
+
+        function escapeHtml(text: string): string {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function fetchHealth() {
+            try {
+                const data = await api.getScannerHealth();
+                updateOverview(data);
+                renderTable(data);
+            } catch {
+                document.getElementById("health-table-body")!.innerHTML =
+                    `<tr><td colspan="6" class="text-center py-12 text-rose-400">Failed to load scanner health data.</td></tr>`;
+            }
+        }
+
+        // Initial fetch
+        fetchHealth();
+
+        // Auto-refresh every 60 seconds
+        setInterval(fetchHealth, 60000);
+
+        // Manual refresh button
+        document.getElementById("refresh-btn")!.addEventListener("click", () => {
+            const btn = document.getElementById("refresh-btn")!.querySelector("span")!;
+            btn.classList.add("animate-spin");
+            fetchHealth().finally(() => btn.classList.remove("animate-spin"));
+        });
+    </script>
+</DashboardLayout>

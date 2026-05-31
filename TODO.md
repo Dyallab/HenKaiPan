@@ -39,13 +39,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.19.0 (2026-05-28)
-**Next planned:** v1.19.1
+**Current release:** v1.19.1 (2026-05-29)
+**Next planned:** v1.20.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.19.1 | MCP SSE endpoint event format fix (plain URL string for SSEClientTransport compat) |
 | v1.19.0 | MCP Server for LLM Integration (SSE transport, 7 tools), finding detail vulnerability context card, vuln page status dropdown + project filter, breadcrumb navigation, `corroboration_count`→dynamic subquery migration, E2E vulnerability correlation test |
 | v1.18.0 | Vulnerability status management (PATCH endpoint + UI dropdown), project filter on vulns page, breadcrumb navigation, vulnerability context in finding detail, finding model enriched with `vulnerability_id` |
 | v1.17.0 | Vulnerability model — cross-batch correlation & dedup, vuln_uid per engine, automatic linking + backfill, cross-batch confidence scoring, version check endpoint, repository layer migrated to named params |
@@ -77,11 +78,22 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-## 🔜 v1.19.1 — Planned
+## 🔜 v1.20.0 — Visibility Sprint
 
-### Fixes
+### Scan Coverage
 
-- [ ] **MCP SSE endpoint event format**: `SSEClientTransport` (used by OpenCode, Claude Desktop, Cursor) expects the SSE `endpoint` event data to be a plain URL string, not JSON. Server was sending `{"endpoint":"/v1/mcp?...","session_id":"..."}` causing malformed POST URL (`/v1/{"endpoint"...}` → 404). Fixed by sending `/v1/mcp?session_id=xxx` as plain URL data.
+- [x] `GET /api/coverage` — scan coverage report (projects without scans in last N days, default 30) *(route was missing, handler/repo/frontend already existed)*
+- [x] Project cards: "Never scanned" / "Last scan: X days ago" badge on each project *(already implemented in frontend)*
+- [x] Projects filter: "Show only projects without recent scans" toggle/filter *(already implemented in frontend)*
+
+### Scanner Health
+
+- [x] Scanner Health Dashboard — failure rates, avg duration, success % per scanner *(endpoint + page created)*
+- [ ] Queue monitoring dashboard (Asynq metrics exposure)
+
+### Platform Health
+
+- [x] **Cache scanners in CI**: Consolidated scanner downloads into single RUN with pinned versions for deterministic Docker layer caching via `cache-from: type=gha`. Eliminated `curl \| sh` and `latest/download` URLs.
 
 ---
 
@@ -137,7 +149,8 @@ Version numbering follows the **self-hosted public release line**. The complete 
 ### Scanner Extensions
 
 - [ ] SBOM generation and tracking
-- [ ] Custom scanner plugins
+- [ ] Custom scanner plugins (community-contributed scanners with standardized interface)
+- [ ] **Scanner Marketplace** (largo plazo) — discovery, install, and cross-correlation of third-party scanners; requires standardized plugin contract, sandboxed execution, and contribution guidelines
 
 ### CI/CD & API Security
 
@@ -179,4 +192,4 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-*Última actualización: 2026-05-29*
+*Última actualización: 2026-05-31*

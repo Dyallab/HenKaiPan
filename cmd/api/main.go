@@ -224,6 +224,7 @@ func main() {
 		r.Get("/api/metrics/summary", h.GetMetricsSummary)
 		r.Get("/api/metrics/sla-compliance", h.GetSLACompliance)
 		r.Get("/api/metrics/teams", h.GetTeamMetrics)
+		r.Get("/api/metrics/scanner-health", h.GetScannerHealth)
 
 		// ── Free: Apps ──
 		r.Get("/api/apps", h.ListApps)
@@ -237,6 +238,7 @@ func main() {
 		// ── Free: Projects ──
 		r.Get("/api/projects", h.ListProjects)
 		r.Post("/api/projects", h.CreateProject)
+		r.Get("/api/coverage", h.GetCoverageReport)
 		r.Get("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.GetProject))
 		r.Patch("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProject))
 		r.Put("/api/projects/{projectID}/github-token", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProjectGitHubToken))
