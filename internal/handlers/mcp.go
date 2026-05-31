@@ -114,86 +114,33 @@ type propertySchema struct {
 
 // ── MCP Handler ───────────────────────────────────────────────────────────
 
-// HandleMCP handles both GET (SSE stream) and POST (JSON-RPC messages).
+// HandleMCP implements the MCP Streamable HTTP transport (2025-03-26+).
+// - GET returns 405 (not supported in Streamable HTTP)
+// - POST handles all JSON-RPC messages, returning JSON responses directly
 func (h *Handler) HandleMCP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		h.handleMCPrpc(w, r)
+	// Streamable HTTP: GET is not supported
+	if r.Method == http.MethodGet {
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "POST")
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	h.handleMCPPost(w, r)
+}
+
+// handleMCPPost processes a JSON-RPC message via POST (Streamable HTTP transport).
+// For requests (with id): returns JSON response directly.
+// For notifications (without id): returns 202 Accepted.
+func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 	token := apiKeyFromContext(r)
 	if token == nil {
 		writeError(w, r, http.StatusUnauthorized, "valid API key required")
-		return
-	}
-
-	// Enforce per-token session limit (prevent resource exhaustion)
-	if countMCPSessionsByToken(token.ID) >= mcpMaxSessionsPerToken {
-		writeError(w, r, http.StatusTooManyRequests, "too many MCP sessions for this token")
-		return
-	}
-
-	sessionID := fmt.Sprintf("mcp_%s_%d", token.ID, time.Now().UnixNano())
-	session := registerMCPSession(r.Context(), token.ID, sessionID)
-	defer func() {
-		session.cancel()
-		unregisterMCPSession(sessionID)
-	}()
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	fmt.Fprintf(w, "event: endpoint\ndata: /v1/mcp?session_id=%s\n\n", sessionID)
-	flusher.Flush()
-
-	heartbeat := time.NewTicker(30 * time.Second)
-	defer heartbeat.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			slog.Debug("MCP session disconnected", "session_id", sessionID)
-			return
-		case <-heartbeat.C:
-			fmt.Fprint(w, ": heartbeat\n\n")
-			flusher.Flush()
-		case msg, ok := <-session.responses:
-			if !ok {
-				return
-			}
-			fmt.Fprintf(w, "event: message\ndata: %s\n\n", msg)
-			flusher.Flush()
-		}
-	}
-}
-
-// handleMCPrpc processes a JSON-RPC message received via POST.
-func (h *Handler) handleMCPrpc(w http.ResponseWriter, r *http.Request) {
-	sessionID := r.URL.Query().Get("session_id")
-	if sessionID == "" {
-		writeError(w, r, http.StatusBadRequest, "session_id required")
-		return
-	}
-
-	session := getMCPSession(sessionID)
-	if session == nil || session.ctx.Err() != nil {
-		writeError(w, r, http.StatusNotFound, "session not found or expired")
-		return
-	}
-
-	// Verify POST token matches the token that owns this session
-	// Prevents token A from injecting messages into token B's session.
-	token := apiKeyFromContext(r)
-	if token == nil || token.ID != session.tokenID {
-		writeError(w, r, http.StatusForbidden, "this token does not own this session")
 		return
 	}
 
@@ -203,23 +150,76 @@ func (h *Handler) handleMCPrpc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.Method == "initialize" {
+		h.handleMCPInitialize(w, r, token, &req)
+		return
+	}
+
+	sessionID := r.Header.Get("MCP-Session-Id")
+	if sessionID == "" {
+		sessionID = r.URL.Query().Get("session_id") // backward compat
+	}
+	if sessionID == "" {
+		writeError(w, r, http.StatusBadRequest, "MCP-Session-Id header required")
+		return
+	}
+
+	session := getMCPSession(sessionID)
+	if session == nil || session.ctx.Err() != nil {
+		writeError(w, r, http.StatusNotFound, "session not found or expired")
+		return
+	}
+
+	if token.ID != session.tokenID {
+		writeError(w, r, http.StatusForbidden, "this token does not own this session")
+		return
+	}
+
 	response := h.processMCPRequest(session.ctx, &req)
+
+	// Notifications (no id) → 202 Accepted
+	if req.ID == nil {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
+	// Requests (with id) → 200 OK with JSON
 	respJSON, err := json.Marshal(response)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
 		return
 	}
 
-	select {
-	case session.responses <- respJSON:
-	default:
-		slog.Warn("MCP session response channel full, dropping message",
-			"session_id", sessionID, "method", req.Method)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
+}
+
+// handleMCPInitialize handles the initialize request, creating a new session.
+func (h *Handler) handleMCPInitialize(w http.ResponseWriter, r *http.Request, token *repository.Token, req *jsonRPCRequest) {
+	if countMCPSessionsByToken(token.ID) >= mcpMaxSessionsPerToken {
+		writeError(w, r, http.StatusTooManyRequests, "too many MCP sessions for this token")
+		return
 	}
 
+	sessionID := fmt.Sprintf("mcp_%s_%d", token.ID, time.Now().UnixNano())
+	session := registerMCPSession(r.Context(), token.ID, sessionID)
+
+	response := h.mcpInitialize(req)
+	respJSON, err := json.Marshal(response)
+	if err != nil {
+		session.cancel()
+		unregisterMCPSession(sessionID)
+		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
+		return
+	}
+
+	w.Header().Set("MCP-Session-Id", sessionID)
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
+
+	slog.Debug("MCP session created", "session_id", sessionID, "token_id", token.ID)
 }
 
 // processMCPRequest routes a JSON-RPC request to the appropriate handler.

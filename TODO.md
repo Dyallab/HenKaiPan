@@ -39,13 +39,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.20.0 (2026-05-31)
+**Current release:** v1.20.1 (2026-05-31)
 **Next planned:** v1.21.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.20.1 | MCP Streamable HTTP transport fix (POST returns JSON directly, session via header) |
 | v1.20.0 | Scanner Health Dashboard (endpoint + admin page), scan coverage endpoint + badges/filter, CI cache (consolidated scanner downloads into single RUN) |
 | v1.19.1 | MCP SSE endpoint event format fix (plain URL string for SSEClientTransport compat) |
 | v1.19.0 | MCP Server for LLM Integration (SSE transport, 7 tools), finding detail vulnerability context card, vuln page status dropdown + project filter, breadcrumb navigation, `corroboration_count`→dynamic subquery migration, E2E vulnerability correlation test |
