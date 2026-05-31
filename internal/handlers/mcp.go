@@ -114,90 +114,15 @@ type propertySchema struct {
 
 // ── MCP Handler ───────────────────────────────────────────────────────────
 
-// HandleMCP supports both SSE transport (legacy) and Streamable HTTP (2025-03-26+).
-// GET with Accept: text/event-stream → SSE transport (for clients like OpenCode)
-// POST → Streamable HTTP (returns JSON directly)
 func (h *Handler) HandleMCP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet {
-		accept := r.Header.Get("Accept")
-		if strings.Contains(accept, "text/event-stream") {
-			h.handleMCPSSE(w, r)
-			return
-		}
-		w.Header().Set("Allow", "POST")
-		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", "POST")
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
-
 	h.handleMCPPost(w, r)
 }
 
-// handleMCPSSE implements the legacy SSE transport for backward compatibility.
-// GET opens an SSE stream and sends session_id via "event: endpoint".
-// POST with session_id query param pushes responses to the SSE channel.
-func (h *Handler) handleMCPSSE(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
-		return
-	}
-
-	token := apiKeyFromContext(r)
-	if token == nil {
-		writeError(w, r, http.StatusUnauthorized, "valid API key required")
-		return
-	}
-
-	if countMCPSessionsByToken(token.ID) >= mcpMaxSessionsPerToken {
-		writeError(w, r, http.StatusTooManyRequests, "too many MCP sessions for this token")
-		return
-	}
-
-	sessionID := fmt.Sprintf("mcp_%s_%d", token.ID, time.Now().UnixNano())
-	session := registerMCPSession(r.Context(), token.ID, sessionID)
-	defer func() {
-		session.cancel()
-		unregisterMCPSession(sessionID)
-	}()
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("X-Accel-Buffering", "no")
-
-	fmt.Fprintf(w, "event: endpoint\ndata: /v1/mcp?session_id=%s\n\n", sessionID)
-	flusher.Flush()
-
-	heartbeat := time.NewTicker(30 * time.Second)
-	defer heartbeat.Stop()
-
-	for {
-		select {
-		case <-r.Context().Done():
-			slog.Debug("MCP SSE session disconnected", "session_id", sessionID)
-			return
-		case <-heartbeat.C:
-			fmt.Fprint(w, ": heartbeat\n\n")
-			flusher.Flush()
-		case msg, ok := <-session.responses:
-			if !ok {
-				return
-			}
-			fmt.Fprintf(w, "event: message\ndata: %s\n\n", msg)
-			flusher.Flush()
-		}
-	}
-}
-
-// handleMCPPost processes a JSON-RPC message via POST.
-// Streamable HTTP: session via MCP-Session-Id header, returns JSON directly.
-// SSE legacy: session via session_id query param, pushes to SSE channel.
 func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 	token := apiKeyFromContext(r)
 	if token == nil {
@@ -211,19 +136,14 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle initialize: create new session
 	if req.Method == "initialize" {
 		h.handleMCPInitialize(w, r, token, &req)
 		return
 	}
 
-	// Find session: header first (Streamable HTTP), then query param (SSE legacy)
 	sessionID := r.Header.Get("MCP-Session-Id")
 	if sessionID == "" {
-		sessionID = r.URL.Query().Get("session_id")
-	}
-	if sessionID == "" {
-		writeError(w, r, http.StatusBadRequest, "MCP-Session-Id header or session_id query param required")
+		writeError(w, r, http.StatusBadRequest, "MCP-Session-Id header required")
 		return
 	}
 
@@ -240,32 +160,11 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 
 	response := h.processMCPRequest(session.ctx, &req)
 
-	// Notifications (no id) → 202 Accepted
 	if req.ID == nil {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 
-	// SSE legacy: push response to channel, return 202
-	if r.URL.Query().Get("session_id") != "" {
-		respJSON, err := json.Marshal(response)
-		if err != nil {
-			writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
-			return
-		}
-		select {
-		case session.responses <- respJSON:
-		default:
-			slog.Warn("MCP session response channel full, dropping message",
-				"session_id", sessionID, "method", req.Method)
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
-		return
-	}
-
-	// Streamable HTTP: return JSON directly
 	respJSON, err := json.Marshal(response)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
@@ -277,7 +176,6 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 	w.Write(respJSON)
 }
 
-// handleMCPInitialize handles the initialize request, creating a new session.
 func (h *Handler) handleMCPInitialize(w http.ResponseWriter, r *http.Request, token *repository.Token, req *jsonRPCRequest) {
 	if countMCPSessionsByToken(token.ID) >= mcpMaxSessionsPerToken {
 		writeError(w, r, http.StatusTooManyRequests, "too many MCP sessions for this token")
@@ -296,19 +194,6 @@ func (h *Handler) handleMCPInitialize(w http.ResponseWriter, r *http.Request, to
 		return
 	}
 
-	// SSE legacy: push to channel, return 202
-	if r.URL.Query().Get("session_id") != "" {
-		select {
-		case session.responses <- respJSON:
-		default:
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusAccepted)
-		json.NewEncoder(w).Encode(map[string]string{"status": "accepted"})
-		return
-	}
-
-	// Streamable HTTP: return JSON with session header
 	w.Header().Set("MCP-Session-Id", sessionID)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -327,7 +212,6 @@ func (h *Handler) processMCPRequest(ctx context.Context, req *jsonRPCRequest) *j
 	case "tools/call":
 		return h.mcpToolsCall(ctx, req)
 	case "notifications/initialized":
-		// No response needed for initialized notification
 		return nil
 	default:
 		return &jsonRPCResponse{
@@ -337,8 +221,6 @@ func (h *Handler) processMCPRequest(ctx context.Context, req *jsonRPCRequest) *j
 		}
 	}
 }
-
-// ── Initialize ────────────────────────────────────────────────────────────
 
 func (h *Handler) mcpInitialize(req *jsonRPCRequest) *jsonRPCResponse {
 	result, _ := json.Marshal(map[string]any{
