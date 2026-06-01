@@ -220,9 +220,6 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update token last_used_at
-	_ = h.store.Tokens.UpdateLastUsed(r.Context(), token.ID)
-
 	slog.InfoContext(r.Context(), "external scan created",
 		"project_id", req.ProjectID,
 		"scanners", scannerNames,
@@ -309,14 +306,17 @@ func APIKeyAuth(store repository.Stores) func(http.Handler) http.Handler {
 				return
 			}
 
-			// Bcrypt comparison of raw token against stored hash
-			if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(raw)) != nil {
-				writeError(w, r, http.StatusUnauthorized, "invalid API key")
-				return
-			}
+		// Bcrypt comparison of raw token against stored hash
+		if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(raw)) != nil {
+			writeError(w, r, http.StatusUnauthorized, "invalid API key")
+			return
+		}
 
-			ctx := context.WithValue(r.Context(), tokenCtxKey, token)
-			next.ServeHTTP(w, r.WithContext(ctx))
+		// Update last_used_at (best-effort, ignore errors)
+		_ = store.Tokens.UpdateLastUsed(r.Context(), token.ID)
+
+		ctx := context.WithValue(r.Context(), tokenCtxKey, token)
+		next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
