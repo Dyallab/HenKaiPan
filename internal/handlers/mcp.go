@@ -15,9 +15,7 @@ import (
 
 // ── MCP Session Management ────────────────────────────────────────────────
 
-const (
-	mcpMaxSessionsPerToken = 5
-)
+const mcpMaxSessionsPerToken = 10
 
 // mcpSession represents a single MCP client connection.
 type mcpSession struct {
@@ -183,7 +181,7 @@ func (h *Handler) handleMCPInitialize(w http.ResponseWriter, r *http.Request, to
 	}
 
 	sessionID := fmt.Sprintf("mcp_%s_%d", token.ID, time.Now().UnixNano())
-	session := registerMCPSession(r.Context(), token.ID, sessionID)
+	session := registerMCPSession(context.Background(), token.ID, sessionID)
 
 	response := h.mcpInitialize(req)
 	respJSON, err := json.Marshal(response)
