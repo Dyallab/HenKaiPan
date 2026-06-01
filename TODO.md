@@ -39,13 +39,16 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.20.1 (2026-05-31)
+**Current release:** v1.20.4 (2026-06-01)
 **Next planned:** v1.21.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.20.4 | MCP session context fix (r.Context → context.Background), rate limit 10/token, token last_used tracking in auth middleware |
+| v1.20.3 | MCP Streamable HTTP only — removed legacy SSE transport, POST-only endpoint |
+| v1.20.2 | MCP dual transport (SSE + Streamable HTTP) for backward compatibility |
 | v1.20.1 | MCP Streamable HTTP transport fix (POST returns JSON directly, session via header) |
 | v1.20.0 | Scanner Health Dashboard (endpoint + admin page), scan coverage endpoint + badges/filter, CI cache (consolidated scanner downloads into single RUN) |
 | v1.19.1 | MCP SSE endpoint event format fix (plain URL string for SSEClientTransport compat) |
@@ -181,4 +184,4 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-*Última actualización: 2026-05-31*
+*Última actualización: 2026-06-01*
