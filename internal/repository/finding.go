@@ -231,7 +231,7 @@ func (r *findingRepo) GetByID(ctx context.Context, id string) (*models.Finding, 
 		       f.vulnerability_id
 		FROM findings f
 		LEFT JOIN jira_issue_links j ON j.finding_id = f.id
-		WHERE f.id = $1`).
+		WHERE f.id = $1`, id).
 		Scan(&f.ID, &f.ScanID, &f.Scanner, &f.RuleID, &f.Title, &f.Description,
 			&f.Severity, &f.FilePath, &f.LineStart, &f.LineEnd, &f.CodeSnippet, &f.CreatedAt,
 			&f.Status, &f.AssignedTo, &f.FalsePositive, &f.Notes, &f.ResolvedAt, &f.SLADeadline,
