@@ -39,13 +39,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.20.4 (2026-06-01)
+**Current release:** v1.20.5 (2026-06-02)
 **Next planned:** v1.21.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.20.5 | GetByID query fix — missing argument caused pgx error, breaking finding detail and dependant endpoints |
 | v1.20.4 | MCP session context fix (r.Context → context.Background), rate limit 10/token, token last_used tracking in auth middleware |
 | v1.20.3 | MCP Streamable HTTP only — removed legacy SSE transport, POST-only endpoint |
 | v1.20.2 | MCP dual transport (SSE + Streamable HTTP) for backward compatibility |
@@ -124,12 +125,13 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ### Tech Debt
 
-- [ ] **SQL Injection Audit**: review all raw SQL queries for injection vulnerabilities
-  - [ ] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
-  - [ ] Verify parameterized queries everywhere (no string concatenation)
-  - [ ] Check repository layer for dynamic query building
-  - [ ] Review migration files for any dynamic SQL patterns
-  - [ ] Scan for `fmt.Sprintf` used with SQL statements
+- [x] **SQL Injection Audit**: review all raw SQL queries for injection vulnerabilities
+  - [x] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
+  - [x] Verify parameterized queries everywhere (no string concatenation)
+  - [x] Check repository layer for dynamic query building
+  - [x] Review migration files for any dynamic SQL patterns
+  - [x] Scan for `fmt.Sprintf` used with SQL statements
+  - **Findings**: 1 real injection risk fixed (`helpers.go:19` whitelist), 2 LIMIT/OFFSET parameterized (`notification.go:73`, `vulnerability_new.go:175`)
 - [ ] **API versioning**: migrate existing endpoints to `/api/v1/...` with deprecation strategy
   - [ ] Define migration strategy (co-locate `/api/` and `/api/v1/` during transition)
   - [ ] Migrate routes one by one (start with auth, then projects/scans/findings)
@@ -138,6 +140,126 @@ Version numbering follows the **self-hosted public release line**. The complete 
   - [ ] Rollback strategy
 - [ ] **Inconsistent error messages**: ~200 message strings for same error codes. Frontend reads `code` field so non-blocking. Consider doing incrementally as part of API versioning migration.
 
+### Testing Infrastructure
+
+**Current state**: 26 packages under `internal/`, only 2 have tests (`ratelimit`, `httperrors` — 7.7%). No test framework deps in `go.mod`, no `make test` target, no CI test step.
+
+**Goal**: Establish sustainable testing patterns — pragmatic, not coverage-obsessed. Prioritize packages by risk/complexity.
+
+**Established conventions to follow**:
+- Package-local `_test.go` files (same package as code under test)
+- `setupTest(t *testing.T)` helpers returning `(subject, ctx, cleanup)` closures
+- `t.Helper()`, `defer cleanup()` pattern
+- **No testify/assert** — per Go Wiki recommendations. Create minimal in-house `assert` helpers.
+  - Rationale: [Go TestComments](https://go.dev/wiki/TestComments#assert-libraries) warns assert libs create a "new sub-language". [Alex Edwards](https://www.alexedwards.net/blog/the-9-go-test-assertions-i-use) proposes 9 custom helpers. [Anton](https://antonz.org/do-not-testify/) reduces to 3 (`AssertEqual[T]`, `AssertErr`, `AssertTrue`).
+  - Approach: small, focused `internal/assert` package with 3-9 helpers. No external dep.
+- `miniredis` already available (indirect dep) for Redis-dependent tests
+- Test naming: `Test<Method>_<Scenario>`
+
+- [ ] **Phase 0 — Foundation**
+  - [ ] Create `internal/assert/` package with custom assertion helpers (~100-150 lines)
+    - `assert.Equal[T]`, `assert.NotEqual[T]`, `assert.Nil`, `assert.NotNil` — equality
+    - `assert.True`, `assert.False` — boolean
+    - `assert.ErrorIs`, `assert.ErrorAs` — error semantics
+    - `assert.MatchesRegexp` — string patterns
+    - Follow Alex Edwards' implementation (generics, `t.Helper()`, `t.Errorf`-based)
+  - [ ] Create `make test` target: `go test ./internal/...` with race detection
+  - [ ] Create `make test-coverage` target with HTML output
+  - [ ] Optional: `make test-integration` for future DB-backed tests
+  - [ ] Create `internal/testhelpers/` package: shared `NewMiniredis` helper, context factories, `TestLogger`
+
+- [ ] **Phase 1 — Pure logic packages (no I/O, easy wins)**
+  - These are the fastest to test: pure functions, no mocks, no containers needed.
+  - [ ] `vulnerability/`: `ComputeVulnUID`, `NormalizePath`, `NormalizeVersion`, `EngineTypeFromCategory`
+  - [ ] `auth/`: `IssueToken`, `ValidateToken`, `GetClaims`, role check logic
+  - [ ] `secrets/`: `Encrypt`/`Decrypt` roundtrip, key mismatch, empty input
+  - [ ] `webhook/`: `SignPayload`/`VerifySignature`, `IsWithinTimeWindow`, timestamp edge cases
+  - [ ] `pagination/`: `FromQuery`, `Normalize`, defaults, boundary values
+  - [ ] `validation/`: `ValidateStruct`, custom validators, error formatting
+  - [ ] `config/`: `Load()` with various env var combinations, missing required vars, defaults
+  - [ ] `license/`: Claims validation, expiration edge cases, tampered signatures
+  - [ ] `logger/`: Init with different formats/dev modes
+
+- [ ] **Phase 2 — Parser packages (fixture-based)**
+  - Tests parse sample scanner output files. Needs fixture data.
+  - [ ] `scanner/parsers`: `ParseSARIF`, `ParseGrype`, `ParseOSV`, `ParseTrufflehog`, `ParseGitleaks`, `ParseCheckov`, `ParseKICS`, `ParseNuclei`
+    - [ ] Collect sample output files (one per scanner) into `internal/scanner/testdata/`
+  - [ ] `scanner/registry`: `ResolvePack`, `CategoryFor`, `Get`, `ListInfo`, `CheckBinaryAvailability`
+  - [ ] `knowledge/`: `Slugify`, article builder functions
+  - [ ] `findings/`: prompt construction, agent input/output validation
+
+- [ ] **Phase 3 — Redis-dependent packages (via miniredis)**
+  - `miniredis` already in `go.mod` (indirect). No Docker needed.
+  - [ ] `events/`: `Hub` publish/subscribe, `Client` connect/disconnect, broadcast edge cases
+  - [ ] `queue/`: Asynq `NewClient`/`NewServer` config validation, payload enqueue
+  - [ ] `ratelimit/`: Expand existing tests — configurable rates, cleanup/expiry edge cases
+  - [ ] `middleware/`: `RateLimiter` middleware hookup, `RequireOwnership` logic, `SecurityHeaders` presence
+
+- [ ] **Phase 4 — Repository layer (DB-backed)**
+  - **Largest surface**: 23 files, 16 interfaces, 75+ exported symbols. Highest risk for regressions.
+  - Approach options: A) testcontainers-go with real PG (most reliable), B) sqlmock (fastest), C) shared Docker PG (balanced)
+  - [ ] Decide approach and document in `AGENTS.md`
+  - [ ] Create shared test DB bootstrap (`internal/testhelpers/testdb.go`)
+  - [ ] Implement tests per repository interface:
+    - [ ] `Stores` (core container struct)
+    - [ ] `AppRepository`, `ProjectRepository`, `ScanRepository`, `FindingRepository`
+    - [ ] `UserRepository`, `TeamRepository`, `TokenRepository`
+    - [ ] `VulnerabilityRepository`, `MetricsRepository`
+    - [ ] `PolicyRepository`, `RiskAcceptanceRepository`, `NotificationRepository`
+    - [ ] `AuditRepository`, `WebhookRepository`, `SettingsRepository`
+    - [ ] `HealthRepository`, `AgentRepository`, `ScheduleRepository`, `KnowledgeRepository`
+  - [ ] `db/`: `Connect` edge cases, `RunMigrations` idempotency, `EnsureAdminUser`
+
+- [ ] **Phase 5 — HTTP handlers (integration)**
+  - **2nd largest package**: 31 files. All request routing, auth, error mapping.
+  - Use `net/http/httptest` + chi test helpers.
+  - [ ] Create shared test server (`internal/testhelpers/httptest.go`) — chi router with mock stores, test JWT seed
+  - [ ] Auth + middleware integration:
+    - [ ] `JWTMiddleware`: valid/invalid/expired tokens, missing header
+    - [ ] `RequireRole`: admin vs user access, missing role
+    - [ ] `RequireOwnership`: own vs other's resource
+  - [ ] Handler tests (happy path + error cases):
+    - [ ] Health endpoint
+    - [ ] Auth handlers (login, register, refresh)
+    - [ ] Project CRUD
+    - [ ] Scan lifecycle (create, list, get, cancel)
+    - [ ] Finding listing, detail, status update
+    - [ ] Vulnerability listing, detail, correlation
+    - [ ] App CRUD, project membership
+    - [ ] Policy CRUD, evaluation
+    - [ ] Team/user management
+    - [ ] Notification settings, webhook config
+    - [ ] API token management
+    - [ ] Knowledge articles
+    - [ ] Metrics/stats endpoints
+    - [ ] MCP endpoint
+  - [ ] `httperrors/`: Expand existing tests — `Wrap`, `New`, all status code helpers
+
+- [ ] **Phase 6 — Task handlers (Asynq workers)**
+  - Complex: need Asynq server testability or handler-level testing.
+  - [ ] `tasks/`:
+    - [ ] `HandleScan`: payload parsing, scanner dispatch, status update
+    - [ ] `HandleFindingSummarize` / `HandleFindingValidate`: prompt building, result handling
+    - [ ] `HandleWebhookSend` / `HandleEmailSend`: payload routing, delivery
+    - [ ] `HandleDigestSend`: aggregation, scheduling
+    - [ ] Schedulers: `StartWeeklyDigestScheduler`, `StartScanScheduler`, `StartSLABreachMonitor`
+  - [ ] `ai/`: Provider dispatch (Cloudflare vs OpenRouter vs Ollama), request building, response parsing
+  - [ ] `github/`: `ValidateToken`, `ResolvePattern`, `RepoInfo`
+  - [ ] `jira/`: `NewClient`, `CreateIssueRequest`/`Response` serialization
+
+- [ ] **Phase 7 — CI integration & coverage gates**
+  - [ ] Add `make test` to CI workflow (GitHub Actions)
+  - [ ] Set coverage floor (start at 20%, increase over time)
+  - [ ] Add `make test-race` for race detection in CI
+  - [ ] Document test conventions in `AGENTS.md`
+
+- [ ] **Phase 8 — Stress & concurrency tests**
+  - [ ] Concurrent scan dispatch correctness
+  - [ ] Rate limiter concurrent safety (already started)
+  - [ ] Event hub concurrent pub/sub
+  - [ ] Repository concurrent access (DB isolation levels)
+
+---
 ### Scanner Extensions
 
 - [ ] SBOM generation and tracking
@@ -184,4 +306,4 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-*Última actualización: 2026-06-01*
+*Última actualización: 2026-06-02*

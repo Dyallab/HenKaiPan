@@ -1,0 +1,133 @@
+{
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "rules": [
+            {
+              "id": "rules-react.security.audit.axios-csrf",
+              "shortDescription": {
+                "text": "Potential CSRF vulnerability via axios"
+              },
+              "fullDescription": {
+                "text": "Detected an axios request without CSRF protection"
+              },
+              "properties": {
+                "tags": ["security", "CWE-352", "react"],
+                "cwe": [],
+                "security-severity": "7.5"
+              }
+            },
+            {
+              "id": "rules-python.flask.security.xss.xss-vulnerability",
+              "shortDescription": {
+                "text": "Flask XSS vulnerability"
+              },
+              "fullDescription": {
+                "text": "User input rendered without escaping in Flask template"
+              },
+              "properties": {
+                "tags": ["security", "xss"],
+                "cwe": ["CWE-79"],
+                "security-severity": ""
+              }
+            },
+            {
+              "id": "rules-generic.generic.security.private-key-leak",
+              "shortDescription": {
+                "text": ""
+              },
+              "fullDescription": {
+                "text": "Private key detected in source code"
+              },
+              "properties": {
+                "tags": [],
+                "cwe": [],
+                "security-severity": ""
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "rule_id": "rules-react.security.audit.axios-csrf",
+          "message": {
+            "text": "axios request without CSRF token"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/components/LoginForm.jsx"
+                },
+                "region": {
+                  "startLine": 42,
+                  "endLine": 42,
+                  "snippet": {
+                    "text": "axios.post('/api/login', data)"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "rule_id": "rules-python.flask.security.xss.xss-vulnerability",
+          "message": {
+            "text": "User input rendered directly in template"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/templates/user.html"
+                },
+                "region": {
+                  "startLine": 15,
+                  "endLine": 15,
+                  "snippet": {
+                    "text": "{{ request.args.get('name') }}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "rule_id": "rules-generic.generic.security.private-key-leak",
+          "message": {
+            "text": ""
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "file:///src/config/keys.json"
+                },
+                "region": {
+                  "startLine": 1,
+                  "endLine": 5,
+                  "snippet": {
+                    "text": "{\"private_key\": \"...\"}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "rule_id": "rules-react.security.audit.axios-csrf",
+          "message": {
+            "text": ""
+          },
+          "level": "note",
+          "locations": []
+        }
+      ]
+    }
+  ]
+}

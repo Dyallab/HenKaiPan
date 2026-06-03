@@ -1,0 +1,70 @@
+{
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "rules": [
+            {
+              "id": "CVE-2024-21626",
+              "shortDescription": {"text": "runc container breakout"},
+              "fullDescription": {"text": "runc has a file descriptor leak vulnerability"},
+              "properties": {"tags": [], "cwe": [], "security-severity": "8.6"}
+            },
+            {
+              "id": "CVE-2023-45857",
+              "shortDescription": {"text": "TLS forgery in redis"},
+              "fullDescription": {"text": "Redis TLS certificate validation vulnerability"},
+              "properties": {"tags": [], "cwe": ["CWE-295"], "security-severity": "5.9"}
+            },
+            {
+              "id": "CVE-2024-3094",
+              "shortDescription": {"text": "XZ backdoor"},
+              "fullDescription": {"text": "XZ Utils supply chain backdoor"},
+              "properties": {"tags": [], "cwe": [], "security-severity": ""}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "rule_id": "CVE-2024-21626",
+          "message": {
+            "text": "Package: runc\nInstalled Version: 1.1.11\nVulnerability CVE-2024-21626\nSeverity: CRITICAL\nFixed Version: 1.1.12"
+          },
+          "level": "error",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "go.sum"},
+                "region": {"startLine": 0, "endLine": 0, "snippet": {"text": ""}}
+              }
+            }
+          ]
+        },
+        {
+          "rule_id": "CVE-2023-45857",
+          "message": {
+            "text": "Package: redis\nInstalled Version: 7.0.15\nVulnerability CVE-2023-45857\nSeverity: MEDIUM\nFixed Version: 7.0.15"
+          },
+          "level": "warning",
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "package-lock.json"},
+                "region": {"startLine": 0, "endLine": 0, "snippet": {"text": ""}}
+              }
+            }
+          ]
+        },
+        {
+          "rule_id": "CVE-2024-3094",
+          "message": {
+            "text": "Package: xz\nInstalled Version: 5.6.0\nVulnerability CVE-2024-3094\nSeverity: CRITICAL\nFixed Version: N/A"
+          },
+          "level": "error",
+          "locations": []
+        }
+      ]
+    }
+  ]
+}

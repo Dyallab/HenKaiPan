@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 	"time"
 )
 
@@ -112,25 +113,24 @@ func (s *Service) Status() Status {
 	return st
 }
 
+// parse decodes and validates a license key.
+// Key format: base64(payload) + "." + base64(signature)
+// The '.' separator is unambiguous because base64 output never contains '.'.
 func (s *Service) parse(key string) (*Claims, error) {
-	decoded, err := base64.StdEncoding.DecodeString(key)
+	sepIdx := strings.LastIndex(key, ".")
+	if sepIdx == -1 {
+		return nil, fmt.Errorf("invalid format: no separator")
+	}
+
+	payload, err := base64.StdEncoding.DecodeString(key[:sepIdx])
 	if err != nil {
 		return nil, fmt.Errorf("base64 decode: %w", err)
 	}
 
-	lastSep := -1
-	for i := len(decoded) - 1; i >= 0; i-- {
-		if decoded[i] == '.' {
-			lastSep = i
-			break
-		}
+	signature, err := base64.StdEncoding.DecodeString(key[sepIdx+1:])
+	if err != nil {
+		return nil, fmt.Errorf("base64 decode sig: %w", err)
 	}
-	if lastSep == -1 {
-		return nil, fmt.Errorf("invalid format: no separator")
-	}
-
-	payload := decoded[:lastSep]
-	signature := decoded[lastSep+1:]
 
 	expectedSig := s.computeSignature(payload)
 	if !hmac.Equal(signature, expectedSig) {

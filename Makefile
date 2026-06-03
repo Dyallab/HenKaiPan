@@ -1,4 +1,4 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license test test-coverage test-race test-integration
 
 ifneq (,$(wildcard .env))
   include .env
@@ -50,6 +50,21 @@ sync-migrations:
 	@rm -rf internal/db/migrations/*.sql
 	@cp migrations/*.sql internal/db/migrations/
 	@echo "Done. $(shell ls internal/db/migrations/*.sql | wc -l) migration files synced."
+
+test:
+	go test -race -count=1 ./internal/...
+
+test-coverage:
+	go test -race -count=1 -coverprofile=/tmp/cover.out ./internal/...
+	go tool cover -html=/tmp/cover.out -o /tmp/cover.html
+	@echo "Coverage report: /tmp/cover.html"
+	@go tool cover -func=/tmp/cover.out | tail -1
+
+test-race:
+	go test -race -count=1 ./...
+
+test-integration:
+	go test -race -count=1 -tags=integration ./internal/...
 
 gen-license:
 	./scripts/generate-license.sh $(EMAIL) $(DAYS)

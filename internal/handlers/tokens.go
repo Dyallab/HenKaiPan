@@ -5,11 +5,16 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"os/exec"
+	"strconv"
+	"strings"
 	"time"
 
 	"aspm/internal/auth"
+	"aspm/internal/ratelimit"
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -197,6 +202,14 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate repo_url if provided (before enqueuing)
+	if req.RepoURL != "" {
+		if err := validateRepoURL(req.RepoURL); err != nil {
+			writeError(w, r, http.StatusUnprocessableEntity, fmt.Sprintf("repo_url not accessible: %s", err.Error()))
+			return
+		}
+	}
+
 	// Resolve scanner names (handle packs like "all", "sast", etc.)
 	scannerNames, err := resolveScanners(req.Scanners)
 	if err != nil {
@@ -271,6 +284,29 @@ func (h *Handler) GetExternalScanStatus(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
+// validateRepoURL checks that a git repository is reachable via git ls-remote.
+// Returns nil if the repo is accessible, or an error describing why it's not.
+func validateRepoURL(repoURL string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "git", "ls-remote", repoURL)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		// Truncate output to avoid leaking sensitive URLs in error messages
+		msg := strings.TrimSpace(string(out))
+		if len(msg) > 200 {
+			msg = msg[:200] + "..."
+		}
+		// If there's no output, use the error itself
+		if msg == "" {
+			msg = err.Error()
+		}
+		return fmt.Errorf("%s", msg)
+	}
+	return nil
+}
+
 // ── API Key Auth Middleware ────────────────────────────────────────────────
 
 // APIKeyAuth is a middleware that authenticates requests via the X-API-Key header.
@@ -279,7 +315,7 @@ func (h *Handler) GetExternalScanStatus(w http.ResponseWriter, r *http.Request) 
 //
 // Should be applied only to /api/v1/scans/* routes. Platform endpoints (JWT)
 // use a separate middleware stack and never see this middleware.
-func APIKeyAuth(store repository.Stores) func(http.Handler) http.Handler {
+func APIKeyAuth(store repository.Stores, bucket *ratelimit.TokenBucket) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw := r.Header.Get("X-API-Key")
@@ -309,6 +345,15 @@ func APIKeyAuth(store repository.Stores) func(http.Handler) http.Handler {
 		// Bcrypt comparison of raw token against stored hash
 		if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(raw)) != nil {
 			writeError(w, r, http.StatusUnauthorized, "invalid API key")
+			return
+		}
+
+		// Per-token rate limiting (token bucket)
+		allowed, remaining := bucket.Allow(r.Context(), "ratelimit:token:"+token.Prefix)
+		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(int(bucket.Capacity())))
+		w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(int(remaining)))
+		if !allowed {
+			writeError(w, r, http.StatusTooManyRequests, "API key rate limit exceeded")
 			return
 		}
 

@@ -1,0 +1,38 @@
+{
+  "results": [
+    {
+      "source": {"path": "/src/go.mod"},
+      "packages": [
+        {
+          "package": {"name": "golang.org/x/net", "version": "v0.12.0", "ecosystem": "Go"},
+          "vulnerabilities": [
+            {
+              "id": "CVE-2023-44487",
+              "aliases": [],
+              "summary": "HTTP/2 rapid reset attack in golang.org/x/net",
+              "details": "Due to the HTTP/2 protocol, a flood of requests can cause resource exhaustion",
+              "database_specific": {"severity": "HIGH", "cwe_ids": ["CWE-400"]}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": {"path": "/src/package-lock.json"},
+      "packages": [
+        {
+          "package": {"name": "lodash", "version": "4.17.20", "ecosystem": "npm"},
+          "vulnerabilities": [
+            {
+              "id": "GHSA-xxxx-xxxx-xxxx",
+              "aliases": ["CVE-2024-12345"],
+              "summary": "",
+              "details": "Prototype pollution in lodash",
+              "database_specific": {"severity": "HIGH", "cwe_ids": []}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
