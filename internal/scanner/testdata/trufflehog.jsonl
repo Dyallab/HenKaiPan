@@ -1,0 +1,3 @@
+{"SourceMetadata":{"Data":{"Git":{"file":"src/config/credentials.js","line":15,"commit":"abc123"}}},"Raw":"sk_live_1234567890abcdef","DetectorName":"Stripe","Verified":true}
+{"SourceMetadata":{"Data":{"Git":{"file":"src/config/credentials.js","line":42,"commit":"abc123"}}},"Raw":"AKIAIOSFODNN7EXAMPLE","DetectorName":"AWS","Verified":false}
+{"SourceMetadata":{"Data":{"Git":{"file":"src/test/fixtures/test.key","line":1,"commit":"def456"}}},"Raw":"-----BEGIN RSA PRIVATE KEY-----\nMIIEpAIBAAKCAQEA","DetectorName":"PrivateKey","Verified":false}

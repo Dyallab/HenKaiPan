@@ -1,0 +1,33 @@
+{
+  "queries": [
+    {
+      "query_id": "b1c4d5e6-f7a8-9012-3456-789abcdef012",
+      "query_name": "S3 Bucket With All Protocols Enabled",
+      "severity": "HIGH",
+      "files": [
+        {
+          "file_name": "src/terraform/s3.tf",
+          "line": 15,
+          "issue_type": "MissingAttribute"
+        },
+        {
+          "file_name": "src/terraform/s3.tf",
+          "line": 42,
+          "issue_type": "MissingAttribute"
+        }
+      ]
+    },
+    {
+      "query_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "query_name": "Dockerfile Default Deny Policy",
+      "severity": "MEDIUM",
+      "files": [
+        {
+          "file_name": "src/Dockerfile",
+          "line": 3,
+          "issue_type": "RedundantAttribute"
+        }
+      ]
+    }
+  ]
+}

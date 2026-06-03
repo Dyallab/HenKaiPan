@@ -17,21 +17,21 @@ type Executor struct {
 
 func NewExecutor() *Executor {
 	return &Executor{
-	binaries: map[string]string{
-		"semgrep":      "semgrep",
-		"gosec":        "gosec",
-		"trivy":        "trivy",
-		"trivy-image":  "trivy",
-		"grype":        "grype",
-		"grype-image":  "grype",
-		"osv-scanner":  "osv-scanner",
-		"trufflehog":   "trufflehog",
-		"gitleaks":     "gitleaks",
-		"checkov":      "checkov",
-		"tfsec":        "tfsec",
-		"kics":         "kics",
-		"nuclei":       "nuclei",
-	},
+		binaries: map[string]string{
+			"semgrep":     "semgrep",
+			"gosec":       "gosec",
+			"trivy":       "trivy",
+			"trivy-image": "trivy",
+			"grype":       "grype",
+			"grype-image": "grype",
+			"osv-scanner": "osv-scanner",
+			"trufflehog":  "trufflehog",
+			"gitleaks":    "gitleaks",
+			"checkov":     "checkov",
+			"tfsec":       "tfsec",
+			"kics":        "kics",
+			"nuclei":      "nuclei",
+		},
 	}
 }
 
@@ -101,6 +101,7 @@ func (e *Executor) buildArgs(sc Scanner, targetDir string) []string {
 func (e *Executor) buildLog(cmdStr string, stdout, stderr []byte, err error, elapsed time.Duration) string {
 	var b strings.Builder
 
+	// https://chanisha.medium.com/avoiding-for-string-concatenation-in-golang-8149822f3341
 	b.WriteString("$ " + cmdStr + "\n")
 	fmt.Fprintf(&b, "# elapsed: %s\n", elapsed.Round(time.Millisecond))
 

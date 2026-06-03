@@ -1,0 +1,51 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2024-21626",
+        "severity": "Critical",
+        "description": "runc file descriptor leak",
+        "urls": ["https://nvd.nist.gov/vuln/detail/CVE-2024-21626"]
+      },
+      "relatedVulnerabilities": [],
+      "artifact": {
+        "name": "runc",
+        "version": "1.1.11",
+        "type": "go-module",
+        "locations": [{"realPath": "go.sum"}]
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "GHSA-xxxx-xxxx-xxxx",
+        "severity": "High",
+        "description": "Prototype pollution",
+        "urls": []
+      },
+      "relatedVulnerabilities": [
+        {"id": "CVE-2024-12345"}
+      ],
+      "artifact": {
+        "name": "lodash",
+        "version": "4.17.20",
+        "type": "npm",
+        "locations": []
+      }
+    },
+    {
+      "vulnerability": {
+        "id": "CVE-2023-44487",
+        "severity": "Medium",
+        "description": "HTTP/2 rapid reset attack",
+        "urls": []
+      },
+      "relatedVulnerabilities": [],
+      "artifact": {
+        "name": "golang.org/x/net",
+        "version": "v0.12.0",
+        "type": "go-module",
+        "locations": [{"realPath": "/src/go.sum"}]
+      }
+    }
+  ]
+}

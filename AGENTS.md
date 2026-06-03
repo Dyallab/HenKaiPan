@@ -90,6 +90,63 @@ docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql
 ```
 Creates sample project, 4 scans (semgrep/trivy/gitleaks), 9 findings with real CVEs.
 
+## SQL safety rules (read before writing queries)
+
+The repository layer (`internal/repository/`) MUST NOT use raw string interpolation for SQL.
+
+### ✅ Approved patterns
+
+```go
+// 1. Static SQL with positional params — always preferred
+rows, err := r.db.Query(ctx, `SELECT * FROM findings WHERE id = $1`, id)
+
+// 2. pgx.NamedArgs — good for queries with many params
+db.QueryRow(ctx, `
+    INSERT INTO projects (name, repo_url)
+    VALUES (@name, @repo_url)
+    RETURNING id`,
+    pgx.NamedArgs{"name": p.Name, "repo_url": p.RepoURL},
+)
+
+// 3. Dynamic WHERE building with parameterized values — SAFE
+where = append(where, fmt.Sprintf("severity = ANY($%d)", argIdx))
+args = append(args, f.Severities)
+// Column names are hardcoded; values go through $N placeholders.
+
+// 4. Dynamic param numbering for batch inserts — SAFE
+valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d)", base+1, base+2))
+// Builds $1, $2 placeholders, values passed via args slice.
+
+// 5. Dynamic table names — use whitelist only (see helpers.go DeleteByID)
+if !allowedDeleteTables[table] { return error }
+db.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE id = $1", table), id)
+```
+
+### ❌ Banned patterns
+
+```go
+// NEVER: string concat with user input
+query := "SELECT * FROM findings WHERE severity = '" + severity + "'"
+
+// NEVER: fmt.Sprintf with user values in SQL
+query := fmt.Sprintf("SELECT * FROM findings WHERE severity = '%s'", severity)
+
+// NEVER: LIMIT/OFFSET via %d — use $N params instead
+// WRONG:
+query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
+// RIGHT:
+query += ` LIMIT $3 OFFSET $4`
+args = append(args, limit, offset)
+```
+
+### Why
+
+PostgreSQL can't parameterize table/column names, LIMIT/OFFSET values, or sort columns. These go through `fmt.Sprintf` and risk SQL injection if user input reaches them. Always validate dynamic identifiers against a whitelist.
+
+### 2026-06-02 audit result
+
+All existing queries audited. One real injection risk fixed (`helpers.go` table whitelist), two LIMIT/OFFSET calls parameterized (`notification.go`, `vulnerability_new.go`). The patterns above are the residue — safe uses of `fmt.Sprintf` for parameter numbering, not value interpolation.
+
 ## Common pitfalls
 
 - **No `.env`**: app exits immediately with structured error

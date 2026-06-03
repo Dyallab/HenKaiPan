@@ -70,7 +70,8 @@ func (r *notificationRepo) List(ctx context.Context, filter NotificationFilter) 
 	
 	query += ` ORDER BY created_at DESC`
 	if filter.Limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", filter.Limit, (filter.Page-1)*filter.Limit)
+		query += ` LIMIT $3 OFFSET $4`
+		args = append(args, filter.Limit, (filter.Page-1)*filter.Limit)
 	}
 
 	rows, err := r.db.Query(ctx, query, args...)

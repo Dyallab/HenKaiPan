@@ -13,26 +13,27 @@ import (
 )
 
 const (
-	rateLimitWindow   = 60  // 1 minute window
+	RateLimitWindow   = 60  // 1 minute window
 	rateLimitGeneral  = 300 // 300 requests per minute (5/sec)
 	rateLimitAuth     = 20  // 20 requests per minute for auth endpoints
 	rateLimitHeavy    = 120 // 120 requests per minute for heavy endpoints
+	TokenRateLimit    = 60  // 60 requests per minute for API token auth
 )
 
-var rdb *redis.Client
+var Rdb *redis.Client
 var rateLimitFailClosed = true
 
 // InitRateLimiter initializes the Redis client for rate limiting
 func InitRateLimiter(addr string) {
-	rdb = redis.NewClient(&redis.Options{
+	Rdb = redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
 }
 
 // Close closes the Redis connection
 func Close() {
-	if rdb != nil {
-		rdb.Close()
+	if Rdb != nil {
+		Rdb.Close()
 	}
 }
 
@@ -72,7 +73,7 @@ func RateLimiter(next http.Handler) http.Handler {
 			return
 		}
 
-		allowed, remaining, resetTime := checkRateLimit(r.Context(), key, limit)
+		allowed, remaining, resetTime := CheckRateLimit(r.Context(), key, limit)
 
 		// Set rate limit headers
 		w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limit))
@@ -92,29 +93,29 @@ func RateLimiter(next http.Handler) http.Handler {
 	})
 }
 
-// checkRateLimit checks if the request is within rate limits
+// CheckRateLimit checks if the request is within rate limits
 // Returns: allowed, remaining, resetTime
 // Fails closed (blocks request) on Redis errors for security
-func checkRateLimit(ctx context.Context, key string, limit int) (bool, int, int64) {
+func CheckRateLimit(ctx context.Context, key string, limit int) (bool, int, int64) {
 	now := time.Now()
-	windowStart := now.Unix() / rateLimitWindow
+	windowStart := now.Unix() / RateLimitWindow
 	windowKey := fmt.Sprintf("%s:%d", key, windowStart)
 
-	pipe := rdb.Pipeline()
+	pipe := Rdb.Pipeline()
 	incr := pipe.Incr(ctx, windowKey)
-	pipe.Expire(ctx, windowKey, time.Duration(rateLimitWindow)*time.Second)
+	pipe.Expire(ctx, windowKey, time.Duration(RateLimitWindow)*time.Second)
 	_, err := pipe.Exec(ctx)
 
 	if err != nil {
 		slog.ErrorContext(ctx, "redis rate limit error - failing closed", "err", err)
 		if rateLimitFailClosed {
-			return false, 0, now.Add(time.Duration(rateLimitWindow) * time.Second).Unix()
+			return false, 0, now.Add(time.Duration(RateLimitWindow) * time.Second).Unix()
 		}
-		return true, limit, now.Add(time.Duration(rateLimitWindow) * time.Second).Unix()
+		return true, limit, now.Add(time.Duration(RateLimitWindow) * time.Second).Unix()
 	}
 
 	count := int(incr.Val())
-	resetTime := (windowStart + 1) * rateLimitWindow
+	resetTime := (windowStart + 1) * RateLimitWindow
 
 	if count > limit {
 		return false, 0, resetTime

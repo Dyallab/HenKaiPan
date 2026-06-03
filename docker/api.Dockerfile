@@ -21,7 +21,7 @@ RUN go build \
 
 # Stage 3: Runtime
 FROM alpine:3.22.4
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates git
 COPY --from=builder /api /api
 EXPOSE 8080
 CMD ["/api"]

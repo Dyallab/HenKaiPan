@@ -17,6 +17,7 @@ import (
 	"aspm/internal/logger"
 	"aspm/internal/metrics"
 	appmw "aspm/internal/middleware"
+	"aspm/internal/ratelimit"
 	"aspm/internal/queue"
 	"aspm/internal/repository"
 	"aspm/internal/secrets"
@@ -61,6 +62,12 @@ func main() {
 	// Initialize rate limiter
 	appmw.InitRateLimiter(cfg.RedisAddr)
 	defer appmw.Close()
+
+	// Per-token rate limiting constants.
+	// API tokens get their own token bucket: 60 requests burst, refills at 1/sec.
+	const tokenBurstCapacity = 60
+	const tokenRefillPerSec  = 1.0
+	tokenBucket := ratelimit.NewTokenBucket(appmw.Rdb, tokenBurstCapacity, tokenRefillPerSec)
 
 	// Initialize Redis bridge for cross-process SSE event delivery.
 	// The API process subscribes to Redis so that events published by the worker
@@ -133,13 +140,13 @@ func main() {
 
 	// ── /api/v1/scans — External CI/CD endpoints (API key auth, no JWT) ────
 	r.Route("/api/v1/scans", func(r chi.Router) {
-		r.Use(handlers.APIKeyAuth(store))
+		r.Use(handlers.APIKeyAuth(store, tokenBucket))
 		r.Post("/external", h.CreateExternalScan)
 		r.Get("/{id}/status", h.GetExternalScanStatus)
 	})
 
 	r.Route("/v1/mcp", func(r chi.Router) {
-		r.Use(handlers.APIKeyAuth(store))
+		r.Use(handlers.APIKeyAuth(store, tokenBucket))
 		r.Get("/", h.HandleMCP)
 		r.Post("/", h.HandleMCP)
 	})

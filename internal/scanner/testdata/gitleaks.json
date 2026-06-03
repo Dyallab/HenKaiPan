@@ -1,0 +1,22 @@
+[
+  {
+    "Description": "AWS Access Key ID detected",
+    "StartLine": 10,
+    "EndLine": 10,
+    "Match": "AKIAIOSFODNN7EXAMPLE",
+    "File": "src/config/aws.env",
+    "Entropy": 4.5,
+    "RuleID": "aws-access-key-id",
+    "Commit": "abc123"
+  },
+  {
+    "Description": "GitHub PAT detected",
+    "StartLine": 25,
+    "EndLine": 25,
+    "Match": "ghp_1234567890abcdef1234567890abcdef1234",
+    "File": "src/config/github.token",
+    "Entropy": 5.2,
+    "RuleID": "github-pat",
+    "Commit": "def456"
+  }
+]

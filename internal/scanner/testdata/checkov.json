@@ -1,0 +1,33 @@
+{
+  "results": {
+    "failed_checks": [
+      {
+        "check_id": "CKV_AWS_123",
+        "check_result": {},
+        "file_path": "/src/terraform/main.tf",
+        "file_line_range": [10, 20],
+        "resource": "aws_s3_bucket.www",
+        "severity": "HIGH",
+        "check": {"name": "S3 bucket has public ACL"}
+      },
+      {
+        "check_id": "CKV_DOCKER_1",
+        "check_result": {},
+        "file_path": "/src/Dockerfile",
+        "file_line_range": [5, 5],
+        "resource": "Dockerfile.USER",
+        "severity": "MEDIUM",
+        "check": {"name": "Running as root user"}
+      },
+      {
+        "check_id": "CKV_K8S_456",
+        "check_result": {},
+        "file_path": "/src/k8s/deployment.yaml",
+        "file_line_range": [30, 35],
+        "resource": "Deployment.apps/web",
+        "severity": "LOW",
+        "check": {"name": ""}
+      }
+    ]
+  }
+}
