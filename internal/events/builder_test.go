@@ -186,7 +186,7 @@ func TestNewEvent_Constructors(t *testing.T) {
 	})
 
 	t.Run("NotificationCreated", func(t *testing.T) {
-		b := NewNotificationCreated("n-1", "u-1", "Scan complete", "info", "scan", "s-1")
+		b := NewNotificationCreated("n-1", "u-1", "Scan complete", "info", "scan", "s-1", "")
 		ev := b.Build()
 		assert.Equal(t, ev.Type, EventNotificationCreated)
 		d, ok := ev.Data.(NotificationCreatedData)

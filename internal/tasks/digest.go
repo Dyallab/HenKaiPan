@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/ai"
 	"aspm/internal/models"
 	"aspm/internal/repository"
 
@@ -109,7 +110,32 @@ func HandleDigestSend(store repository.Stores, sender EmailSender, frontendURL s
 			sla = nil
 		}
 
+		newFindings := 0
+		if trends != nil {
+			for _, t := range trends {
+				newFindings += t.Critical + t.High + t.Medium + t.Low + t.Info
+			}
+		}
+
+		slaPct := 0.0
+		if sla != nil {
+			slaPct = sla.Percent
+		}
+
+		dc := ai.DigestContext{
+			TotalScans:       summary.TotalScans,
+			TotalFindings:    summary.TotalFindings,
+			CriticalCount:    summary.FindingsBySeverity["critical"],
+			HighCount:        summary.FindingsBySeverity["high"],
+			NewFindings:      newFindings,
+			SLACompliancePct: slaPct,
+		}
+
+		narrative := ai.GenerateDigestNarrative(ctx, dc)
 		body := buildDigestBody(summary, trends, sla, frontendURL)
+		if narrative != "" {
+			body = narrative + "\n\n---\n\n" + body
+		}
 		subject := fmt.Sprintf("HenKaiPan Weekly Digest — %s", time.Now().Format("Jan 2"))
 
 		return sender.Send(ctx, payload.Recipients, subject, body)

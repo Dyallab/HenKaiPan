@@ -1,4 +1,4 @@
-.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build tidy install-air migrate sync-migrations gen-license test test-coverage test-race test-integration
+.PHONY: dev-infra dev-api dev-worker dev-frontend dev-api-hot dev-worker-hot up down build build-obfuscated tidy install-air migrate sync-migrations gen-license test test-coverage test-race test-integration
 
 ifneq (,$(wildcard .env))
   include .env
@@ -36,6 +36,10 @@ down:
 build:
 	go build $(LDFLAGS) -o bin/api ./cmd/api
 	go build $(LDFLAGS) -o bin/worker ./cmd/worker
+
+build-obfuscated:
+	garble -literals -tiny build -trimpath $(LDFLAGS) -o bin/api ./cmd/api
+	garble -literals -tiny build -trimpath $(LDFLAGS) -o bin/worker ./cmd/worker
 
 tidy:
 	go mod tidy

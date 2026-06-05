@@ -23,8 +23,9 @@ type CreateProjectRequest struct {
 }
 
 type UpdateFindingRequest struct {
-	Status string `validate:"required,oneof=open in_review accepted_risk fixed verified"`
-	Notes  string `validate:"max=5000"`
+	Status     string  `json:"status" validate:"required,oneof=open in_review accepted_risk fixed verified"`
+	AssignedTo *string `json:"assigned_to" validate:"omitempty,max=255"`
+	Notes      string  `json:"notes" validate:"max=5000"`
 }
 
 type CreateScanRequest struct {

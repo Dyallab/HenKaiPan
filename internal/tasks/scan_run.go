@@ -686,7 +686,7 @@ type SLABreachPayload struct {
 }
 
 func buildFindingEmailBody(eventType string, payload FindingCreatedPayload) string {
-	return strings.Join([]string{
+	lines := []string{
 		"HenKaiPan finding notification",
 		"",
 		"Event: " + eventType,
@@ -697,7 +697,11 @@ func buildFindingEmailBody(eventType string, payload FindingCreatedPayload) stri
 		"Rule ID: " + payload.RuleID,
 		"Location: " + formatLocation(payload.FilePath, payload.Line),
 		"Title: " + payload.Title,
-	}, "\n")
+	}
+	if strings.TrimSpace(payload.AISummary) != "" {
+		lines = append(lines, "", "AI Summary:", payload.AISummary)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func buildScanEmailBody(eventType string, payload ScanNotificationPayload) string {
@@ -718,7 +722,7 @@ func buildScanEmailBody(eventType string, payload ScanNotificationPayload) strin
 }
 
 func buildSLABreachEmailBody(payload SLABreachPayload) string {
-	return strings.Join([]string{
+	lines := []string{
 		"HenKaiPan SLA breach notification",
 		"",
 		"Finding ID: " + payload.FindingID,
@@ -730,7 +734,11 @@ func buildSLABreachEmailBody(payload SLABreachPayload) string {
 		"Location: " + formatLocation(payload.FilePath, payload.Line),
 		"SLA deadline: " + payload.SLADeadline.UTC().Format(time.RFC3339),
 		"Title: " + payload.Title,
-	}, "\n")
+	}
+	if strings.TrimSpace(payload.AISummary) != "" {
+		lines = append(lines, "", "AI Summary:", payload.AISummary)
+	}
+	return strings.Join(lines, "\n")
 }
 
 func scanEmailSubject(eventType string) string {

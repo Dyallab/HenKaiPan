@@ -1,0 +1,1 @@
+ALTER TABLE user_notifications ADD COLUMN IF NOT EXISTS ai_summary TEXT NOT NULL DEFAULT '';

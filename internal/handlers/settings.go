@@ -31,12 +31,14 @@ func (h *Handler) GetNotificationSettings(w http.ResponseWriter, r *http.Request
 
 func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		AlertCritical     *bool `json:"alert_critical"`
-		AlertHigh         *bool `json:"alert_high"`
-		AlertScanComplete *bool `json:"alert_scan_complete"`
-		AlertScanFailed   *bool `json:"alert_scan_failed"`
-		AlertSLABreach    *bool `json:"alert_sla_breach"`
+		AlertCritical     *bool     `json:"alert_critical"`
+		AlertHigh         *bool     `json:"alert_high"`
+		AlertScanComplete *bool     `json:"alert_scan_complete"`
+		AlertScanFailed   *bool     `json:"alert_scan_failed"`
+		AlertSLABreach    *bool     `json:"alert_sla_breach"`
 		EmailRecipients   *[]string `json:"email_recipients"`
+		DigestFrequency   *string   `json:"digest_frequency"`
+		DigestTime        *string   `json:"digest_time"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid body")
@@ -49,6 +51,8 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		AlertScanFailed:   body.AlertScanFailed,
 		AlertSLABreach:    body.AlertSLABreach,
 		EmailRecipients:   body.EmailRecipients,
+		DigestFrequency:   body.DigestFrequency,
+		DigestTime:        body.DigestTime,
 	})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to update notification settings")
