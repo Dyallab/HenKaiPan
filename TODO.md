@@ -86,7 +86,12 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ## 🔜 v1.21.0 — Planned
 
-*(TBD)*
+Focus: **SMB workflow & visibility improvements** — AI-powered notifications, self-hosted lifecycle, reporting foundation.
+
+- [ ] **AI Notification Summaries**: small LLM (Gemma 3 12B or similar) generates human-readable digest for Slack/webhook/email instead of raw JSON — reuse existing AI provider dispatch
+- [ ] **Automatic Update Check**: API detects new version in GHCR and notifies admin in UI
+- [ ] **Phase 4 — Repository layer approach decision**: document test strategy (testcontainers-go vs sqlmock vs shared PG) in AGENTS.md
+- [ ] **Scheduled Report Delivery**: email/Slack delivery of scan reports on configurable schedule (cron-based)
 
 ---
 
@@ -94,9 +99,9 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ### UX & Quality of Life
 
-- [ ] `GET /api/coverage` — scan coverage report (projects without scans in last N days)
-- [ ] Projects page badges: "Never scanned" / "Last scan: X days ago"
-- [ ] Projects filter: "Show only projects without recent scans"
+- [x] `GET /api/coverage` — scan coverage report (projects without scans in last N days)
+- [x] Projects page badges: "Never scanned" / "Last scan: X days ago"
+- [x] Projects filter: "Show only projects without recent scans"
 - [ ] `@username` mentions in comments → email notification
 - [ ] AI notification summaries via small LLM (Gemma 3 12B or similar) — human-readable digest for Slack/webhook/email instead of raw JSON
 
@@ -142,7 +147,7 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ### Testing Infrastructure
 
-**Current state**: 26 packages under `internal/`, only 2 have tests (`ratelimit`, `httperrors` — 7.7%). No test framework deps in `go.mod`, no `make test` target, no CI test step.
+**Current state**: 26 packages under `internal/`, ~15 have tests (~58%). `internal/assert/` and `internal/testhelpers/` exist. `make test` target exists. No CI test step yet.
 
 **Goal**: Establish sustainable testing patterns — pragmatic, not coverage-obsessed. Prioritize packages by risk/complexity.
 
@@ -156,44 +161,40 @@ Version numbering follows the **self-hosted public release line**. The complete 
 - `miniredis` already available (indirect dep) for Redis-dependent tests
 - Test naming: `Test<Method>_<Scenario>`
 
-- [ ] **Phase 0 — Foundation**
-  - [ ] Create `internal/assert/` package with custom assertion helpers (~100-150 lines)
+- [x] **Phase 0 — Foundation** ✅
+  - [x] Create `internal/assert/` package with custom assertion helpers (~100-150 lines)
     - `assert.Equal[T]`, `assert.NotEqual[T]`, `assert.Nil`, `assert.NotNil` — equality
     - `assert.True`, `assert.False` — boolean
     - `assert.ErrorIs`, `assert.ErrorAs` — error semantics
     - `assert.MatchesRegexp` — string patterns
-    - Follow Alex Edwards' implementation (generics, `t.Helper()`, `t.Errorf`-based)
-  - [ ] Create `make test` target: `go test ./internal/...` with race detection
-  - [ ] Create `make test-coverage` target with HTML output
-  - [ ] Optional: `make test-integration` for future DB-backed tests
-  - [ ] Create `internal/testhelpers/` package: shared `NewMiniredis` helper, context factories, `TestLogger`
+  - [x] Create `make test` target: `go test ./internal/...` with race detection
+  - [x] Create `make test-coverage` target with HTML output
+  - [x] Optional: `make test-integration` for future DB-backed tests
+  - [x] Create `internal/testhelpers/` package: shared `NewMiniredis` helper, context factories, `TestLogger`
 
-- [ ] **Phase 1 — Pure logic packages (no I/O, easy wins)**
-  - These are the fastest to test: pure functions, no mocks, no containers needed.
-  - [ ] `vulnerability/`: `ComputeVulnUID`, `NormalizePath`, `NormalizeVersion`, `EngineTypeFromCategory`
-  - [ ] `auth/`: `IssueToken`, `ValidateToken`, `GetClaims`, role check logic
-  - [ ] `secrets/`: `Encrypt`/`Decrypt` roundtrip, key mismatch, empty input
-  - [ ] `webhook/`: `SignPayload`/`VerifySignature`, `IsWithinTimeWindow`, timestamp edge cases
-  - [ ] `pagination/`: `FromQuery`, `Normalize`, defaults, boundary values
-  - [ ] `validation/`: `ValidateStruct`, custom validators, error formatting
-  - [ ] `config/`: `Load()` with various env var combinations, missing required vars, defaults
-  - [ ] `license/`: Claims validation, expiration edge cases, tampered signatures
-  - [ ] `logger/`: Init with different formats/dev modes
+- [x] **Phase 1 — Pure logic packages (no I/O, easy wins)** ✅
+  - [x] `vulnerability/`: `ComputeVulnUID`, `NormalizePath`, `NormalizeVersion`, `EngineTypeFromCategory`
+  - [x] `auth/`: `IssueToken`, `ValidateToken`, `GetClaims`, role check logic
+  - [x] `secrets/`: `Encrypt`/`Decrypt` roundtrip, key mismatch, empty input
+  - [x] `webhook/`: `SignPayload`/`VerifySignature`, `IsWithinTimeWindow`, timestamp edge cases
+  - [x] `pagination/`: `FromQuery`, `Normalize`, defaults, boundary values
+  - [x] `validation/`: `ValidateStruct`, custom validators, error formatting
+  - [x] `config/`: `Load()` with various env var combinations, missing required vars, defaults
+  - [x] `license/`: Claims validation, expiration edge cases, tampered signatures
+  - [x] `logger/`: Init with different formats/dev modes
 
-- [ ] **Phase 2 — Parser packages (fixture-based)**
-  - Tests parse sample scanner output files. Needs fixture data.
-  - [ ] `scanner/parsers`: `ParseSARIF`, `ParseGrype`, `ParseOSV`, `ParseTrufflehog`, `ParseGitleaks`, `ParseCheckov`, `ParseKICS`, `ParseNuclei`
-    - [ ] Collect sample output files (one per scanner) into `internal/scanner/testdata/`
-  - [ ] `scanner/registry`: `ResolvePack`, `CategoryFor`, `Get`, `ListInfo`, `CheckBinaryAvailability`
-  - [ ] `knowledge/`: `Slugify`, article builder functions
-  - [ ] `findings/`: prompt construction, agent input/output validation
+- [x] **Phase 2 — Parser packages (fixture-based)** ✅
+  - [x] `scanner/parsers`: `ParseSARIF`, `ParseGrype`, `ParseOSV`, `ParseTrufflehog`, `ParseGitleaks`, `ParseCheckov`, `ParseKICS`, `ParseNuclei`
+    - [x] Collect sample output files (one per scanner) into `internal/scanner/testdata/`
+  - [x] `scanner/registry`: `ResolvePack`, `CategoryFor`, `Get`, `ListInfo`, `CheckBinaryAvailability`
+  - [x] `knowledge/`: `Slugify`, article builder functions
+  - [x] `findings/`: prompt construction, agent input/output validation
 
-- [ ] **Phase 3 — Redis-dependent packages (via miniredis)**
-  - `miniredis` already in `go.mod` (indirect). No Docker needed.
-  - [ ] `events/`: `Hub` publish/subscribe, `Client` connect/disconnect, broadcast edge cases
-  - [ ] `queue/`: Asynq `NewClient`/`NewServer` config validation, payload enqueue
-  - [ ] `ratelimit/`: Expand existing tests — configurable rates, cleanup/expiry edge cases
-  - [ ] `middleware/`: `RateLimiter` middleware hookup, `RequireOwnership` logic, `SecurityHeaders` presence
+- [x] **Phase 3 — Redis-dependent packages (via miniredis)** ✅
+  - [x] `events/`: `Hub` publish/subscribe, `Client` connect/disconnect, broadcast edge cases
+  - [x] `queue/`: Asynq `NewClient`/`NewServer` config validation, payload enqueue
+  - [x] `ratelimit/`: Expand existing tests — configurable rates, cleanup/expiry edge cases
+  - [x] `middleware/`: `RateLimiter` middleware hookup, `RequireOwnership` logic, `SecurityHeaders` presence
 
 - [ ] **Phase 4 — Repository layer (DB-backed)**
   - **Largest surface**: 23 files, 16 interfaces, 75+ exported symbols. Highest risk for regressions.
@@ -274,10 +275,10 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ### Platform Health
 
-- [ ] Scanner Health Dashboard — failure rates, avg duration, success % table
+- [x] Scanner Health Dashboard — failure rates, avg duration, success % table
 - [ ] Queue monitoring dashboard (Asynq metrics)
 - [ ] Performance profiling + optimization
-- [ ] **Cache scanners in CI**: Worker Docker build downloads all scanner binaries from scratch. Add GitHub Actions caching for downloaded tarballs to reduce build time from ~10min to <2min
+- [x] **Cache scanners in CI**: Worker Docker build downloads all scanner binaries from scratch. Add GitHub Actions caching for downloaded tarballs to reduce build time from ~10min to <2min
 
 ### Workflow Enhancements
 
@@ -306,4 +307,4 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-*Última actualización: 2026-06-02*
+*Última actualización: 2026-06-04*

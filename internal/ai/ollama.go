@@ -22,7 +22,7 @@ var (
 
 func init() {
 	ollamaClient = &http.Client{
-		Timeout: 60 * time.Second,
+		Timeout: 180 * time.Second,
 	}
 }
 
@@ -88,7 +88,7 @@ func OllamaGenerate(ctx context.Context, model, systemPrompt, userPrompt string)
 		Stream: false,
 		Options: ollamaOptions{
 			Temperature: 0,
-			NumPredict:  512,
+			NumPredict:  2048,
 		},
 	}
 

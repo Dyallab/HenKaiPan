@@ -374,6 +374,7 @@ type NotificationCreate struct {
 	Type       string
 	EntityType *string
 	EntityID   *string
+	AISummary  string
 }
 
 type NotificationFilter struct {
@@ -526,6 +527,8 @@ type NotificationSettingsUpdate struct {
 	AlertScanFailed   *bool
 	AlertSLABreach    *bool
 	EmailRecipients   *[]string
+	DigestFrequency   *string
+	DigestTime        *string
 }
 
 type JiraIntegrationUpdate struct {

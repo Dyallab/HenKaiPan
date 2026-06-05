@@ -80,8 +80,9 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	oldFinding, _ := h.store.Findings.GetByID(r.Context(), id)
 
 	f, err := h.store.Findings.Update(r.Context(), id, repository.FindingUpdate{
-		Status: &req.Status,
-		Notes:  &req.Notes,
+		Status:     &req.Status,
+		AssignedTo: req.AssignedTo,
+		Notes:      &req.Notes,
 	})
 	if err != nil {
 		h.writeNotFound(w, r, "finding")
@@ -89,6 +90,14 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.auditLog(r, "finding.update", "finding", id, oldFinding, f)
+
+	if req.AssignedTo != nil && strings.TrimSpace(*req.AssignedTo) != "" {
+		oldOwner := derefStr(oldFinding.AssignedTo)
+		newOwner := strings.TrimSpace(*req.AssignedTo)
+		if oldOwner != newOwner {
+			go h.notifyOwnerAssignment(context.Background(), id, f.Title, newOwner)
+		}
+	}
 
 	writeJSON(w, http.StatusOK, f)
 }
@@ -261,6 +270,12 @@ func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingT
 		return
 	}
 
+	finding, fErr := h.store.Findings.GetByID(ctx, findingID)
+	aiSummary := ""
+	if fErr == nil {
+		aiSummary = finding.AISummary
+	}
+
 	// Create web notification
 	notif, err := h.store.Notifications.Create(ctx, repository.NotificationCreate{
 		UserID:     targetUser.ID,
@@ -269,6 +284,7 @@ func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingT
 		Type:       "finding_assignment",
 		EntityType: ptr("finding"),
 		EntityID:   &findingID,
+		AISummary:  aiSummary,
 	})
 	if err != nil {
 		slog.Error("create notification failed", "err", err)
@@ -283,7 +299,7 @@ func (h *Handler) notifyOwnerAssignment(ctx context.Context, findingID, findingT
 		}
 		events.NewNotificationCreated(
 			notif.ID, targetUser.ID, notif.Title, notif.Type,
-			entityType, entityID,
+			entityType, entityID, notif.AISummary,
 		).Publish()
 	}
 

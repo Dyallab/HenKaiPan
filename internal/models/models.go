@@ -365,5 +365,6 @@ type UserNotification struct {
 	EntityType *string   `json:"entity_type,omitempty"`
 	EntityID   *string   `json:"entity_id,omitempty"`
 	Read       bool      `json:"read"`
+	AISummary  string    `json:"ai_summary,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
 }

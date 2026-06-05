@@ -253,10 +253,11 @@ type NotificationCreatedData struct {
 	Type           string `json:"type"`
 	EntityType     string `json:"entity_type,omitempty"`
 	EntityID       string `json:"entity_id,omitempty"`
+	AISummary      string `json:"ai_summary,omitempty"`
 }
 
 // NewNotificationCreated creates a notification created event
-func NewNotificationCreated(notificationID, userID, title, notifType, entityType, entityID string) *EventBuilder {
+func NewNotificationCreated(notificationID, userID, title, notifType, entityType, entityID, aiSummary string) *EventBuilder {
 	return NewEvent(EventNotificationCreated).
 		WithData(NotificationCreatedData{
 			NotificationID: notificationID,
@@ -265,6 +266,7 @@ func NewNotificationCreated(notificationID, userID, title, notifType, entityType
 			Type:           notifType,
 			EntityType:     entityType,
 			EntityID:       entityID,
+			AISummary:      aiSummary,
 		})
 }
 

@@ -9,6 +9,8 @@ type NotificationSettings struct {
 	AlertScanFailed   bool      `json:"alert_scan_failed"`
 	AlertSLABreach    bool      `json:"alert_sla_breach"`
 	EmailRecipients   []string  `json:"email_recipients"`
+	DigestFrequency   string    `json:"digest_frequency"`
+	DigestTime        string    `json:"digest_time"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 
