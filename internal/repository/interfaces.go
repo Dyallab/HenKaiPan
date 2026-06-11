@@ -263,6 +263,7 @@ type ArticleCreate struct {
 	Slug          string
 	Title         string
 	ContentMD     string
+	Tags          []string
 	CWEIDs        []string
 	RuleIDs       []string
 	Scanner       string
@@ -272,6 +273,7 @@ type ArticleCreate struct {
 type ArticleUpdate struct {
 	Title     *string
 	ContentMD *string
+	Tags      []string
 	CWEIDs    []string
 	RuleIDs   []string
 	Scanner   *string
