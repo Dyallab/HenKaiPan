@@ -248,7 +248,6 @@ func main() {
 		r.Get("/api/metrics/sla-compliance", h.GetSLACompliance)
 		r.Get("/api/metrics/teams", h.GetTeamMetrics)
 		r.Get("/api/metrics/scanner-health", h.GetScannerHealth)
-		r.Get("/api/metrics/security-score", h.GetSecurityScores)
 
 		// ── Free: Apps ──
 		r.Get("/api/apps", h.ListApps)
