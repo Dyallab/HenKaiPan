@@ -219,30 +219,21 @@ func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// At least one field beyond IDs must be provided
-	if req.Status == "" && req.AssignedTo == nil && req.Notes == nil {
-		writeError(w, r, http.StatusBadRequest, "at least one of status, assigned_to, or notes must be provided")
+	if req.Status == "" {
+		writeError(w, r, http.StatusBadRequest, "status is required")
 		return
 	}
 
-	upd := repository.FindingUpdate{}
-	if req.Status != "" {
-		upd.Status = &req.Status
-	}
-	upd.AssignedTo = req.AssignedTo
-	upd.Notes = req.Notes
-
-	updated, err := h.store.Findings.BulkUpdate(r.Context(), req.IDs, upd)
-	if err != nil {
-		h.writeInternal(w, r, err, "failed to bulk update findings")
-		return
-	}
-
-	if h.FindingCache != nil {
-		for _, fid := range req.IDs {
-			if cerr := h.FindingCache.Del(r.Context(), fid+":detail"); cerr != nil {
-				slog.Warn("bulk update: failed to invalidate cache", "finding_id", fid, "err", cerr)
-			}
+	updated := 0
+	for _, id := range req.IDs {
+		upd := repository.FindingUpdate{
+			Status: &req.Status,
+		}
+		if _, err := h.store.Findings.Update(r.Context(), id, upd); err == nil {
+			updated++
+		}
+		if h.FindingCache != nil {
+			h.FindingCache.Del(r.Context(), id+":detail")
 		}
 	}
 

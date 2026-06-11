@@ -875,48 +875,6 @@ func (r *findingRepo) GetForRemediation(ctx context.Context, id string) (*Remedi
 	return &src, nil
 }
 
-func (r *findingRepo) BulkUpdate(ctx context.Context, ids []string, upd FindingUpdate) (int64, error) {
-	if len(ids) == 0 {
-		return 0, fmt.Errorf("no ids provided")
-	}
-
-	var setClauses []string
-	namedArgs := pgx.NamedArgs{
-		"ids": ids,
-	}
-
-	if upd.Status != nil {
-		setClauses = append(setClauses, "status = @status")
-		namedArgs["status"] = *upd.Status
-		setClauses = append(setClauses, `resolved_at = CASE WHEN @status IN ('fixed','verified') THEN NOW() ELSE NULL END`)
-	}
-
-	if upd.AssignedTo != nil {
-		setClauses = append(setClauses, `assigned_to = CASE WHEN @assigned_to = '' THEN NULL ELSE @assigned_to END`)
-		namedArgs["assigned_to"] = *upd.AssignedTo
-	}
-
-	if upd.Notes != nil {
-		setClauses = append(setClauses, "notes = @notes")
-		namedArgs["notes"] = *upd.Notes
-	}
-
-	if len(setClauses) == 0 {
-		return 0, fmt.Errorf("no fields to update")
-	}
-
-	setClauses = append(setClauses, "updated_at = NOW()")
-
-	query := fmt.Sprintf(`UPDATE findings SET %s WHERE id = ANY(@ids::text[])`, strings.Join(setClauses, ", "))
-
-	result, err := r.db.Exec(ctx, query, namedArgs)
-	if err != nil {
-		return 0, fmt.Errorf("bulk update findings: %w", err)
-	}
-
-	return result.RowsAffected(), nil
-}
-
 func (r *findingRepo) ListUniqueFiles(ctx context.Context) ([]string, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT DISTINCT f.file_path
