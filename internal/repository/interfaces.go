@@ -116,6 +116,7 @@ type FindingRepository interface {
 	GetSLASummary(ctx context.Context) (*models.SLASummary, error)
 	ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error)
 	UpdateRemediationSlug(ctx context.Context, findingID, slug string) error
+	UpdateSnippet(ctx context.Context, id, snippet string, startLine int) error
 	GetForRemediation(ctx context.Context, id string) (*RemediationSource, error)
 	GetSummarySource(ctx context.Context, id string) (*FindingSummarySource, error)
 	PrepareAISummary(ctx context.Context, findingID string) (*PreparedSummary, error)
@@ -123,6 +124,7 @@ type FindingRepository interface {
 	MarkAISummaryFailed(ctx context.Context, fingerprint string) error
 	ListPendingSLABreaches(ctx context.Context, limit int) ([]SLABreachFinding, error)
 	MarkSLABreachAttempted(ctx context.Context, findingIDs []string) error
+	BulkUpdate(ctx context.Context, ids []string, upd FindingUpdate) (int64, error)
 	ListUniqueFiles(ctx context.Context) ([]string, error)
 }
 
@@ -152,6 +154,7 @@ type ProjectCreate struct {
 	RepoURL       string
 	Provider      string
 	DefaultBranch string
+	Tags          []string
 }
 
 type ProjectUpdate struct {
@@ -162,6 +165,7 @@ type ProjectUpdate struct {
 	DefaultBranch  *string
 	ExternalRepoID *string
 	AppID          *string // nil = no change, "" = unassign, UUID = assign to app
+	Tags           *[]string
 }
 
 type BulkCreateResult struct {
@@ -246,6 +250,7 @@ type MetricsRepository interface {
 	SLACompliance(ctx context.Context) (*models.SLACompliance, error)
 	ScannerHealth(ctx context.Context) ([]models.ScannerHealth, error)
 	PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error)
+	SecurityScores(ctx context.Context, projectID *string) ([]models.SecurityScore, error)
 }
 
 // ── Knowledge ─────────────────────────────────────────────────────────────────
@@ -529,6 +534,9 @@ type NotificationSettingsUpdate struct {
 	EmailRecipients   *[]string
 	DigestFrequency   *string
 	DigestTime        *string
+	ReportSchedule    *string
+	ReportTime        *string
+	ReportChannel     *string
 }
 
 type JiraIntegrationUpdate struct {

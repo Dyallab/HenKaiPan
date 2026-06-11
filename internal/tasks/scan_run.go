@@ -196,6 +196,7 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 			return err
 		}
 		enqueueScanNotification(ctx, scans, settings, webhooks, queue, notifications, p.ScanID, "scan.completed", derefErr(exitErrStr), time.Now())
+		enqueueSnippetEnrich(ctx, queue, p.ScanID)
 		return nil
 	}
 }
@@ -398,6 +399,17 @@ func enqueueAgentValidate(ctx context.Context, queue *asynq.Client, findingID st
 	}
 	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeFindingValidate, payload)); err != nil {
 		slog.Warn("enqueue agent:validate failed", "finding_id", findingID, "err", err)
+	}
+}
+
+func enqueueSnippetEnrich(ctx context.Context, queue *asynq.Client, scanID string) {
+	payload, err := MarshalSnippetEnrichPayload(SnippetEnrichPayload{ScanID: scanID})
+	if err != nil {
+		slog.Warn("marshal finding:snippet-enrich payload failed", "scan_id", scanID, "err", err)
+		return
+	}
+	if _, err := queue.EnqueueContext(ctx, asynq.NewTask(TypeSnippetEnrich, payload), asynq.MaxRetry(3), asynq.Timeout(5*time.Minute)); err != nil {
+		slog.Warn("enqueue finding:snippet-enrich failed", "scan_id", scanID, "err", err)
 	}
 }
 

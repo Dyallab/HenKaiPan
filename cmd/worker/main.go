@@ -72,11 +72,14 @@ func main() {
 
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(tasks.TypeScanRun, tasks.HandleScan(store.Scans, store.Findings, store.Vulnerabilities, store.Policies, store.Webhooks, store.Settings, store.Apps, queueClient, notifications))
+	mux.HandleFunc(tasks.TypeSnippetEnrich, tasks.HandleSnippetEnrich(store.Apps, store.Scans, store.Findings))
 	mux.HandleFunc(tasks.TypeWebhookSend, tasks.HandleWebhookSend(store.Webhooks))
 	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(emailSender))
 	mux.HandleFunc(tasks.TypeDigestSend, tasks.HandleDigestSend(store, emailSender, cfg.FrontendURL))
+	mux.HandleFunc(tasks.TypeReportSend, tasks.HandleReportSend(store, emailSender, cfg.FrontendURL))
 	tasks.StartScanScheduler(context.Background(), store, queueClient, 60*time.Second)
 	tasks.StartWeeklyDigestScheduler(context.Background(), store, queueClient, notifications)
+	tasks.StartReportScheduler(context.Background(), store, queueClient)
 	tasks.StartSLABreachMonitor(context.Background(), store.Settings, store.Findings, store.Webhooks, queueClient, notifications, 15*time.Minute)
 
 	// Register AI agent handlers if configured

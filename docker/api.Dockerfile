@@ -2,7 +2,7 @@
 FROM node:24-alpine AS frontend
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile --ignore-scripts && pnpm rebuild esbuild sharp
+RUN corepack enable && corepack prepare pnpm@10.32.1 --activate && pnpm install --frozen-lockfile
 COPY frontend/ .
 RUN pnpm build
 

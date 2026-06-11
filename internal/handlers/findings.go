@@ -43,6 +43,9 @@ func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 		h.writeInternal(w, r, err, "failed to list findings")
 		return
 	}
+	for i := range findings {
+		h.normalizeFindingForDisplay(&findings[i])
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"findings": findings, "total": total})
 }
 
@@ -55,9 +58,6 @@ func (h *Handler) GetFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.normalizeFindingForDisplay(finding)
-	if scan, err := h.store.Scans.Get(r.Context(), finding.ScanID); err == nil {
-		h.enrichFindingCodeContext(r.Context(), scan.Target, finding)
-	}
 
 	writeJSON(w, http.StatusOK, finding)
 }
@@ -90,6 +90,14 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.auditLog(r, "finding.update", "finding", id, oldFinding, f)
+
+	h.normalizeFindingForDisplay(f)
+
+	if h.FindingCache != nil {
+		if cerr := h.FindingCache.Del(r.Context(), id+":detail"); cerr != nil {
+			slog.Warn("update finding: failed to invalidate cache", "finding_id", id, "err", cerr)
+		}
+	}
 
 	if req.AssignedTo != nil && strings.TrimSpace(*req.AssignedTo) != "" {
 		oldOwner := derefStr(oldFinding.AssignedTo)
@@ -132,6 +140,9 @@ func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 		"status", "assigned_to", "false_positive", "notes", "resolved_at", "sla_deadline",
 		"cve_id", "cwe_id"})
 
+	for i := range rows {
+		h.normalizeFindingForDisplay(&rows[i])
+	}
 	for _, f := range rows {
 		fp := "false"
 		if f.FalsePositive {
@@ -208,13 +219,30 @@ func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	updated := 0
-	for _, id := range req.IDs {
-		upd := repository.FindingUpdate{
-			Status: &req.Status,
-		}
-		if _, err := h.store.Findings.Update(r.Context(), id, upd); err == nil {
-			updated++
+	// At least one field beyond IDs must be provided
+	if req.Status == "" && req.AssignedTo == nil && req.Notes == nil {
+		writeError(w, r, http.StatusBadRequest, "at least one of status, assigned_to, or notes must be provided")
+		return
+	}
+
+	upd := repository.FindingUpdate{}
+	if req.Status != "" {
+		upd.Status = &req.Status
+	}
+	upd.AssignedTo = req.AssignedTo
+	upd.Notes = req.Notes
+
+	updated, err := h.store.Findings.BulkUpdate(r.Context(), req.IDs, upd)
+	if err != nil {
+		h.writeInternal(w, r, err, "failed to bulk update findings")
+		return
+	}
+
+	if h.FindingCache != nil {
+		for _, fid := range req.IDs {
+			if cerr := h.FindingCache.Del(r.Context(), fid+":detail"); cerr != nil {
+				slog.Warn("bulk update: failed to invalidate cache", "finding_id", fid, "err", cerr)
+			}
 		}
 	}
 

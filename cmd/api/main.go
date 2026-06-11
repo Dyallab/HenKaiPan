@@ -4,11 +4,13 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"time"
 
 	"aspm/internal/ai"
 	"aspm/internal/auth"
+	"aspm/internal/cache"
 	"aspm/internal/config"
 	"aspm/internal/db"
 	"aspm/internal/events"
@@ -55,13 +57,17 @@ func main() {
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 	licSvc := license.New(cfg.LicenseKey)
-	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc,
-		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
-		cfg.EmailEnabled, cfg.WebhookSecret)
 
 	// Initialize rate limiter
 	appmw.InitRateLimiter(cfg.RedisAddr)
 	defer appmw.Close()
+
+	// Initialize finding detail cache (reuses the rate limiter's Redis client).
+	findingCache := cache.NewCache(appmw.Rdb)
+
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc,
+		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
+		cfg.EmailEnabled, cfg.WebhookSecret, findingCache)
 
 	// Per-token rate limiting constants.
 	// API tokens get their own token bucket: 60 requests burst, refills at 1/sec.
@@ -131,6 +137,16 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(appmw.SecurityHeaders(cfg.CookieSecure))
 
+	// ── Pprof profiling (EXPLICITLY ENABLED, never in production) ────
+	if cfg.EnablePprof {
+		slog.Warn("pprof endpoints enabled — do NOT use in production without auth")
+		r.HandleFunc("/debug/pprof/", pprof.Index)
+		r.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		r.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		r.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		r.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
+
 	r.Get("/api/health", h.GetHealth)
 	r.Get("/api/version", h.GetVersion)
 	r.Get("/api/version/check", h.GetVersionCheck)
@@ -173,6 +189,7 @@ func main() {
 
 		r.Get("/api/findings", h.ListFindings)
 		r.Get("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.GetFinding))
+		r.Get("/api/findings/{id}/detail", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingDetail))
 		r.Patch("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.UpdateFinding))
 		r.Get("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingJiraIssue))
 		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingJiraIssue))
@@ -180,7 +197,6 @@ func main() {
 		r.Get("/api/findings/{id}/correlations", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingCorrelations))
 		r.Post("/api/findings/{id}/summary", appmw.RequireOwnership(store.Apps, "finding")(h.RequestFindingSummary))
 		r.Get("/api/findings/files", h.GetUniqueFiles)
-		r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(h.GetRiskAcceptanceByFinding))
 		r.With(auth.RequireRole("admin")).Patch("/api/findings/bulk", h.BulkUpdateFindings)
 
 		// ── SSE Events ──
@@ -232,6 +248,7 @@ func main() {
 		r.Get("/api/metrics/sla-compliance", h.GetSLACompliance)
 		r.Get("/api/metrics/teams", h.GetTeamMetrics)
 		r.Get("/api/metrics/scanner-health", h.GetScannerHealth)
+		r.Get("/api/metrics/security-score", h.GetSecurityScores)
 
 		// ── Free: Apps ──
 		r.Get("/api/apps", h.ListApps)
