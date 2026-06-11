@@ -117,24 +117,27 @@ export const api = {
 
   getUniqueFiles: () => req<string[]>(`/api/findings/files`),
 
-  getFinding: (id: string) => req<Finding>(`/api/findings/${id}`),
+  getFinding: (id: string, init?: RequestInit) => req<Finding>(`/api/findings/${id}`, init),
 
-  getFindingCorrelations: (id: string) =>
+  getFindingCorrelations: (id: string, init?: RequestInit) =>
     req<{ findings: Finding[]; total: number }>(
       `/api/findings/${id}/correlations`,
+      init,
     ),
 
-  getFindingAnalysis: (id: string) =>
-    req<AgentAnalysis>(`/api/findings/${id}/analysis`),
+  getFindingAnalysis: (id: string, init?: RequestInit) =>
+    req<AgentAnalysis>(`/api/findings/${id}/analysis`, init),
 
-  analyzeFinding: (id: string) =>
+  analyzeFinding: (id: string, init?: RequestInit) =>
     req<{ status: string; finding_id: string }>(`/api/findings/${id}/analyze`, {
       method: "POST",
+      ...init,
     }),
 
-  requestSummary: (id: string) =>
+  requestSummary: (id: string, init?: RequestInit) =>
     req<{ status: string; finding_id: string }>(`/api/findings/${id}/summary`, {
       method: "POST",
+      ...init,
     }),
 
   updateFinding: (
@@ -145,10 +148,12 @@ export const api = {
       false_positive?: boolean;
       notes?: string;
     },
+    init?: RequestInit,
   ) =>
     req<Finding>(`/api/findings/${id}`, {
       method: "PATCH",
       body: JSON.stringify(updates),
+      ...init,
     }),
 
   getSLASummary: () => req<SLASummary>("/api/findings/sla"),
@@ -188,10 +193,11 @@ export const api = {
       `/api/knowledge/lookup?rule_id=${encodeURIComponent(rule_id)}&cwe_id=${encodeURIComponent(cwe_id)}`,
     ),
 
-  aiRemediate: (finding_id: string) =>
+  aiRemediate: (finding_id: string, init?: RequestInit) =>
     req<{ article: Article; cached: boolean }>("/api/knowledge/ai-remediate", {
       method: "POST",
       body: JSON.stringify({ finding_id }),
+      ...init,
     }),
 
   createArticle: (data: {
@@ -325,6 +331,7 @@ export const api = {
     repo_url?: string;
     provider?: string;
     default_branch?: string;
+    tags?: string[];
   }) =>
     req<Project>("/api/projects", {
       method: "POST",
@@ -342,6 +349,7 @@ export const api = {
       provider?: string;
       default_branch?: string;
       app_id?: string | null;
+      tags?: string[];
     },
   ) =>
     req<void>(`/api/projects/${id}`, {
@@ -392,29 +400,28 @@ export const api = {
   getScannerHealth: () =>
     req<ScannerHealth[]>(`/api/metrics/scanner-health`),
 
+  getSecurityScores: (projectId?: string) => {
+    const qs = projectId ? `?project_id=${encodeURIComponent(projectId)}` : '';
+    return req<SecurityScore[]>(`/api/metrics/security-score${qs}`);
+  },
+
   getFindingComments: (findingId: string) =>
     req<FindingComment[]>(`/api/findings/${findingId}/comments`),
 
-  createFindingComment: (findingId: string, content: string) =>
+  createFindingComment: (findingId: string, content: string, init?: RequestInit) =>
     req<FindingComment>(`/api/findings/${findingId}/comments`, {
       method: "POST",
       body: JSON.stringify({ content }),
+      ...init,
     }),
 
   deleteFindingComment: (commentId: number) =>
     req<void>(`/api/findings/comments/${commentId}`, { method: "DELETE" }),
 
-  bulkUpdateFindings: (
-    findingIds: string[],
-    updates: {
-      status?: string;
-      assigned_to?: string;
-      false_positive?: boolean;
-    },
-  ) =>
-    req<{ updated: number }>(`/api/findings/bulk`, {
+  bulkUpdateFindings: (data: { ids: string[]; status?: string; assigned_to?: string; notes?: string }) =>
+    req<{ updated: number }>("/api/findings/bulk", {
       method: "PATCH",
-      body: JSON.stringify({ finding_ids: findingIds, ...updates }),
+      body: JSON.stringify(data),
     }),
 
   getTeams: () => req<Team[]>("/api/teams"),
@@ -481,23 +488,26 @@ export const api = {
     finding_id: string;
     rationale: string;
     expires_at: string;
-  }) =>
+  }, init?: RequestInit) =>
     req<RiskAcceptance>("/api/risk-acceptances", {
       method: "POST",
       body: JSON.stringify(data),
+      ...init,
     }),
-  approveRiskAcceptance: (id: string, reviewNotes: string) =>
+  approveRiskAcceptance: (id: string, reviewNotes: string, init?: RequestInit) =>
     req<void>(`/api/risk-acceptances/${id}/approve`, {
       method: "POST",
       body: JSON.stringify({ review_notes: reviewNotes }),
+      ...init,
     }),
-  rejectRiskAcceptance: (id: string, reviewNotes: string) =>
+  rejectRiskAcceptance: (id: string, reviewNotes: string, init?: RequestInit) =>
     req<void>(`/api/risk-acceptances/${id}/reject`, {
       method: "POST",
       body: JSON.stringify({ review_notes: reviewNotes }),
+      ...init,
     }),
-  getRiskAcceptanceByFinding: (findingId: string) =>
-    req<RiskAcceptance>(`/api/findings/${findingId}/risk-acceptance`),
+  getRiskAcceptanceByFinding: (findingId: string, init?: RequestInit) =>
+    req<RiskAcceptance>(`/api/findings/${findingId}/risk-acceptance`, init),
 
   getWebhooks: () => req<Webhook[]>("/api/webhooks"),
   createWebhook: (data: WebhookCreate) =>
@@ -539,11 +549,12 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  getFindingJiraIssue: (id: string) =>
-    req<JiraIssueLink>(`/api/findings/${id}/jira`),
-  createFindingJiraIssue: (id: string) =>
+  getFindingJiraIssue: (id: string, init?: RequestInit) =>
+    req<JiraIssueLink>(`/api/findings/${id}/jira`, init),
+  createFindingJiraIssue: (id: string, init?: RequestInit) =>
     req<JiraIssueLink>(`/api/findings/${id}/jira`, {
       method: "POST",
+      ...init,
     }),
 
   getScannerPacks: () => req<ScannerPack[]>("/api/scanner-packs"),
@@ -921,6 +932,7 @@ export interface Project {
   default_branch?: string;
   external_repo_id?: string;
   has_token?: boolean;
+  tags?: string[];
   created_at: string;
 }
 
@@ -998,6 +1010,11 @@ export interface NotificationSettings {
   alert_scan_failed: boolean;
   alert_sla_breach: boolean;
   email_recipients: string[];
+  digest_frequency: string;
+  digest_time: string;
+  report_schedule: string;
+  report_time: string;
+  report_channel: string;
   updated_at: string;
 }
 
@@ -1083,4 +1100,16 @@ export interface ScannerHealth {
   avg_duration_seconds: number;
   last_success_at?: string;
   last_failure_at?: string;
+}
+
+export interface SecurityScore {
+  project_id: string;
+  project_name: string;
+  grade: string;
+  score: number;
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  last_scan_at?: string;
 }

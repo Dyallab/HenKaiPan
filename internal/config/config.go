@@ -62,6 +62,10 @@ type Config struct {
 	SummaryConfig     *ProviderConfig
 	ValidationConfig  *ProviderConfig
 
+	// EnablePprof enables /debug/pprof profiling endpoints (default: false).
+	// Do NOT enable in production without auth — exposes runtime profiling data.
+	EnablePprof bool
+
 	// CORS configuration
 	AllowedOrigins []string // default: localhost origins
 }
@@ -113,6 +117,7 @@ func Load() *Config {
 		AISummaryProvider:     envOr("AI_SUMMARY_PROVIDER", "ollama"),
 		AIValidationProvider:  envOr("AI_VALIDATION_PROVIDER", "openrouter"),
 		AllowedOrigins:        allowedOrigins,
+		EnablePprof:           envBool("ENABLE_PPROF", false),
 	}
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
 

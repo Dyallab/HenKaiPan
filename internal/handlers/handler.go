@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"aspm/internal/auth"
+	"aspm/internal/cache"
 	"aspm/internal/httperrors"
 	"aspm/internal/license"
 	"aspm/internal/repository"
@@ -27,10 +28,11 @@ type Handler struct {
 	aiValidation   bool
 	emailEnabled   bool
 	webhookSecret  string
+	FindingCache   *cache.Cache
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, lic *license.Service, aiRemediation, aiSummary, aiValidation bool, emailEnabled bool, webhookSecret string) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, license: lic, aiRemediation: aiRemediation, aiSummary: aiSummary, aiValidation: aiValidation, emailEnabled: emailEnabled, webhookSecret: webhookSecret}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, lic *license.Service, aiRemediation, aiSummary, aiValidation bool, emailEnabled bool, webhookSecret string, findingCache *cache.Cache) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, license: lic, aiRemediation: aiRemediation, aiSummary: aiSummary, aiValidation: aiValidation, emailEnabled: emailEnabled, webhookSecret: webhookSecret, FindingCache: findingCache}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

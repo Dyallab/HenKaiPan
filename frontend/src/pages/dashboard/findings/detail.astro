@@ -889,6 +889,9 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
 
     applyConfigGuards();
 
+    const abortController = new AbortController();
+    window.addEventListener("beforeunload", () => abortController.abort());
+
     // Validation schemas
     const findingUpdateSchema = z.object({
         status: z.string().optional(),
@@ -1645,7 +1648,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
 
     async function loadCorrelations() {
         try {
-            const result = await api.getFindingCorrelations(findingId!);
+            const result = await api.getFindingCorrelations(findingId!, { signal: abortController.signal });
             renderCorrelations(currentFinding!, result.findings ?? []);
         } catch (error: any) {
             document.getElementById("correlation-list")!.innerHTML =
@@ -1655,7 +1658,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
 
     async function load() {
         try {
-            const finding = await api.getFinding(findingId!);
+            const finding = await api.getFinding(findingId!, { signal: abortController.signal });
             document.getElementById("loading")!.classList.add("hidden");
             document.getElementById("content")!.classList.remove("hidden");
             applyFinding(finding);
@@ -2061,7 +2064,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     // SSE client for real-time updates (singleton already connected from DashboardLayout)
     const sseClient = getSSEClient();
 
-    sseClient.on("finding_summary_completed", (event) => {
+    const handleFindingSummaryCompleted = (event: any) => {
         if (event.data.finding_id === findingId) {
             resetAiSummaryButton();
 
@@ -2087,9 +2090,14 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                 }, 2000);
             }
 
-            void load();
+            api.getFinding(findingId!, { signal: abortController.signal }).then(applyFinding).catch(() => {});
             toast("AI summary completed", "success");
         }
+    };
+
+    sseClient.on("finding_summary_completed", handleFindingSummaryCompleted);
+    window.addEventListener("beforeunload", () => {
+        sseClient.off("finding_summary_completed", handleFindingSummaryCompleted);
     });
 
     sseClient.on("finding_validation_completed", (event) => {
@@ -2189,12 +2197,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     getCurrentUser().then((me) => {
         if (!me) return;
         currentUserRole = me.role;
-        // Re-render risk acceptance to show/hide admin approval form
-        if (findingId) {
-            api.getRiskAcceptanceByFinding(findingId)
-                .then(renderRiskAcceptance)
-                .catch(() => {});
-        }
         applyJiraIssue(currentJiraIssue);
         applyWriteGuards();
     });
