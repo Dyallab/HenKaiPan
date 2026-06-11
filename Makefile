@@ -36,6 +36,10 @@ down:
 build:
 	go build $(LDFLAGS) -o bin/api ./cmd/api
 	go build $(LDFLAGS) -o bin/worker ./cmd/worker
+	go build $(LDFLAGS) -o bin/slackbot ./cmd/slackbot
+
+build-slackbot:
+	go build $(LDFLAGS) -o bin/slackbot ./cmd/slackbot
 
 build-obfuscated:
 	garble -literals -tiny build -trimpath $(LDFLAGS) -o bin/api ./cmd/api

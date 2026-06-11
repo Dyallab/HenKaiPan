@@ -17,7 +17,7 @@ func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Proj
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 		       p.provider, p.default_branch, p.external_repo_id,
-		       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 		FROM projects p WHERE p.app_id = $1 ORDER BY p.name`, appID)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
@@ -28,7 +28,7 @@ func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Proj
 	for rows.Next() {
 		var p models.Project
 		rows.Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.CreatedAt)
+			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
 		projects = append(projects, p)
 	}
 	return EnsureSlice(projects), nil
@@ -41,19 +41,19 @@ func (r *appRepo) ListAllProjects(ctx context.Context, appFilter string) ([]mode
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
-			       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 			FROM projects p WHERE p.app_id IS NOT NULL ORDER BY p.name`
 	} else if appFilter == "without_app" {
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
-			       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 			FROM projects p WHERE p.app_id IS NULL ORDER BY p.name`
 	} else {
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
-			       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 			FROM projects p ORDER BY p.name`
 	}
 
@@ -67,7 +67,7 @@ func (r *appRepo) ListAllProjects(ctx context.Context, appFilter string) ([]mode
 	for rows.Next() {
 		var p models.Project
 		rows.Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.CreatedAt)
+			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
 		projects = append(projects, p)
 	}
 	return EnsureSlice(projects), nil
@@ -105,7 +105,7 @@ func (r *appRepo) ListStandaloneByPattern(ctx context.Context, pattern string) (
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 		       p.provider, p.default_branch, p.external_repo_id,
-		       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 		FROM projects p
 		WHERE p.app_id IS NULL
 		  AND (p.repo_url ILIKE $1 OR p.name ILIKE $1)
@@ -119,7 +119,7 @@ func (r *appRepo) ListStandaloneByPattern(ctx context.Context, pattern string) (
 	for rows.Next() {
 		var p models.Project
 		rows.Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.CreatedAt)
+			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
 		projects = append(projects, p)
 	}
 	return EnsureSlice(projects), nil
@@ -151,10 +151,10 @@ func (r *appRepo) GetProjectByID(ctx context.Context, id string) (*models.Projec
 	err := r.db.QueryRow(ctx, `
 		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 		       p.provider, p.default_branch, p.external_repo_id,
-		       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 		FROM projects p WHERE p.id = $1`, id,
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.CreatedAt)
+		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("get project: %w", err)
 	}
@@ -164,9 +164,9 @@ func (r *appRepo) GetProjectByID(ctx context.Context, id string) (*models.Projec
 func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCreate) (*models.Project, error) {
 	var p models.Project
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO projects (name, description, app_id, repo_url, provider, default_branch)
-		VALUES (@name, @description, @app_id, @repo_url, @provider, @default_branch)
-		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, created_at`,
+		INSERT INTO projects (name, description, app_id, repo_url, provider, default_branch, tags)
+		VALUES (@name, @description, @app_id, @repo_url, @provider, @default_branch, @tags)
+		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, tags, created_at`,
 		pgx.NamedArgs{
 			"name":           pc.Name,
 			"description":    pc.Description,
@@ -174,9 +174,10 @@ func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCre
 			"repo_url":       pc.RepoURL,
 			"provider":       pc.Provider,
 			"default_branch": pc.DefaultBranch,
+			"tags":           pc.Tags,
 		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.CreatedAt)
+		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.Tags, &p.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create project: %w", err)
 	}
@@ -186,18 +187,19 @@ func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCre
 func (r *appRepo) CreateStandaloneProject(ctx context.Context, pc ProjectCreate) (*models.Project, error) {
 	var p models.Project
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO projects (name, description, repo_url, provider, default_branch)
-		VALUES (@name, @description, @repo_url, @provider, @default_branch)
-		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, created_at`,
+		INSERT INTO projects (name, description, repo_url, provider, default_branch, tags)
+		VALUES (@name, @description, @repo_url, @provider, @default_branch, @tags)
+		RETURNING id, name, description, app_id, repo_url, provider, default_branch, external_repo_id, tags, created_at`,
 		pgx.NamedArgs{
 			"name":           pc.Name,
 			"description":    pc.Description,
 			"repo_url":       pc.RepoURL,
 			"provider":       pc.Provider,
 			"default_branch": pc.DefaultBranch,
+			"tags":           pc.Tags,
 		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.CreatedAt)
+		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.Tags, &p.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("create standalone project: %w", err)
 	}
@@ -209,13 +211,13 @@ func (r *appRepo) BulkCreateProjects(ctx context.Context, appID string, projects
 		return nil, nil
 	}
 
-	paramsPerRow := 5
-	colNames := "name, description, repo_url, provider, default_branch"
+	paramsPerRow := 6
+	colNames := "name, description, repo_url, provider, default_branch, tags"
 	var conflictTarget string
 
 	if appID != "" {
-		paramsPerRow = 6
-		colNames = "name, description, repo_url, provider, default_branch, app_id"
+		paramsPerRow = 7
+		colNames = "name, description, repo_url, provider, default_branch, app_id, tags"
 		conflictTarget = "ON CONFLICT (app_id, name) WHERE app_id IS NOT NULL DO NOTHING"
 	} else {
 		conflictTarget = "ON CONFLICT (name) WHERE app_id IS NULL DO NOTHING"
@@ -226,11 +228,11 @@ func (r *appRepo) BulkCreateProjects(ctx context.Context, appID string, projects
 	for i, p := range projects {
 		base := i * paramsPerRow
 		if appID != "" {
-			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6))
-			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, nilOrUUID(appID))
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7))
+			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, nilOrUUID(appID), p.Tags)
 		} else {
-			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5))
-			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch)
+			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6))
+			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, p.Tags)
 		}
 	}
 
@@ -275,21 +277,25 @@ func (r *appRepo) UpdateProject(ctx context.Context, id string, upd ProjectUpdat
 			default_branch  = COALESCE(@default_branch, default_branch),
 			external_repo_id = COALESCE(@external_repo_id, external_repo_id),
 			app_id          = CASE
-			                  WHEN @app_id_text IS NULL THEN app_id
-			                  WHEN @app_id_text = '' THEN NULL
+			                  WHEN @app_id_text = '' THEN app_id
 			                  ELSE @app_id_text::uuid
 			                END,
-			updated_at      = NOW()
-		WHERE id = @id`,
-		pgx.NamedArgs{
-			"id":                id,
-			"name":              upd.Name,
-			"description":       upd.Description,
-			"repo_url":         upd.RepoURL,
-			"provider":          upd.Provider,
-			"default_branch":   upd.DefaultBranch,
-			"external_repo_id":  upd.ExternalRepoID,
-			"app_id_text":       upd.AppID,
+		tags            = CASE
+				                  WHEN @tags_text = '' THEN tags
+				                  ELSE @tags_text::text[]
+				                END,
+		updated_at      = NOW()
+	WHERE id = @id`,
+	pgx.NamedArgs{
+		"id":                id,
+		"name":              upd.Name,
+		"description":       upd.Description,
+		"repo_url":         upd.RepoURL,
+		"provider":          upd.Provider,
+		"default_branch":   upd.DefaultBranch,
+		"external_repo_id":  upd.ExternalRepoID,
+		"app_id_text":       nilOrEmpty(upd.AppID),
+		"tags_text":         tagList(derefStringSlice(upd.Tags)),
 		})
 	return err
 }
@@ -456,7 +462,7 @@ func (r *appRepo) projectsByAppIDs(ctx context.Context, appIDs []string) ([]mode
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 		       p.provider, p.default_branch, p.external_repo_id,
-		       p.github_token_encrypted IS NOT NULL as has_token, p.created_at
+		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 		FROM projects p
 		WHERE p.app_id = ANY($1)
 		ORDER BY p.app_id, p.name`,
@@ -470,7 +476,7 @@ func (r *appRepo) projectsByAppIDs(ctx context.Context, appIDs []string) ([]mode
 	for rows.Next() {
 		var p models.Project
 		rows.Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
-			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.CreatedAt)
+			&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
 		projects = append(projects, p)
 	}
 	return projects, nil
@@ -481,4 +487,25 @@ func nilOrUUID(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func derefStringSlice(p *[]string) []string {
+	if p == nil {
+		return nil
+	}
+	return *p
+}
+
+func tagList(tags []string) string {
+	if tags == nil {
+		return ""
+	}
+	return "{" + strings.Join(tags, ",") + "}"
+}
+
+func nilOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

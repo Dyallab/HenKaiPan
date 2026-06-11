@@ -59,3 +59,17 @@ func (h *Handler) GetScannerHealth(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, health)
 }
+
+func (h *Handler) GetSecurityScores(w http.ResponseWriter, r *http.Request) {
+	var projectID *string
+	if pid := r.URL.Query().Get("project_id"); pid != "" {
+		projectID = &pid
+	}
+
+	scores, err := h.store.Metrics.SecurityScores(r.Context(), projectID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "failed to get security scores")
+		return
+	}
+	writeJSON(w, http.StatusOK, scores)
+}

@@ -11,6 +11,9 @@ type NotificationSettings struct {
 	EmailRecipients   []string  `json:"email_recipients"`
 	DigestFrequency   string    `json:"digest_frequency"`
 	DigestTime        string    `json:"digest_time"`
+	ReportSchedule    string    `json:"report_schedule"`
+	ReportTime        string    `json:"report_time"`
+	ReportChannel     string    `json:"report_channel"`
 	UpdatedAt         time.Time `json:"updated_at"`
 }
 

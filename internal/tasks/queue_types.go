@@ -6,6 +6,7 @@ const (
 	TypeScanRun          = "scan:run"
 	TypeFindingValidate  = "agent:validate"
 	TypeFindingSummarize = "agent:summarize"
+	TypeReportSend       = "report:send"
 )
 
 type ScanPayload struct {
@@ -47,5 +48,18 @@ func MarshalFindingSummarizePayload(p FindingSummarizePayload) ([]byte, error) {
 
 func UnmarshalFindingSummarizePayload(data []byte) (FindingSummarizePayload, error) {
 	var p FindingSummarizePayload
+	return p, json.Unmarshal(data, &p)
+}
+
+type ReportSendPayload struct {
+	Channel string `json:"channel"`
+}
+
+func MarshalReportSendPayload(p ReportSendPayload) ([]byte, error) {
+	return json.Marshal(p)
+}
+
+func UnmarshalReportSendPayload(data []byte) (ReportSendPayload, error) {
+	var p ReportSendPayload
 	return p, json.Unmarshal(data, &p)
 }

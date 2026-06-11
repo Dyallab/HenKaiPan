@@ -448,11 +448,54 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                 recipients.
                             </p>
                         </div>
-                        <p id="notification-msg" class="text-xs hidden"></p>
-                    </div>
-                </div>
+						<p id="notification-msg" class="text-xs hidden"></p>
+					</div>
 
-                <!-- Panel: Webhooks -->
+					<!-- Report Schedule -->
+					<div class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5">
+						<div>
+							<p class="text-sm font-semibold text-on-background">
+								Report Schedule
+							</p>
+							<p class="text-xs text-slate-500 mt-1">
+								Automated periodic security reports with scores, trends, and SLA compliance.
+							</p>
+						</div>
+						<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+							<div class="space-y-1.5">
+								<label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Frequency</label>
+								<select id="report-schedule"
+									class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none">
+									<option value="disabled">Disabled</option>
+									<option value="daily">Daily</option>
+									<option value="weekly">Weekly</option>
+								</select>
+							</div>
+							<div class="space-y-1.5">
+								<label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Time (HH:MM)</label>
+								<input id="report-time" type="time" value="09:00"
+									class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none font-mono" />
+							</div>
+							<div class="space-y-1.5">
+								<label class="block text-[10px] font-bold uppercase tracking-widest text-slate-500">Channel</label>
+								<select id="report-channel"
+									class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-on-background focus:ring-1 focus:ring-cyan-500 outline-none">
+									<option value="email">Email</option>
+									<option value="both">Email + Slack</option>
+								</select>
+							</div>
+						</div>
+						<div class="flex items-center gap-3">
+							<button id="save-report-schedule"
+								class="px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold transition-all active:scale-95">
+								Save Report Schedule
+							</button>
+							<p id="report-msg" class="text-xs hidden"></p>
+						</div>
+					</div>
+				</div>
+
+				<!-- Panel: Webhooks -->
                 <div data-tab-panel="webhooks" class="tab-panel hidden space-y-4">
                     <div
                         class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
@@ -1552,6 +1595,16 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                     if (!key) return;
                     setToggleState(btn, Boolean(settings[key]));
                 });
+            // Load report schedule
+            (
+                document.getElementById("report-schedule") as HTMLSelectElement
+            ).value = settings.report_schedule || "disabled";
+            (
+                document.getElementById("report-time") as HTMLInputElement
+            ).value = settings.report_time || "09:00";
+            (
+                document.getElementById("report-channel") as HTMLSelectElement
+            ).value = settings.report_channel || "email";
         } catch (e: any) {
             const msg = document.getElementById("notification-msg")!;
             msg.textContent =
@@ -1654,6 +1707,46 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             } finally {
                 btn.disabled = false;
                 btn.textContent = "Send test email";
+            }
+        });
+
+    // Save report schedule
+    document
+        .getElementById("save-report-schedule")!
+        .addEventListener("click", async () => {
+            const btn = document.getElementById(
+                "save-report-schedule",
+            ) as HTMLButtonElement;
+            const msg = document.getElementById("report-msg")!;
+            const report_schedule = (
+                document.getElementById("report-schedule") as HTMLSelectElement
+            ).value;
+            const report_time = (
+                document.getElementById("report-time") as HTMLInputElement
+            ).value;
+            const report_channel = (
+                document.getElementById("report-channel") as HTMLSelectElement
+            ).value;
+
+            btn.disabled = true;
+            msg.classList.add("hidden");
+
+            try {
+                await api.updateNotificationSettings({
+                    report_schedule,
+                    report_time,
+                    report_channel,
+                });
+                msg.textContent = "Report schedule saved.";
+                msg.className = "text-xs text-secondary";
+                msg.classList.remove("hidden");
+            } catch (e: any) {
+                msg.textContent =
+                    e.message ?? "Failed to save report schedule.";
+                msg.className = "text-xs text-error";
+                msg.classList.remove("hidden");
+            } finally {
+                btn.disabled = false;
             }
         });
 

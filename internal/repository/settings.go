@@ -22,10 +22,10 @@ func (r *settingsRepo) GetNotificationSettings(ctx context.Context) (*models.Not
 	var s models.NotificationSettings
 	var emailRecipientsRaw []byte
 	err := r.db.QueryRow(ctx, `
-		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, updated_at
+		SELECT alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, report_schedule, report_time, report_channel, updated_at
 		FROM notification_settings
 		WHERE singleton = TRUE`,
-	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &emailRecipientsRaw, &s.DigestFrequency, &s.DigestTime, &s.UpdatedAt)
+	).Scan(&s.AlertCritical, &s.AlertHigh, &s.AlertScanComplete, &s.AlertScanFailed, &s.AlertSLABreach, &emailRecipientsRaw, &s.DigestFrequency, &s.DigestTime, &s.ReportSchedule, &s.ReportTime, &s.ReportChannel, &s.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return r.initDefaultNotificationSettings(ctx)
@@ -44,12 +44,12 @@ func (r *settingsRepo) initDefaultNotificationSettings(ctx context.Context) (*mo
 	var out models.NotificationSettings
 	var emailRecipientsRaw []byte
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO notification_settings (singleton, alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time)
-		VALUES (TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, $1, 'weekly', '09:00')
+		INSERT INTO notification_settings (singleton, alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, report_schedule, report_time, report_channel)
+		VALUES (TRUE, TRUE, TRUE, FALSE, FALSE, FALSE, $1, 'weekly', '09:00', 'disabled', '09:00', 'email')
 		ON CONFLICT (singleton) DO NOTHING
-		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, updated_at`,
+		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, report_schedule, report_time, report_channel, updated_at`,
 		emailRecipientsJSON,
-	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.DigestFrequency, &out.DigestTime, &out.UpdatedAt)
+	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.DigestFrequency, &out.DigestTime, &out.ReportSchedule, &out.ReportTime, &out.ReportChannel, &out.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return r.GetNotificationSettings(ctx)
@@ -92,6 +92,15 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 	if upd.DigestTime != nil {
 		current.DigestTime = *upd.DigestTime
 	}
+	if upd.ReportSchedule != nil {
+		current.ReportSchedule = *upd.ReportSchedule
+	}
+	if upd.ReportTime != nil {
+		current.ReportTime = *upd.ReportTime
+	}
+	if upd.ReportChannel != nil {
+		current.ReportChannel = *upd.ReportChannel
+	}
 
 	emailRecipientsJSON, err := json.Marshal(current.EmailRecipients)
 	if err != nil {
@@ -110,9 +119,12 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 		    email_recipients = @email_recipients,
 		    digest_frequency = @digest_frequency,
 		    digest_time = @digest_time,
+		    report_schedule = @report_schedule,
+		    report_time = @report_time,
+		    report_channel = @report_channel,
 		    updated_at = NOW()
 		WHERE singleton = TRUE
-		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, updated_at`,
+		RETURNING alert_critical, alert_high, alert_scan_complete, alert_scan_failed, alert_sla_breach, email_recipients, digest_frequency, digest_time, report_schedule, report_time, report_channel, updated_at`,
 		pgx.NamedArgs{
 			"alert_critical":      current.AlertCritical,
 			"alert_high":          current.AlertHigh,
@@ -122,8 +134,11 @@ func (r *settingsRepo) UpdateNotificationSettings(ctx context.Context, upd Notif
 			"email_recipients":    emailRecipientsJSON,
 			"digest_frequency":    current.DigestFrequency,
 			"digest_time":         current.DigestTime,
+			"report_schedule":     current.ReportSchedule,
+			"report_time":         current.ReportTime,
+			"report_channel":      current.ReportChannel,
 		},
-	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.DigestFrequency, &out.DigestTime, &out.UpdatedAt)
+	).Scan(&out.AlertCritical, &out.AlertHigh, &out.AlertScanComplete, &out.AlertScanFailed, &out.AlertSLABreach, &emailRecipientsRaw, &out.DigestFrequency, &out.DigestTime, &out.ReportSchedule, &out.ReportTime, &out.ReportChannel, &out.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("update notification settings: %w", err)
 	}

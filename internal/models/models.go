@@ -175,9 +175,10 @@ type Project struct {
 	Provider              string    `json:"provider,omitempty"`
 	DefaultBranch         string    `json:"default_branch,omitempty"`
 	ExternalRepoID        *string   `json:"external_repo_id,omitempty"`
-	HasToken              bool      `json:"has_token"`
+	HasToken              bool       `json:"has_token"`
 	GitHubTokenExpiresAt  *time.Time `json:"github_token_expires_at,omitempty"`
-	CreatedAt             time.Time `json:"created_at"`
+	Tags                  []string   `json:"tags"`
+	CreatedAt             time.Time  `json:"created_at"`
 }
 
 type TeamMetrics struct {
@@ -367,4 +368,16 @@ type UserNotification struct {
 	Read       bool      `json:"read"`
 	AISummary  string    `json:"ai_summary,omitempty"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+type SecurityScore struct {
+	ProjectID   string     `json:"project_id"`
+	ProjectName string     `json:"project_name"`
+	Grade       string     `json:"grade"`
+	Score       int        `json:"score"`
+	Critical    int        `json:"critical"`
+	High        int        `json:"high"`
+	Medium      int        `json:"medium"`
+	Low         int        `json:"low"`
+	LastScanAt  *time.Time `json:"last_scan_at,omitempty"`
 }

@@ -1,6 +1,8 @@
 package knowledge
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -46,19 +48,29 @@ func BuildRemediationRequest(src *repository.RemediationSource) ai.RemediationRe
 
 func BuildGeneratedArticle(src *repository.RemediationSource, content string) repository.ArticleCreate {
 	slug := "ai-" + Slugify(src.RuleID+"-"+src.Title)
+	if slug == "ai-" || slug == "" {
+		// Fallback: no alphanumeric chars in rule+title (e.g. CJK, emoji, empty)
+		h := sha256.Sum256([]byte(src.RuleID + src.Title + src.Scanner + content))
+		slug = "ai-" + fmt.Sprintf("%x", h)[:16]
+	}
 	if len(slug) > 80 {
-		slug = slug[:80]
+		slug = strings.TrimRight(slug[:80], "-")
 	}
 
-	tags := []string{"ai-generated", src.Scanner}
+	tags := []string{"ai-generated"}
 	cweIDs := []string{}
 	if src.CWEID != "" {
 		cweIDs = append(cweIDs, src.CWEID)
 	}
 
+	title := src.Title
+	if title == "" {
+		title = slug
+	}
+
 	return repository.ArticleCreate{
 		Slug:          slug,
-		Title:         src.Title,
+		Title:         title,
 		ContentMD:     content,
 		Tags:          tags,
 		CWEIDs:        cweIDs,

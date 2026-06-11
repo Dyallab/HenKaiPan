@@ -39,6 +39,9 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		EmailRecipients   *[]string `json:"email_recipients"`
 		DigestFrequency   *string   `json:"digest_frequency"`
 		DigestTime        *string   `json:"digest_time"`
+		ReportSchedule    *string   `json:"report_schedule"`
+		ReportTime        *string   `json:"report_time"`
+		ReportChannel     *string   `json:"report_channel"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid body")
@@ -53,6 +56,9 @@ func (h *Handler) UpdateNotificationSettings(w http.ResponseWriter, r *http.Requ
 		EmailRecipients:   body.EmailRecipients,
 		DigestFrequency:   body.DigestFrequency,
 		DigestTime:        body.DigestTime,
+		ReportSchedule:    body.ReportSchedule,
+		ReportTime:        body.ReportTime,
+		ReportChannel:     body.ReportChannel,
 	})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to update notification settings")
@@ -198,6 +204,7 @@ func (h *Handler) CreateFindingJiraIssue(w http.ResponseWriter, r *http.Request)
 		writeError(w, r, http.StatusNotFound, "finding not found")
 		return
 	}
+	h.normalizeFindingForDisplay(finding)
 	creds, err := h.store.Settings.GetJiraCredentials(r.Context())
 	if err != nil {
 		_ = h.store.Settings.DeleteJiraIssueLink(r.Context(), findingID)

@@ -72,6 +72,7 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		Name: req.Name, Description: req.Description,
 		RepoURL: req.RepoURL, Provider: req.Provider,
 		DefaultBranch: req.DefaultBranch,
+		Tags:          req.Tags,
 	}
 
 	appID := r.URL.Query().Get("app_id")
@@ -95,13 +96,14 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name           *string `json:"name"`
-		Description    *string `json:"description"`
-		RepoURL        *string `json:"repo_url"`
-		Provider       *string `json:"provider"`
-		DefaultBranch  *string `json:"default_branch"`
-		ExternalRepoID *string `json:"external_repo_id"`
-		AppID          *string `json:"app_id"`
+		Name           *string   `json:"name"`
+		Description    *string   `json:"description"`
+		RepoURL        *string   `json:"repo_url"`
+		Provider       *string   `json:"provider"`
+		DefaultBranch  *string   `json:"default_branch"`
+		ExternalRepoID *string   `json:"external_repo_id"`
+		AppID          *string   `json:"app_id"`
+		Tags           *[]string `json:"tags"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid body")
@@ -109,12 +111,16 @@ func (h *Handler) UpdateProject(w http.ResponseWriter, r *http.Request) {
 	}
 	projectID := chi.URLParam(r, "projectID")
 	oldProject, _ := h.store.Apps.GetProjectByID(r.Context(), projectID)
-	h.store.Apps.UpdateProject(r.Context(), projectID, repository.ProjectUpdate{
+	if err := h.store.Apps.UpdateProject(r.Context(), projectID, repository.ProjectUpdate{
 		Name: body.Name, Description: body.Description,
 		RepoURL: body.RepoURL, Provider: body.Provider, DefaultBranch: body.DefaultBranch,
 		ExternalRepoID: body.ExternalRepoID,
 		AppID: body.AppID,
-	})
+		Tags:  body.Tags,
+	}); err != nil {
+		h.writeInternal(w, r, err, "failed to update project")
+		return
+	}
 	h.auditLog(r, "project.update", "project", projectID, oldProject, nil)
 	w.WriteHeader(http.StatusNoContent)
 }
