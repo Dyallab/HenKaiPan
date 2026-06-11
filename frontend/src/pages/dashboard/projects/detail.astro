@@ -31,6 +31,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       <div class="flex items-center gap-2 shrink-0">
         <span id="project-token-badge" class="hidden text-xs font-bold px-2 py-1 rounded"></span>
         <span id="project-standalone-badge" class="hidden text-xs text-amber-500/70 bg-amber-500/10 px-2 py-1 rounded font-bold">Standalone</span>
+        <span id="security-score-badge" class="hidden text-xs font-bold px-2 py-1 rounded border"></span>
       </div>
     </div>
 
@@ -85,7 +86,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
 <script>
   import { api } from '@lib/api';
-  import type { Scan } from '@lib/api';
+  import type { Scan, SecurityScore } from '@lib/api';
 
   const STATUS_DOT: Record<string, string> = {
     completed: 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]',
@@ -210,9 +211,10 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
   async function load() {
     try {
-      const [project, scansData] = await Promise.all([
+      const [project, scansData, securityScores] = await Promise.all([
         api.getProject(projectId!),
         api.getScans(1, 200),
+        api.getSecurityScores(projectId!),
       ]);
 
       document.getElementById('loading')!.classList.add('hidden');
@@ -253,6 +255,27 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       // Standalone badge
       if (!project.app_id) {
         document.getElementById('project-standalone-badge')!.classList.remove('hidden');
+      }
+
+      // Security score badge
+      if (securityScores && securityScores.length > 0) {
+        const ss = securityScores[0];
+        const badge = document.getElementById('security-score-badge')!;
+        badge.textContent = ss.grade;
+        badge.title = `Security Score: ${ss.score}`;
+        const grade = ss.grade;
+        if (grade.startsWith('A')) {
+          badge.className = 'text-xs font-bold px-2 py-1 rounded border text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+        } else if (grade.startsWith('B')) {
+          badge.className = 'text-xs font-bold px-2 py-1 rounded border text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+        } else if (grade.startsWith('C')) {
+          badge.className = 'text-xs font-bold px-2 py-1 rounded border text-amber-400 bg-amber-500/10 border-amber-500/20';
+        } else if (grade.startsWith('D')) {
+          badge.className = 'text-xs font-bold px-2 py-1 rounded border text-orange-400 bg-orange-500/10 border-orange-500/20';
+        } else {
+          badge.className = 'text-xs font-bold px-2 py-1 rounded border text-red-400 bg-red-500/10 border-red-500/20';
+        }
+        badge.classList.remove('hidden');
       }
 
       // App row

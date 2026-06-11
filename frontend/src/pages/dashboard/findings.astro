@@ -113,8 +113,8 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         <p class="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-500">Findings</p>
         <p class="text-sm text-slate-400 mt-1">Open a dedicated detail view to triage, inspect evidence, and generate remediation.</p>
       </div>
-      <div id="bulk-actions" class="hidden items-center gap-3">
-        <span class="text-xs text-slate-400"><span id="selected-count">0</span> selected</span>
+      <div id="bulk-actions" class="hidden items-center gap-3 flex-wrap">
+        <span class="text-xs text-slate-400 whitespace-nowrap"><span id="selected-count">0</span> selected</span>
         <select id="bulk-status" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all">
           <option value="">Change status...</option>
           <option value="open">Open</option>
@@ -123,6 +123,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
           <option value="fixed">Fixed</option>
           <option value="verified">Verified</option>
         </select>
+        <select id="bulk-assign" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[140px]">
+          <option value="">Assign to...</option>
+          <option value="__clear__">— Clear assignee —</option>
+        </select>
+        <textarea id="bulk-notes" placeholder="Add notes…"
+          class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600 resize-none h-9 w-48"></textarea>
         <button id="bulk-apply" class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors">
           Apply
         </button>
@@ -462,28 +468,46 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   });
 
   document.getElementById('bulk-apply')!.addEventListener('click', async () => {
-    const statusSelect = document.getElementById('bulk-status') as HTMLSelectElement;
-    const status = statusSelect.value;
-    
-    if (!status) {
-      alert('Please select a status');
-      return;
-    }
-
     const ids = getSelectedFindingIds();
     if (!ids.length) {
       alert('No findings selected');
       return;
     }
 
+    const statusEl = document.getElementById('bulk-status') as HTMLSelectElement;
+    const assignEl = document.getElementById('bulk-assign') as HTMLSelectElement;
+    const notesEl = document.getElementById('bulk-notes') as HTMLTextAreaElement;
+
+    const data: { ids: string[]; status?: string; assigned_to?: string; notes?: string } = { ids };
+
+    if (statusEl.value) {
+      data.status = statusEl.value;
+    }
+
+    if (assignEl.value && assignEl.value !== '') {
+      data.assigned_to = assignEl.value === '__clear__' ? '' : assignEl.value;
+    }
+
+    if (notesEl.value.trim()) {
+      data.notes = notesEl.value.trim();
+    }
+
+    if (!data.status && data.assigned_to === undefined && !data.notes) {
+      alert('Please select a status, assignee, or add notes');
+      return;
+    }
+
     try {
-      const result = await api.bulkUpdateFindings(ids, { status });
+      const result = await api.bulkUpdateFindings(data);
       alert(`Updated ${result.updated} findings`);
       document.querySelectorAll('.finding-checkbox').forEach(cb => {
         (cb as HTMLInputElement).checked = false;
       });
       const selectAll = document.getElementById('select-all-findings') as HTMLInputElement;
       if (selectAll) selectAll.checked = false;
+      statusEl.value = '';
+      assignEl.value = '';
+      notesEl.value = '';
       updateBulkActions();
       loadFindings();
     } catch (error: any) {
@@ -536,7 +560,23 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     }
   }
 
+  async function loadUsers() {
+    try {
+      const users = await api.getUsers();
+      const select = document.getElementById('bulk-assign') as HTMLSelectElement;
+      users.forEach((u) => {
+        const opt = document.createElement('option');
+        opt.value = u.username;
+        opt.textContent = `${u.username}${u.email ? ` (${u.email})` : ''}`;
+        select.appendChild(opt);
+      });
+    } catch {
+      // users not available
+    }
+  }
+
   loadSLA();
   loadFileOptions();
+  loadUsers();
   loadFindings();
 </script>

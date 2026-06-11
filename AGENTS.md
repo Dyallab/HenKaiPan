@@ -153,3 +153,53 @@ All existing queries audited. One real injection risk fixed (`helpers.go` table 
 - **Wrong Redis addr**: defaults to `localhost:6379`, override with `REDIS_ADDR`
 - **Frontend API mismatch**: localStorage `aspm_api_url` not read by `api.ts` — hardcoded
 - **AI features silent**: if no provider configured, handlers not registered — check worker logs
+
+## Repository layer testing strategy (Phase 4 — decided 2026-06-09)
+
+### Decision: Shared Docker PostgreSQL (option C)
+
+**Chosen approach**: A single shared Postgres container (`docker-compose up postgres`) used by all repository tests, with per-test schema isolation via `CREATE SCHEMA test_xxx`.
+
+### Rationale
+
+| Option | Pros | Cons | Verdict |
+|--------|------|------|---------|
+| **A) testcontainers-go** | Real PG, fully isolated per test | New Go dep (~100MB container pulls), slow CI startup, overkill for 23 repos | ❌ Too heavy for current needs |
+| **B) sqlmock** | Fast, no PG needed | Fakes SQL behavior, doesn't catch real PG quirks (pgx types, NULL handling, CTEs). High maintenance: mock expectations must mirror exact query strings | ❌ Low signal, high maintenance |
+| **C) Shared Docker PG** | Real PG behavior, already have docker-compose, catches pgx issues, zero new deps | Need PG running for tests, requires explicit schema cleanup | ✅ Chosen |
+
+### Implementation plan
+
+1. **`internal/testhelpers/testdb.go`** — bootstrap helper:
+   ```go
+   func NewTestDB(t *testing.T) (*pgxpool.Pool, func()) {
+       // Connect to DATABASE_URL (or default postgres://aspm:aspm@localhost:5432/aspm)
+       // CREATE SCHEMA test_<random>()
+       // SET search_path = test_<random>
+       // Run migrations on the test schema
+       // Return pool + cleanup func (DROP SCHEMA CASCADE)
+   }
+   ```
+2. **Per-repository test pattern**:
+   ```go
+   func TestProjectRepo_Create(t *testing.T) {
+       pool, cleanup := testhelpers.NewTestDB(t)
+       defer cleanup()
+       repo := repository.NewProjectRepo(pool)
+       // test Create, Read, Update, Delete
+   }
+   ```
+3. **Makefile target**:
+   ```makefile
+   test-repo: dev-infra
+       @sleep 2  # Wait for PG
+       @go test -count=1 ./internal/repository/...
+   ```
+4. **CI**: When CI is added, the PG container will be a service dependency.
+
+### Constraints
+
+- Tests are **not parallel** within the repository package (shared PG). Use `-p 1` flag.
+- Each test file creates its own schema (or shares one via `TestMain`).
+- **No sqlmock** — all repository tests use real PG.
+- Follow existing test conventions: `setupTest(t)`, `t.Helper()`, `defer cleanup()`, test naming `Test<Method>_<Scenario>`.

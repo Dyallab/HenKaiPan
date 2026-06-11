@@ -84,7 +84,7 @@ func TestBuildGeneratedArticle(t *testing.T) {
 	assert.Equal(t, "ai-cve-2024-21626-runc-breakout", article.Slug)
 	assert.Equal(t, src.Title, article.Title)
 	assert.Equal(t, "## Remediation\nUpdate runc to v1.1.12", article.ContentMD)
-	assert.Equal(t, []string{"ai-generated", "grype"}, article.Tags)
+	assert.Equal(t, []string{"ai-generated"}, article.Tags)
 	assert.Equal(t, []string{"CWE-403"}, article.CWEIDs)
 	assert.Equal(t, []string{"CVE-2024-21626"}, article.RuleIDs)
 	assert.Equal(t, "grype", article.Scanner)

@@ -53,6 +53,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   </button>
 </div>
 
+<!-- Tag filter bar -->
+<div id="tag-filter-bar" class="flex gap-1.5 mb-3 flex-wrap items-center">
+  <span class="text-xs text-slate-500 font-bold uppercase tracking-widest mr-1">Tags:</span>
+  <button data-tag-filter="" class="tag-filter-btn px-2.5 py-1 rounded text-xs font-bold transition-colors bg-cyan-500 text-slate-950">All</button>
+</div>
+
 <!-- Projects list -->
 <div id="projects-list" class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
   <p class="px-5 py-3 text-sm text-slate-500">Loading...</p>
@@ -90,6 +96,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Default Branch</label>
         <input id="project-branch" type="text" placeholder="main" value="main"
           class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tags</label>
+        <input id="project-tags" type="text" placeholder="security, backend, api"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+        <p class="text-xs text-slate-500 mt-1">Comma-separated tags</p>
       </div>
     </div>
     <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
@@ -229,6 +241,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         <input id="edit-project-branch" type="text" placeholder="main"
           class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
       </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tags</label>
+        <input id="edit-project-tags" type="text" placeholder="security, backend, api"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500" />
+        <p class="text-xs text-slate-500 mt-1">Comma-separated tags</p>
+      </div>
     </div>
     <div id="edit-project-error" class="hidden mt-3 text-red-400 text-xs"></div>
     <div class="flex gap-3 mt-6">
@@ -242,14 +260,16 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
 <script>
 import { api } from '@lib/api.ts';
-import type { Project, ProjectCoverage, CoverageReport } from '@lib/api.ts';
+import type { Project, ProjectCoverage, CoverageReport, SecurityScore } from '@lib/api.ts';
 
 let allProjects: Project[] = [];
 let coverageData: Map<string, ProjectCoverage> = new Map();
+let securityScores: Map<string, SecurityScore> = new Map();
 let currentFilter = '';
 let showCoverageOnly = false;
 let currentProjectId: string | null = null;
 let searchQuery = '';
+let selectedTag = '';
 
 async function loadCoverage() {
   const report = await api.getCoverageReport().catch(() => null);
@@ -258,12 +278,13 @@ async function loadCoverage() {
   }
 }
 
-function openEditProjectModal(name: string, desc: string, repo: string, branch: string) {
+function openEditProjectModal(name: string, desc: string, repo: string, branch: string, tags?: string[]) {
   document.getElementById('edit-project-name-label')!.textContent = name;
   (document.getElementById('edit-project-name') as HTMLInputElement).value = name;
   (document.getElementById('edit-project-desc') as HTMLInputElement).value = desc;
   (document.getElementById('edit-project-repo') as HTMLInputElement).value = repo;
   (document.getElementById('edit-project-branch') as HTMLInputElement).value = branch;
+  (document.getElementById('edit-project-tags') as HTMLInputElement).value = tags ? tags.join(', ') : '';
   document.getElementById('edit-project-error')!.classList.add('hidden');
   document.getElementById('modal-edit-project')!.classList.remove('hidden');
 }
@@ -271,7 +292,28 @@ function openEditProjectModal(name: string, desc: string, repo: string, branch: 
 async function loadProjects() {
   await loadCoverage();
   allProjects = await api.getProjects(currentFilter).catch(() => []);
+  rebuildTagFilter();
   renderProjects();
+}
+
+function rebuildTagFilter() {
+  const tagSet = new Set<string>();
+  allProjects.forEach(p => (p.tags || []).forEach(t => tagSet.add(t)));
+  const sortedTags = Array.from(tagSet).sort();
+  const bar = document.getElementById('tag-filter-bar')!;
+  const activeTag = selectedTag;
+  bar.innerHTML = `<span class="text-xs text-slate-500 font-bold uppercase tracking-widest mr-1">Tags:</span>
+    <button data-tag-filter="" class="tag-filter-btn px-2.5 py-1 rounded text-xs font-bold transition-colors ${activeTag === '' ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">All</button>
+    ${sortedTags.map(t => `<button data-tag-filter="${t}" class="tag-filter-btn px-2.5 py-1 rounded text-xs font-bold transition-colors ${activeTag === t ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">${t}</button>`).join('')}`;
+
+  bar.querySelectorAll('.tag-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = (btn as HTMLElement).dataset.tagFilter || '';
+      selectedTag = tag;
+      rebuildTagFilter();
+      renderProjects();
+    });
+  });
 }
 
 function getCoverageBadge(coverage?: ProjectCoverage) {
@@ -291,10 +333,31 @@ function getCoverageBadge(coverage?: ProjectCoverage) {
   return '';
 }
 
+function getSecurityGradeBadge(score?: SecurityScore): string {
+  if (!score) return '';
+  const grade = score.grade;
+  if (grade.startsWith('A')) {
+    return `<span class="text-xs font-bold px-1.5 py-0.5 rounded border text-emerald-400 bg-emerald-500/10 border-emerald-500/20" title="Security Score: ${score.score}">${grade}</span>`;
+  }
+  if (grade.startsWith('B')) {
+    return `<span class="text-xs font-bold px-1.5 py-0.5 rounded border text-cyan-400 bg-cyan-500/10 border-cyan-500/20" title="Security Score: ${score.score}">${grade}</span>`;
+  }
+  if (grade.startsWith('C')) {
+    return `<span class="text-xs font-bold px-1.5 py-0.5 rounded border text-amber-400 bg-amber-500/10 border-amber-500/20" title="Security Score: ${score.score}">${grade}</span>`;
+  }
+  if (grade.startsWith('D')) {
+    return `<span class="text-xs font-bold px-1.5 py-0.5 rounded border text-orange-400 bg-orange-500/10 border-orange-500/20" title="Security Score: ${score.score}">${grade}</span>`;
+  }
+  return `<span class="text-xs font-bold px-1.5 py-0.5 rounded border text-red-400 bg-red-500/10 border-red-500/20" title="Security Score: ${score.score}">${grade}</span>`;
+}
+
 function shouldShowProject(p: Project) {
   if (showCoverageOnly) {
     const coverage = coverageData.get(p.id);
-    return coverage && (coverage.never_scanned || (coverage.days_since_scan !== undefined && coverage.days_since_scan > 7));
+    if (!coverage || (!coverage.never_scanned && (coverage.days_since_scan === undefined || coverage.days_since_scan <= 7))) return false;
+  }
+  if (selectedTag) {
+    return p.tags && p.tags.includes(selectedTag);
   }
   return true;
 }
@@ -346,6 +409,9 @@ function renderProjects() {
   container.innerHTML = `<div class="divide-y divide-slate-800/50">
     ${filteredProjects.map(p => {
       const coverage = coverageData.get(p.id);
+      const tagBadges = (p.tags || []).map(t =>
+        `<span class="text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded font-medium">${t}</span>`
+      ).join('');
       return `
       <div class="px-5 py-3 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
         <div class="min-w-0">
@@ -355,6 +421,7 @@ function renderProjects() {
             ${p.has_token ? '<span class="material-symbols-outlined text-green-400 text-base" title="GitHub token configured">key</span>' : ''}
             ${!p.app_id ? '<span class="text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded font-bold">Standalone</span>' : ''}
             ${getCoverageBadge(coverage)}
+            ${tagBadges}
           </div>
           <p class="text-xs text-slate-500 font-mono truncate max-w-md">${p.repo_url || 'No URL configured'}</p>
           <div class="flex items-center gap-1.5 mt-1">
@@ -364,26 +431,24 @@ function renderProjects() {
             </button>
           </div>
         </div>
-        <div class="flex items-center gap-3 shrink-0 ml-4">
+        <div class="flex items-center gap-1 shrink-0 ml-4">
           <a href="/dashboard/projects/detail?id=${encodeURIComponent(p.id)}"
-             class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 text-slate-300 border border-slate-600/30 rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-700 transition-colors">
+             class="p-1.5 text-slate-400 border border-slate-700/50 rounded hover:text-white hover:border-slate-500 transition-colors" title="View details">
             <span class="material-symbols-outlined text-sm">visibility</span>
-            Detail
           </a>
           <a href="/dashboard/scans?project=${encodeURIComponent(p.id)}"
-             class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors">
+             class="p-1.5 text-cyan-400 border border-cyan-500/20 rounded hover:text-cyan-300 hover:border-cyan-500/40 transition-colors" title="Run scan">
             <span class="material-symbols-outlined text-sm">security_update_good</span>
-            Scan
           </a>
           <button
             type="button"
             data-configure-token="${p.id}"
             data-project-name="${p.name}"
             data-project-has-token="${p.has_token}"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/20 transition-colors"
+            class="p-1.5 text-cyan-400 border border-cyan-500/20 rounded hover:text-cyan-300 hover:border-cyan-500/40 transition-colors"
+            title="${p.has_token ? 'Token configured' : 'Configure GitHub token'}"
           >
             <span class="material-symbols-outlined text-sm">${p.has_token ? 'key' : 'key_off'}</span>
-            ${p.has_token ? 'Token Set' : 'Set Token'}
           </button>
           <button
             type="button"
@@ -392,19 +457,20 @@ function renderProjects() {
             data-project-desc="${p.description || ''}"
             data-project-repo="${p.repo_url || ''}"
             data-project-branch="${p.default_branch || ''}"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-700/50 text-slate-300 border border-slate-600/30 rounded text-xs font-bold uppercase tracking-wider hover:bg-slate-700 transition-colors"
+            data-project-tags='${JSON.stringify(p.tags || [])}'
+            class="p-1.5 text-slate-400 border border-slate-700/50 rounded hover:text-white hover:border-slate-500 transition-colors"
+            title="Edit project"
           >
             <span class="material-symbols-outlined text-sm">edit</span>
-            Edit
           </button>
           <button
             type="button"
             data-delete-project="${p.id}"
             data-project-name="${p.name}"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors"
+            class="p-1.5 text-red-400 border border-red-500/20 rounded hover:text-red-300 hover:border-red-500/40 transition-colors"
+            title="Delete project"
           >
             <span class="material-symbols-outlined text-sm">delete</span>
-            Delete
           </button>
           <p class="text-xs text-slate-600 font-mono">${new Date(p.created_at).toLocaleDateString()}</p>
         </div>
@@ -445,7 +511,8 @@ function renderProjects() {
       const desc = el.dataset.projectDesc || '';
       const repo = el.dataset.projectRepo || '';
       const branch = el.dataset.projectBranch || '';
-      openEditProjectModal(name, desc, repo, branch);
+      const tags = el.dataset.projectTags ? JSON.parse(el.dataset.projectTags) : undefined;
+      openEditProjectModal(name, desc, repo, branch, tags);
     });
   });
 
@@ -596,10 +663,12 @@ document.getElementById('submit-edit-project')!.addEventListener('click', async 
   const desc = (document.getElementById('edit-project-desc') as HTMLInputElement).value.trim();
   const repo = (document.getElementById('edit-project-repo') as HTMLInputElement).value.trim();
   const branch = (document.getElementById('edit-project-branch') as HTMLInputElement).value.trim();
+  const tagsStr = (document.getElementById('edit-project-tags') as HTMLInputElement).value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : undefined;
   const errEl = document.getElementById('edit-project-error')!;
   if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
   try {
-    await api.updateProject(pid, { name, description: desc, repo_url: repo, default_branch: branch || 'main' });
+    await api.updateProject(pid, { name, description: desc, repo_url: repo, default_branch: branch || 'main', tags });
     document.getElementById('modal-edit-project')!.classList.add('hidden');
     await loadProjects();
   } catch (e: any) {
@@ -626,11 +695,13 @@ document.getElementById('submit-create-project')!.addEventListener('click', asyn
   const desc = (document.getElementById('project-desc') as HTMLInputElement).value.trim();
   const repoUrl = (document.getElementById('project-repo-url') as HTMLInputElement).value.trim();
   const branch = (document.getElementById('project-branch') as HTMLInputElement).value.trim() || 'main';
+  const tagsStr = (document.getElementById('project-tags') as HTMLInputElement).value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : undefined;
   const errEl = document.getElementById('project-error')!;
   if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
   if (!repoUrl) { errEl.textContent = 'Repository URL is required.'; errEl.classList.remove('hidden'); return; }
   try {
-    await api.createProject({ name, description: desc, repo_url: repoUrl, default_branch: branch, provider: 'git' });
+    await api.createProject({ name, description: desc, repo_url: repoUrl, default_branch: branch, provider: 'git', tags });
     document.getElementById('modal-create-project')!.classList.add('hidden');
     await loadProjects();
   } catch (e: any) {

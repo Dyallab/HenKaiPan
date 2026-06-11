@@ -15,11 +15,12 @@ type LoginRequest struct {
 }
 
 type CreateProjectRequest struct {
-	Name          string `json:"name" validate:"required,max=255"`
-	Description   string `json:"description" validate:"max=1000"`
-	RepoURL       string `json:"repo_url" validate:"omitempty,url"`
-	Provider      string `json:"provider" validate:"omitempty"`
-	DefaultBranch string `json:"default_branch" validate:"omitempty"`
+	Name          string   `json:"name" validate:"required,max=255"`
+	Description   string   `json:"description" validate:"max=1000"`
+	RepoURL       string   `json:"repo_url" validate:"omitempty,url"`
+	Provider      string   `json:"provider" validate:"omitempty"`
+	DefaultBranch string   `json:"default_branch" validate:"omitempty"`
+	Tags          []string `json:"tags" validate:"max=10,dive,max=50"`
 }
 
 type UpdateFindingRequest struct {
@@ -34,8 +35,10 @@ type CreateScanRequest struct {
 }
 
 type BulkUpdateFindingsRequest struct {
-	IDs    []string `validate:"required,min=1,dive,uuid"`
-	Status string   `validate:"required,oneof=open in_review accepted_risk fixed verified"`
+	IDs        []string `json:"ids" validate:"required,min=1,dive,uuid"`
+	Status     string   `json:"status" validate:"omitempty,oneof=open in_review accepted_risk fixed verified"`
+	AssignedTo *string  `json:"assigned_to" validate:"omitempty,max=255"`
+	Notes      *string  `json:"notes" validate:"omitempty,max=5000"`
 }
 
 type ValidationError struct {

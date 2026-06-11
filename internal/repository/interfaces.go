@@ -153,6 +153,7 @@ type ProjectCreate struct {
 	RepoURL       string
 	Provider      string
 	DefaultBranch string
+	Tags          []string
 }
 
 type ProjectUpdate struct {
@@ -163,6 +164,7 @@ type ProjectUpdate struct {
 	DefaultBranch  *string
 	ExternalRepoID *string
 	AppID          *string // nil = no change, "" = unassign, UUID = assign to app
+	Tags           *[]string
 }
 
 type BulkCreateResult struct {
@@ -247,6 +249,7 @@ type MetricsRepository interface {
 	SLACompliance(ctx context.Context) (*models.SLACompliance, error)
 	ScannerHealth(ctx context.Context) ([]models.ScannerHealth, error)
 	PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error)
+	SecurityScores(ctx context.Context, projectID *string) ([]models.SecurityScore, error)
 }
 
 // ── Knowledge ─────────────────────────────────────────────────────────────────
@@ -530,6 +533,9 @@ type NotificationSettingsUpdate struct {
 	EmailRecipients   *[]string
 	DigestFrequency   *string
 	DigestTime        *string
+	ReportSchedule    *string
+	ReportTime        *string
+	ReportChannel     *string
 }
 
 type JiraIntegrationUpdate struct {

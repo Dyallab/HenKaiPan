@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"aspm/internal/models"
 
@@ -283,4 +284,99 @@ func (r *metricsRepo) PrometheusStats(ctx context.Context) (scansTotal, scansRun
 	}
 
 	return scansTotal, scansRunning, scansFailed, findingsBySeverity, nil
+}
+
+func (r *metricsRepo) SecurityScores(ctx context.Context, projectID *string) ([]models.SecurityScore, error) {
+	query := `
+		SELECT
+			p.id::text,
+			p.name,
+			COALESCE(COUNT(*) FILTER (WHERE f.severity = 'critical'), 0)::int,
+			COALESCE(COUNT(*) FILTER (WHERE f.severity = 'high'), 0)::int,
+			COALESCE(COUNT(*) FILTER (WHERE f.severity = 'medium'), 0)::int,
+			COALESCE(COUNT(*) FILTER (WHERE f.severity = 'low'), 0)::int,
+			MAX(s.completed_at) AS last_scan_at
+		FROM projects p
+		LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
+		LEFT JOIN findings f ON f.scan_id = s.id AND f.status NOT IN ('fixed', 'verified')
+		WHERE ($1::text IS NULL OR p.id::text = $1)
+		GROUP BY p.id, p.name
+		ORDER BY p.name`
+
+	rows, err := r.db.Query(ctx, query, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("security scores: %w", err)
+	}
+	defer rows.Close()
+
+	var scores []models.SecurityScore
+	for rows.Next() {
+		var s models.SecurityScore
+		if err := rows.Scan(&s.ProjectID, &s.ProjectName, &s.Critical, &s.High, &s.Medium, &s.Low, &s.LastScanAt); err != nil {
+			return nil, fmt.Errorf("security scores scan: %w", err)
+		}
+		s.Score, s.Grade = computeSecurityGrade(s.Critical, s.High, s.Medium, s.Low, s.LastScanAt)
+		scores = append(scores, s)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("security scores rows: %w", err)
+	}
+	if scores == nil {
+		scores = []models.SecurityScore{}
+	}
+	return scores, nil
+}
+
+func computeSecurityGrade(critical, high, medium, low int, lastScanAt *time.Time) (int, string) {
+	score := 100
+	score -= critical * 15
+	score -= high * 5
+	score -= medium * 2
+	score -= low * 1
+
+	if lastScanAt == nil {
+		score -= 40
+	} else {
+		daysSinceScan := int(time.Since(*lastScanAt).Hours() / 24)
+		if daysSinceScan > 30 {
+			score -= 20
+		}
+	}
+
+	if score < 0 {
+		score = 0
+	}
+
+	return score, mapSecurityGrade(score)
+}
+
+func mapSecurityGrade(score int) string {
+	switch {
+	case score >= 97:
+		return "A+"
+	case score >= 93:
+		return "A"
+	case score >= 90:
+		return "A-"
+	case score >= 87:
+		return "B+"
+	case score >= 83:
+		return "B"
+	case score >= 80:
+		return "B-"
+	case score >= 77:
+		return "C+"
+	case score >= 73:
+		return "C"
+	case score >= 70:
+		return "C-"
+	case score >= 67:
+		return "D+"
+	case score >= 63:
+		return "D"
+	case score >= 60:
+		return "D-"
+	default:
+		return "F"
+	}
 }
