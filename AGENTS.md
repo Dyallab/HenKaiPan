@@ -1,205 +1,72 @@
-# AGENTS.md — HenKaiPan ASPM
+# HenKaiPan — AGENTS.md
 
-## What runs where
+## Binaries
 
-- **API** (`cmd/api/main.go`): chi router, JWT auth, CORS, REST endpoints, enqueues jobs to Redis/Asynq
-- **Worker** (`cmd/worker/main.go`): Asynq server, recovers stuck scans on startup, runs scan/validation/summary/webhook/email jobs
-- **Frontend** (`frontend/`): Astro 6 + Tailwind v4, calls API via `frontend/src/lib/api.ts`
-- **Database**: PostgreSQL 17 (source of truth)
-- **Queue**: Redis 8 + Asynq (background job transport + SSE pub/sub relay between worker and API)
+- **API** (`cmd/api/main.go`): chi router, JWT auth, REST handlers. Build tag `embed_frontend` embeds `frontend/dist/` into binary.
+- **Worker** (`cmd/worker/main.go`): Asynq consumer. Runs scans, AI validation, webhooks, emails, digests. Recovers stuck scans + backfills vulnerabilities on startup.
+- **Bot** (`cmd/bot/main.go`): Scaffolding only — no implementation yet.
 
-## Local dev commands
+## Dev environment
 
-```bash
-make dev-infra     # Start postgres + redis only
-make dev-api       # air -c .air.toml (hot reload API)
-make dev-worker    # air -c .air-worker.toml (hot reload worker)
-make dev-frontend  # cd frontend && pnpm dev
-make up            # Full docker compose stack (api, worker, postgres, redis, mailpit)
-make down          # Stop docker compose stack
-make build         # Builds bin/api and bin/worker
-make migrate       # Manual migration: make migrate MIGRATION=migrations/xxx.sql
-make sync-migrations # Sync root /migrations to internal/db/migrations/
-```
+- `.envrc` → `direnv` loads Nix dev shell + `dotenv .env` automatically on `cd` into repo.
+- `.env` is **required** (copied from `.env.example`). App exits if `DATABASE_URL`, `JWT_SECRET`, or `SECRET_ENCRYPTION_KEY` missing.
+- No `.air.toml` files in repo (gitignored or local). `air` still works — just needs the config file.
 
-## Required setup
+## Commands
 
-1. **Copy `.env.example` to `.env`** — app exits if `DATABASE_URL`, `JWT_SECRET`, or `SECRET_ENCRYPTION_KEY` missing
-2. **Default ports**: API `8080`, Frontend `4321`, Postgres `5432`, Redis `6379`, Mailpit `8025/1025`
-3. **Scanner binaries**: Bundled in worker image — no Docker socket required
+| What | How |
+|------|-----|
+| Start infra (postgres + redis) | `nix run .#dev-infra` |
+| Dev API (air hot-reload) | `make dev-api` |
+| Dev worker (air hot-reload) | `make dev-worker` |
+| Dev frontend (pnpm) | `nix run .#dev-frontend` |
+| Full Docker stack | `make up` / `make down` |
+| Build Go binaries (quick) | `make build` |
+| Build Go binaries (obfuscated) | `nix run .#build-obfuscated` |
+| Build all (nix) | `nix build .#{api,worker,bot,full}` |
+| Tests (internal/) | `nix run .#test` |
+| Tests (all packages) | `make test-race` |
+| Tests (integration tag) | `make test-integration` |
+| Test coverage | `nix run .#test-coverage` |
+| Go mod tidy | `nix run .#tidy` |
+| Run migration | `nix run .#migrate -- migrations/xxx.sql` |
+| Sync migration dirs | `nix run .#sync-migrations` |
+| Seed demo workspace | `docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql` |
+| Generate license | `nix run .#gen-license -- email days` |
 
-## Frontend gotchas
+## Architecture
 
-- Use `pnpm` inside `frontend/`; no root Node workspace
-- `frontend/src/lib/api.ts` uses `PUBLIC_API_BASE` env var; defaults to current origin if unset
-- Auth: bearer token stored in `localStorage` as `aspm_token`
-- CORS allows: `http://localhost:4321`, `http://localhost:4322`, `http://localhost:3000`
+- **30 packages** under `internal/` — entrypoints under `cmd/`. All Go code imports from `aspm/...`.
+- **Repository layer** (`internal/repository/`): single `NewPostgresStores(pool, redisAddr)` factory. Repos accessed via `store.X` throughout handlers/tasks.
+- **Queue** (`internal/queue/`): Asynq client + server. Job types: `scan:run` (3 retries, 30min timeout), `agent:validate` (5 retries), `webhook:send`, `email:send`, `snippet:enrich`, `digest:send`, `report:send`.
+- **SSE bridge** (`internal/events/redis_bridge.go`): worker publishes events to Redis pub/sub; API subscribes and relays to SSE clients.
+- **AI providers**: OpenRouter / Cloudflare / Ollama. Per-task selection via `AI_{REMEDIATION,SUMMARY,VALIDATION}_PROVIDER`. If unconfigured, handlers silently not registered — check worker logs.
+- **License** (`internal/license/`): offline HMAC-SHA256 validation. Feature gates: comments, audit-log, risk-acceptance, reports, ai-remediation, teams, policies, scheduling, integrations, email-notifications.
+- **Scanner packs**: `sast`, `sca`, `secrets`, `iac`, `containers` — resolved in `internal/scanner/registry.go`. Scanner binaries bundled in worker Docker image.
 
-## AI provider configuration
+## Key quirks
 
-Per-task provider selection via env vars:
-- `AI_REMEDIATION_PROVIDER`, `AI_SUMMARY_PROVIDER`, `AI_VALIDATION_PROVIDER` — `"cloudflare"` or `"openrouter"`
-- If provider credentials missing, that feature degrades (no hard failure)
-- Worker logs which handlers are registered at startup based on config
+- **Migrations live in two places**: `migrations/` (source) and `internal/db/migrations/` (embedded copy). **Must be identical.** CI checks `diff -rq`. Sync with `nix run .#sync-migrations`.
+- **Frontend embed**: `go build -tags embed_frontend` compiles Astro build into the API binary. Without the tag, API serves no frontend — run Astro separately.
+- **CORS defaults**: `http://localhost:4321`, `4322`, `3000`. Override with `CORS_ALLOWED_ORIGINS`.
+- **Auth token**: Stored in `localStorage` as `aspm_token`. External CI/CD endpoints (`/api/v1/scans/external`) use `X-API-Key` header instead of JWT.
+- **`/api/repos` is legacy** — superseded by `/api/apps/{id}/projects`.
 
-## Data / infra quirks
+## Tests
 
-- **Migrations auto-run**: `./migrations` mounted to `/docker-entrypoint-initdb.d` in postgres container
-- **Finding deduplication**: SHA256 fingerprint (`scanner:rule_id:file_path:line`) with `ON CONFLICT DO NOTHING`
-- **Scanner packs**: `sast`, `sca`, `secrets`, `iac`, `containers` — resolved in `internal/scanner/registry.go`
-- **DB bootstrap**: `internal/db/postgres.go` — single connection point, repositories under `internal/repository`
+- **27 test files** across internal packages. Most are unit tests with no external dependencies.
+- **No repository integration tests exist yet** (`internal/repository/` has zero test files). The agreed strategy: shared Docker PG (`docker compose up postgres`) with per-test schema isolation — `internal/testhelpers/` needs `NewTestDB` implemented.
+- Redis-using tests use `miniredis` via `testhelpers.NewMiniredis(t)` — no real Redis needed.
 
-## Product model caveat
+## SQL rules (enforced)
 
-- **App** = optional business grouping (`app_id` can be NULL)
-- **Project** = primary unit (users create, connect, scan, review)
-- **Legacy routes**: `/api/repos` still exists but superseded by `/api/apps/{id}/projects`
-- **TODO.md** marks repo-based metrics as legacy — verify before modifying handlers
+- **Never** string-interpolate user values into SQL — use `$N` positional params.
+- Dynamic identifiers (table names, sort columns) validated against a whitelist — see `helpers.go DeleteByID`.
+- LIMIT/OFFSET must be `$N` params, never `%d`.
+- All queries were audited 2026-06-02. One real injection risk fixed, two LIMIT/OFFSETs parameterized.
 
-## Verification guidance
+## CI/CD (`.github/workflows/ci-cd.yml`)
 
-No CI workflows or meaningful tests checked in. Fastest verification:
-1. `make build` — ensures Go compiles
-2. Manual API checks against `localhost:8080`
-3. `make dev-frontend` — verify UI renders
-
-## Queue architecture
-
-- **Job types**: `scan:run` (3 retries, 30min timeout), `agent:validate` (5 retries), `webhook:send`, `email:send`
-- **Dead Letter Queue**: exhausted retries go to DLQ — inspect via `asynqmon` or Redis CLI
-- **Recovery**: worker recovers stuck scans on startup via `store.Scans.RecoverStuck()`
-- **Metrics**: Prometheus at `:9090/metrics` (queue + DB stats)
-
-## High-value files
-
-| File | Purpose |
-|------|---------|
-| `README.md` | Architecture diagrams, runtime flows, screenshots |
-| `Makefile` | Canonical dev/build commands |
-| `docker-compose.yml` | Service wiring, migration mount |
-| `internal/config/config.go` | Env var validation, AI provider resolution |
-| `TODO.md` | Roadmap, legacy markers, commercialization context |
-| `docs/queue-architecture.md` | Retry strategies, DLQ handling, monitoring setup |
-| `frontend/src/lib/api.ts` | Browser API client, TypeScript interfaces |
-| `migrations/*.sql` | Schema changes — numbered, auto-applied on container init |
-
-## Demo workspace seed
-
-```bash
-docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql
-```
-Creates sample project, 4 scans (semgrep/trivy/gitleaks), 9 findings with real CVEs.
-
-## SQL safety rules (read before writing queries)
-
-The repository layer (`internal/repository/`) MUST NOT use raw string interpolation for SQL.
-
-### ✅ Approved patterns
-
-```go
-// 1. Static SQL with positional params — always preferred
-rows, err := r.db.Query(ctx, `SELECT * FROM findings WHERE id = $1`, id)
-
-// 2. pgx.NamedArgs — good for queries with many params
-db.QueryRow(ctx, `
-    INSERT INTO projects (name, repo_url)
-    VALUES (@name, @repo_url)
-    RETURNING id`,
-    pgx.NamedArgs{"name": p.Name, "repo_url": p.RepoURL},
-)
-
-// 3. Dynamic WHERE building with parameterized values — SAFE
-where = append(where, fmt.Sprintf("severity = ANY($%d)", argIdx))
-args = append(args, f.Severities)
-// Column names are hardcoded; values go through $N placeholders.
-
-// 4. Dynamic param numbering for batch inserts — SAFE
-valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d)", base+1, base+2))
-// Builds $1, $2 placeholders, values passed via args slice.
-
-// 5. Dynamic table names — use whitelist only (see helpers.go DeleteByID)
-if !allowedDeleteTables[table] { return error }
-db.Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE id = $1", table), id)
-```
-
-### ❌ Banned patterns
-
-```go
-// NEVER: string concat with user input
-query := "SELECT * FROM findings WHERE severity = '" + severity + "'"
-
-// NEVER: fmt.Sprintf with user values in SQL
-query := fmt.Sprintf("SELECT * FROM findings WHERE severity = '%s'", severity)
-
-// NEVER: LIMIT/OFFSET via %d — use $N params instead
-// WRONG:
-query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
-// RIGHT:
-query += ` LIMIT $3 OFFSET $4`
-args = append(args, limit, offset)
-```
-
-### Why
-
-PostgreSQL can't parameterize table/column names, LIMIT/OFFSET values, or sort columns. These go through `fmt.Sprintf` and risk SQL injection if user input reaches them. Always validate dynamic identifiers against a whitelist.
-
-### 2026-06-02 audit result
-
-All existing queries audited. One real injection risk fixed (`helpers.go` table whitelist), two LIMIT/OFFSET calls parameterized (`notification.go`, `vulnerability_new.go`). The patterns above are the residue — safe uses of `fmt.Sprintf` for parameter numbering, not value interpolation.
-
-## Common pitfalls
-
-- **No `.env`**: app exits immediately with structured error
-- **Wrong Redis addr**: defaults to `localhost:6379`, override with `REDIS_ADDR`
-- **Frontend API mismatch**: localStorage `aspm_api_url` not read by `api.ts` — hardcoded
-- **AI features silent**: if no provider configured, handlers not registered — check worker logs
-
-## Repository layer testing strategy (Phase 4 — decided 2026-06-09)
-
-### Decision: Shared Docker PostgreSQL (option C)
-
-**Chosen approach**: A single shared Postgres container (`docker-compose up postgres`) used by all repository tests, with per-test schema isolation via `CREATE SCHEMA test_xxx`.
-
-### Rationale
-
-| Option | Pros | Cons | Verdict |
-|--------|------|------|---------|
-| **A) testcontainers-go** | Real PG, fully isolated per test | New Go dep (~100MB container pulls), slow CI startup, overkill for 23 repos | ❌ Too heavy for current needs |
-| **B) sqlmock** | Fast, no PG needed | Fakes SQL behavior, doesn't catch real PG quirks (pgx types, NULL handling, CTEs). High maintenance: mock expectations must mirror exact query strings | ❌ Low signal, high maintenance |
-| **C) Shared Docker PG** | Real PG behavior, already have docker-compose, catches pgx issues, zero new deps | Need PG running for tests, requires explicit schema cleanup | ✅ Chosen |
-
-### Implementation plan
-
-1. **`internal/testhelpers/testdb.go`** — bootstrap helper:
-   ```go
-   func NewTestDB(t *testing.T) (*pgxpool.Pool, func()) {
-       // Connect to DATABASE_URL (or default postgres://aspm:aspm@localhost:5432/aspm)
-       // CREATE SCHEMA test_<random>()
-       // SET search_path = test_<random>
-       // Run migrations on the test schema
-       // Return pool + cleanup func (DROP SCHEMA CASCADE)
-   }
-   ```
-2. **Per-repository test pattern**:
-   ```go
-   func TestProjectRepo_Create(t *testing.T) {
-       pool, cleanup := testhelpers.NewTestDB(t)
-       defer cleanup()
-       repo := repository.NewProjectRepo(pool)
-       // test Create, Read, Update, Delete
-   }
-   ```
-3. **Makefile target**:
-   ```makefile
-   test-repo: dev-infra
-       @sleep 2  # Wait for PG
-       @go test -count=1 ./internal/repository/...
-   ```
-4. **CI**: When CI is added, the PG container will be a service dependency.
-
-### Constraints
-
-- Tests are **not parallel** within the repository package (shared PG). Use `-p 1` flag.
-- Each test file creates its own schema (or shares one via `TestMain`).
-- **No sqlmock** — all repository tests use real PG.
-- Follow existing test conventions: `setupTest(t)`, `t.Helper()`, `defer cleanup()`, test naming `Test<Method>_<Scenario>`.
+- **test**: `go test -race -count=1 ./internal/...` (Go 1.26).
+- **check-migrations**: `diff -rq migrations/ internal/db/migrations/`.
+- **api / worker**: Docker build+push to `ghcr.io/dyallab/henkaipan-{api,worker}` on tag push (v\*). Cached via GitHub Actions cache.

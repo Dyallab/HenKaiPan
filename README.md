@@ -28,6 +28,12 @@ HenKaiPan uses a feature-based licensing system. Core functionality is free, whi
 - **Audit Log** — complete audit trail of user actions
 - **Risk Acceptance** — formal risk acceptance workflow with approval chain
 - **Reports & Advanced Metrics** — trend analysis, risk scores, finding exports
+- **AI Remediation** — AI-generated fix suggestions and knowledge articles
+- **Teams** — team-based project organization and member management
+- **Policies & Suppressions** — custom scan policies and finding suppression rules
+- **Scheduling** — cron-based periodic scan scheduling
+- **Integrations** — Jira ticket creation, GitHub PR integration
+- **Email Notifications** — SMTP-based notification delivery
 
 License is validated offline via HMAC-SHA256. Configure with `LICENSE_KEY` environment variable. The signing secret is embedded in the binary.
 
@@ -38,7 +44,7 @@ License is validated offline via HMAC-SHA256. Configure with `LICENSE_KEY` envir
 - **Database:** PostgreSQL 17 + pgx v5
 - **Background jobs:** Redis 8 + Asynq
 - **Scanners:** Bundled binaries (Semgrep, Trivy, Gitleaks, Checkov, Nuclei, and more)
-- **AI features:** OpenRouter and Cloudflare Workers AI for remediation generation and finding validation
+- **AI features:** OpenRouter, Cloudflare Workers AI, and Ollama for remediation generation, finding validation, and summarization
 
 ## Architecture Overview
 
@@ -143,7 +149,7 @@ flowchart TD
 - **Data** — PostgreSQL is the source of truth; repositories live under `internal/repository`. Database migrations auto-run on API startup via `internal/db/migrate.go`.
 - **AI & integrations** — OpenRouter / Cloudflare AI, GitHub, Jira, webhooks, and notifications.
 - **Onboarding** — guided wizard at `/dashboard/welcome` with 3-step flow (project → token → first scan) and first-run redirect.
-- **License System** — offline JWT-based license validation with feature gates (`internal/license/`).
+- **License System** — offline HMAC-SHA256 license validation with feature gates (`internal/license/`).
 - **Notifications** — in-app notification system with unread tracking (`internal/handlers/notifications.go`).
 
 ### Database Schema
@@ -206,29 +212,39 @@ flowchart TD
 ## Source Tree
 
 ```text
-cmd/           # API and worker entrypoints
+cmd/           # API, worker, and bot entrypoints
 frontend/      # Astro app and browser API client
 internal/      # Auth, handlers, repository, scanner, tasks, integrations, license, db
 migrations/    # Database schema and changes (auto-run on startup)
-scripts/       # Demo workspace seed and utility scripts
+scripts/       # License generator and demo workspace seed
 docker/        # Dockerfiles for API and worker (scanner binaries bundled in worker image)
 docs/          # User guides and documentation
 ```
 
 ## Local Development
 
-### Prerequisites
+### Prerequisites (automatic with Nix)
+
+The recommended setup uses [Nix](https://nixos.org/) with [direnv](https://direnv.net/):
+
+```bash
+direnv allow  # loads Nix dev shell + .env automatically
+```
+
+This provides Go, Node.js, PostgreSQL, Redis, and all tooling — no manual installs needed.
+
+### Manual prerequisites (without Nix)
 
 - Go 1.26+
 - Node.js 24+
 - PostgreSQL 17+
 - Redis 8+
-- Scanner binaries installed on PATH (or use the worker Docker image which bundles them)
+- Scanner binaries on PATH (or use the worker Docker image which bundles them)
 
 ### Start infrastructure only
 
 ```bash
-make dev-infra
+nix run .#dev-infra
 ```
 
 ### Seed demo workspace (optional)
@@ -242,9 +258,9 @@ Creates a sample project, scans (semgrep + trivy + gitleaks), and 9 findings wit
 ### Start each service in separate terminals
 
 ```bash
-make dev-api
-make dev-worker
-make dev-frontend
+make dev-api         # API with hot-reload (air)
+make dev-worker      # Worker with hot-reload (air)
+nix run .#dev-frontend  # Astro dev server
 ```
 
 ### Start the full stack with Docker Compose
@@ -255,14 +271,14 @@ make up
 
 ## Environment
 
-Copy `.env.example` to `.env` and configure the required variables. All available configuration options are documented in the `.env.example` file, including:
+Copy `.env.example` to `.env` and configure the required variables. With direnv, `.env` is loaded automatically — just run `direnv allow`. All available configuration options are documented in the `.env.example` file, including:
 
 - **Required**: Database, JWT secret, admin credentials
 - **Server**: Port, Redis configuration
 - **Integrations**: GitHub, SMTP/email
-- **AI**: OpenRouter and/or Cloudflare Workers AI configuration
+- **AI**: OpenRouter, Cloudflare Workers AI, and/or Ollama configuration
 
-If AI providers are not configured, AI remediation and validation features will be disabled.
+If AI providers are not configured, AI remediation, validation, and summary features will be disabled.
 
 ## License
 

@@ -66,6 +66,13 @@ type Config struct {
 	// Do NOT enable in production without auth — exposes runtime profiling data.
 	EnablePprof bool
 
+	// Slack Bot configuration (Socket Mode)
+	SlackAppToken string // xapp-... Slack App-Level Token with connections:write scope
+	SlackBotToken string // xoxb-... Slack Bot Token with chat:write, app_mentions:read
+	APIBaseURL    string // HenKaiPan API base URL for bot triage actions
+	APIToken      string // HenKaiPan API auth token for bot API calls
+	SlackEnabled  bool
+
 	// CORS configuration
 	AllowedOrigins []string // default: localhost origins
 }
@@ -118,8 +125,13 @@ func Load() *Config {
 		AIValidationProvider:  envOr("AI_VALIDATION_PROVIDER", "openrouter"),
 		AllowedOrigins:        allowedOrigins,
 		EnablePprof:           envBool("ENABLE_PPROF", false),
+		SlackAppToken:         os.Getenv("SLACK_APP_TOKEN"),
+		SlackBotToken:         os.Getenv("SLACK_BOT_TOKEN"),
+		APIBaseURL:            os.Getenv("API_BASE_URL"),
+		APIToken:              os.Getenv("API_TOKEN"),
 	}
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
+	cfg.SlackEnabled = cfg.SlackAppToken != "" && cfg.SlackBotToken != "" && cfg.APIBaseURL != "" && cfg.APIToken != ""
 
 	if len(missing) > 0 {
 		for _, k := range missing {
@@ -149,6 +161,7 @@ func Load() *Config {
 		"validation_provider", cfg.ValidationConfig.Name,
 		"validation_model", cfg.ValidationConfig.Model,
 		"cors_allowed_origins", cfg.AllowedOrigins,
+		"slack_bot_enabled", cfg.SlackEnabled,
 	)
 
 	return cfg

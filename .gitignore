@@ -68,3 +68,11 @@ Thumbs.db
 data/
 
 tmp/
+
+.omo
+result/
+result-*
+
+# direnv
+.direnv/
+.envrc
