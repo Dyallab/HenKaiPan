@@ -39,14 +39,15 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.21.0 (2026-06-05)
-**Next planned:** v1.22.0
+**Current release:** v1.23.0 (2026-06-11)
+**Next planned:** v1.24.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
-| v1.21.0 | AI notification summaries & weekly digest narrative, finding assignment notifications, digest config (frequency/time), Ollama model compat fix (NumPredict 2048, 180s timeout) |
+| v1.23.0 | Project tags, security scores, scheduled report delivery, knowledge article improvements, bulk findings export with consistent snippet display |
+| v1.22.0 | Finding detail perf overhaul (Redis cache, composite endpoint, ~20s→&lt;10ms), SSE memory leak/over-fetching fixes, ENABLE_PPROF, pnpm pinned |
 | v1.20.5 | GetByID query fix — missing argument caused pgx error, breaking finding detail and dependant endpoints |
 | v1.20.4 | MCP session context fix (r.Context → context.Background), rate limit 10/token, token last_used tracking in auth middleware |
 | v1.20.3 | MCP Streamable HTTP only — removed legacy SSE transport, POST-only endpoint |
@@ -85,16 +86,12 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-## 🔜 v1.22.0 — Planned
+## 🔜 v1.24.0 — Planned
 
-Focus: **SMB workflow & visibility** — security score, project tags, bulk actions, Slack bot, scheduled reports, testing foundation.
+Focus: **SMB workflow & visibility** — bulk actions, Slack bot, onboarding flow.
 
-- [ ] **Project Tags**: free-form labels on projects (`critical`, `frontend`, `pci`, etc.) with tag filtering on Projects page — migration, API, UI
 - [ ] **Bulk Findings Actions**: multi-select findings → batch status change / assign / dismiss — UI-only, backend already supports PATCH
-- [ ] **Security Score**: computed grade (A+/A/B/C/D/F) or 0-100 score per project based on finding severity counts, coverage freshness, and trend — backend compute + UI badge
-- [ ] **Scheduled Report Delivery**: email/Slack delivery of scan reports on configurable schedule (cron-based)
 - [ ] **Slack Interactive Bot**: Slack Socket Mode bot for triage (acknowledge, dismiss, assign) directly from Slack — interactive buttons via Block Kit
-- [ ] **Phase 4 — Repository layer approach decision**: document test strategy (testcontainers-go vs sqlmock vs shared PG) in AGENTS.md
 
 ---
 
@@ -200,7 +197,7 @@ Focus: **SMB workflow & visibility** — security score, project tags, bulk acti
 - [ ] **Phase 4 — Repository layer (DB-backed)**
   - **Largest surface**: 23 files, 16 interfaces, 75+ exported symbols. Highest risk for regressions.
   - Approach options: A) testcontainers-go with real PG (most reliable), B) sqlmock (fastest), C) shared Docker PG (balanced)
-  - [ ] Decide approach and document in `AGENTS.md`
+  - [x] Decide approach and document in \`AGENTS.md\`
   - [ ] Create shared test DB bootstrap (`internal/testhelpers/testdb.go`)
   - [ ] Implement tests per repository interface:
     - [ ] `Stores` (core container struct)
@@ -308,4 +305,4 @@ Focus: **SMB workflow & visibility** — security score, project tags, bulk acti
 
 ---
 
-*Última actualización: 2026-06-09*
+*Última actualización: 2026-06-11*

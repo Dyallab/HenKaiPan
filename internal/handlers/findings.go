@@ -219,22 +219,49 @@ func (h *Handler) BulkUpdateFindings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Status == "" {
-		writeError(w, r, http.StatusBadRequest, "status is required")
+	upd := repository.FindingUpdate{}
+	if req.Status != "" {
+		upd.Status = &req.Status
+	}
+	if req.AssignedTo != nil {
+		upd.AssignedTo = req.AssignedTo
+	}
+	if req.Notes != nil {
+		upd.Notes = req.Notes
+	}
+
+	if upd.Status == nil && upd.AssignedTo == nil && upd.Notes == nil {
+		writeError(w, r, http.StatusBadRequest, "at least one field (status, assigned_to, notes) is required")
 		return
 	}
 
 	updated := 0
 	for _, id := range req.IDs {
-		upd := repository.FindingUpdate{
-			Status: &req.Status,
+		f, err := h.store.Findings.Update(r.Context(), id, upd)
+		if err != nil {
+			slog.Debug("bulk update: failed to update finding", "finding_id", id, "err", err)
+			continue
 		}
-		if _, err := h.store.Findings.Update(r.Context(), id, upd); err == nil {
-			updated++
+
+		h.auditLog(r, "finding.bulk_update", "finding", id, nil, f)
+
+		if upd.AssignedTo != nil && *upd.AssignedTo != "" {
+			oldFinding, oldErr := h.store.Findings.GetByID(r.Context(), id)
+			if oldErr == nil {
+				oldOwner := derefStr(oldFinding.AssignedTo)
+				newOwner := *upd.AssignedTo
+				if oldOwner != newOwner {
+					go h.notifyOwnerAssignment(context.Background(), id, f.Title, newOwner)
+				}
+			}
 		}
+
 		if h.FindingCache != nil {
-			h.FindingCache.Del(r.Context(), id+":detail")
+			if cerr := h.FindingCache.Del(r.Context(), id+":detail"); cerr != nil {
+				slog.Warn("bulk update: failed to invalidate cache", "finding_id", id, "err", cerr)
+			}
 		}
+		updated++
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{"updated": updated})

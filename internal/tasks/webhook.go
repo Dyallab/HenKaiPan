@@ -62,6 +62,39 @@ type slackContextBlock struct {
 	Elements []slackContextElement `json:"elements"`
 }
 
+type slackButtonText struct {
+	Type  string `json:"type"`
+	Text  string `json:"text"`
+	Emoji bool   `json:"emoji,omitempty"`
+}
+
+type slackButtonElement struct {
+	Type     string          `json:"type"`
+	Text     slackButtonText `json:"text"`
+	ActionID string          `json:"action_id"`
+	Value    string          `json:"value"`
+	Style    string          `json:"style,omitempty"`
+}
+
+type slackSelectOption struct {
+	Text  slackButtonText `json:"text"`
+	Value string          `json:"value"`
+}
+
+type slackSelectElement struct {
+	Type             string             `json:"type"`
+	Placeholder      slackButtonText    `json:"placeholder"`
+	ActionID         string             `json:"action_id"`
+	Options          []slackSelectOption `json:"options,omitempty"`
+	OptionGroups     []any              `json:"option_groups,omitempty"`
+}
+
+type slackActionBlock struct {
+	Type     string `json:"type"`
+	Elements []any  `json:"elements"`
+	BlockID  string `json:"block_id,omitempty"`
+}
+
 type slackWebhookMessage struct {
 	Text   string `json:"text"`
 	Blocks []any  `json:"blocks,omitempty"`
@@ -250,6 +283,9 @@ func formatWebhookBody(deliveryType string, payload []byte) ([]byte, error) {
 		}
 		if card.Context != "" {
 			message.Blocks = append(message.Blocks, slackContextBlock{Type: "context", Elements: []slackContextElement{{Type: "mrkdwn", Text: card.Context}}})
+		}
+		if findingID := extractFindingID(envelope); findingID != "" {
+			message.Blocks = append(message.Blocks, buildSlackFindingActions(findingID))
 		}
 		return json.Marshal(message)
 	case "discord":
@@ -452,6 +488,52 @@ func webhookColor(event string) int {
 		return 0x10B981
 	default:
 		return 0x38BDF8
+	}
+}
+
+// extractFindingID extracts the finding_id from a webhook event envelope if present.
+func extractFindingID(envelope WebhookEventEnvelope) string {
+	dataMap, ok := envelope.Data.(map[string]any)
+	if !ok {
+		return ""
+	}
+	switch envelope.Event {
+	case "finding.critical", "finding.high", "finding.sla_breach":
+		if id, _ := dataMap["finding_id"].(string); id != "" {
+			return id
+		}
+	}
+	return ""
+}
+
+// buildSlackFindingActions builds an interactive action block with triage buttons
+// for a finding. These buttons trigger the Slack bot via Socket Mode interactions.
+func buildSlackFindingActions(findingID string) slackActionBlock {
+	return slackActionBlock{
+		Type:    "actions",
+		BlockID: "actions_" + findingID,
+		Elements: []any{
+			slackButtonElement{
+				Type:     "button",
+				Text:     slackButtonText{Type: "plain_text", Text: "✅ Acknowledge", Emoji: true},
+				ActionID: "ack_" + findingID,
+				Value:    findingID,
+				Style:    "primary",
+			},
+			slackButtonElement{
+				Type:     "button",
+				Text:     slackButtonText{Type: "plain_text", Text: "❌ Dismiss", Emoji: true},
+				ActionID: "dismiss_" + findingID,
+				Value:    findingID,
+				Style:    "danger",
+			},
+			slackButtonElement{
+				Type:     "button",
+				Text:     slackButtonText{Type: "plain_text", Text: "👤 Assign...", Emoji: true},
+				ActionID: "assign_" + findingID,
+				Value:    findingID,
+			},
+		},
 	}
 }
 
