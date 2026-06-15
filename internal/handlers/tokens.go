@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -179,33 +181,75 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		ProjectID string   `json:"project_id"`
-		RepoURL   string   `json:"repo_url"`
-		Scanners  []string `json:"scanners"`
-		Branch    string   `json:"branch,omitempty"`
+		ProjectID   string   `json:"project_id"`
+		ProjectName string   `json:"project_name"`
+		RepoURL     string   `json:"repo_url"`
+		Scanners    []string `json:"scanners"`
+		Branch      string   `json:"branch,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid body")
 		return
 	}
-	if req.ProjectID == "" {
-		writeError(w, r, http.StatusBadRequest, "project_id is required")
-		return
+	if req.ProjectID == "" && req.ProjectName == "" {
+		if req.RepoURL == "" {
+			writeError(w, r, http.StatusBadRequest, "project_id or project_name is required")
+			return
+		}
+		// project_name will be derived from repo_url below
 	}
 	if len(req.Scanners) == 0 {
 		req.Scanners = []string{"all"}
-	}
-
-	// Scope check: if token is project-scoped, it must match the requested project
-	if token.ProjectID != nil && *token.ProjectID != req.ProjectID {
-		writeError(w, r, http.StatusForbidden, "token is not scoped to this project")
-		return
 	}
 
 	// Validate repo_url if provided (before enqueuing)
 	if req.RepoURL != "" {
 		if err := validateRepoURL(req.RepoURL); err != nil {
 			writeError(w, r, http.StatusUnprocessableEntity, fmt.Sprintf("repo_url not accessible: %s", err.Error()))
+			return
+		}
+	}
+
+	// Determine effective project ID
+	projectID := req.ProjectID
+
+	if projectID == "" {
+		// Auto-create or resolve project by name
+		projectName := req.ProjectName
+		if projectName == "" {
+			projectName = deriveProjectName(req.RepoURL)
+		}
+
+		project, err := h.store.Apps.GetProjectByName(r.Context(), projectName)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				project, err = h.store.Apps.CreateStandaloneProject(r.Context(), repository.ProjectCreate{
+					Name:          projectName,
+					RepoURL:       req.RepoURL,
+					Provider:      "github",
+					DefaultBranch: req.Branch,
+				})
+				if err != nil {
+					h.writeInternal(w, r, err, "failed to create project")
+					return
+				}
+				slog.InfoContext(r.Context(), "auto-created standalone project for external scan",
+					"project_id", project.ID,
+					"project_name", projectName,
+					"repo_url", req.RepoURL,
+				)
+			} else {
+				h.writeInternal(w, r, err, "failed to look up project")
+				return
+			}
+		}
+		projectID = project.ID
+	}
+
+	// Scope check: only when project_id was originally provided (scoped tokens cannot auto-create)
+	if req.ProjectID != "" {
+		if token.ProjectID != nil && *token.ProjectID != req.ProjectID {
+			writeError(w, r, http.StatusForbidden, "token is not scoped to this project")
 			return
 		}
 	}
@@ -220,21 +264,21 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 	// Build target: repo_url falls back to project_id, optionally with branch
 	target := req.RepoURL
 	if target == "" {
-		target = req.ProjectID // worker resolves from project config
+		target = projectID // worker resolves from project config
 	}
 	if req.Branch != "" {
 		target = target + "#" + req.Branch
 	}
 
 	// Reuse shared scan creation logic
-	scanIDs, batchID, err := h.createScanRecords(r.Context(), target, scannerNames, &req.ProjectID, "")
+	scanIDs, batchID, err := h.createScanRecords(r.Context(), target, scannerNames, &projectID, "")
 	if err != nil {
 		h.writeInternal(w, r, err, "failed to create scan records")
 		return
 	}
 
 	slog.InfoContext(r.Context(), "external scan created",
-		"project_id", req.ProjectID,
+		"project_id", projectID,
 		"scanners", scannerNames,
 		"batch_id", batchID,
 		"scan_ids", scanIDs,
@@ -305,6 +349,22 @@ func validateRepoURL(repoURL string) error {
 		return fmt.Errorf("%s", msg)
 	}
 	return nil
+}
+
+// deriveProjectName extracts owner/repo from a Git remote URL.
+// Strips .git suffix and returns the path component.
+// E.g., "https://github.com/dyallab/henkaipan.git" → "dyallab/henkaipan".
+func deriveProjectName(repoURL string) string {
+	if repoURL == "" {
+		return ""
+	}
+	name := strings.TrimSuffix(repoURL, ".git")
+	// Find the last two path segments for owner/repo
+	parts := strings.Split(strings.TrimRight(name, "/"), "/")
+	if len(parts) < 2 {
+		return name
+	}
+	return strings.Join(parts[len(parts)-2:], "/")
 }
 
 // ── API Key Auth Middleware ────────────────────────────────────────────────

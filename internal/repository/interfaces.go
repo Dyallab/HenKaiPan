@@ -184,6 +184,7 @@ type AppRepository interface {
 	ListAllProjects(ctx context.Context, appFilter string) ([]models.Project, error)
 	ListStandaloneByPattern(ctx context.Context, pattern string) ([]models.Project, error)
 	GetProjectByID(ctx context.Context, id string) (*models.Project, error)
+	GetProjectByName(ctx context.Context, name string) (*models.Project, error)
 	CreateProject(ctx context.Context, appID string, p ProjectCreate) (*models.Project, error)
 	CreateStandaloneProject(ctx context.Context, p ProjectCreate) (*models.Project, error)
 	BulkCreateProjects(ctx context.Context, appID string, projects []ProjectCreate) ([]BulkCreateResult, error)
