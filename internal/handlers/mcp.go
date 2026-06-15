@@ -141,8 +141,10 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 
 	sessionID := r.Header.Get("MCP-Session-Id")
 	if sessionID == "" {
-		writeError(w, r, http.StatusBadRequest, "MCP-Session-Id header required")
-		return
+		sessionID = "mcp_implicit_" + token.ID
+		if getMCPSession(sessionID) == nil {
+			registerMCPSession(context.Background(), token.ID, sessionID)
+		}
 	}
 
 	session := getMCPSession(sessionID)

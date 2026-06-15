@@ -259,6 +259,7 @@ func (h *Handler) BulkCreateProjects(w http.ResponseWriter, r *http.Request) {
 			RepoURL:       repo.RepoURL,
 			Provider:      "github",
 			DefaultBranch: repo.DefaultBranch,
+			Tags:          []string{},
 		}
 	}
 
