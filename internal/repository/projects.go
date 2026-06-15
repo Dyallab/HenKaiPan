@@ -174,7 +174,7 @@ func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCre
 			"repo_url":       pc.RepoURL,
 			"provider":       pc.Provider,
 			"default_branch": pc.DefaultBranch,
-			"tags":           pc.Tags,
+			"tags":           defaultTags(pc.Tags),
 		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
 		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.Tags, &p.CreatedAt)
@@ -196,7 +196,7 @@ func (r *appRepo) CreateStandaloneProject(ctx context.Context, pc ProjectCreate)
 			"repo_url":       pc.RepoURL,
 			"provider":       pc.Provider,
 			"default_branch": pc.DefaultBranch,
-			"tags":           pc.Tags,
+			"tags":           defaultTags(pc.Tags),
 		},
 	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
 		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.Tags, &p.CreatedAt)
@@ -229,10 +229,10 @@ func (r *appRepo) BulkCreateProjects(ctx context.Context, appID string, projects
 		base := i * paramsPerRow
 		if appID != "" {
 			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7))
-			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, nilOrUUID(appID), p.Tags)
+			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, nilOrUUID(appID), defaultTags(p.Tags))
 		} else {
 			valueStrings = append(valueStrings, fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6))
-			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, p.Tags)
+			args = append(args, p.Name, p.Description, p.RepoURL, p.Provider, p.DefaultBranch, defaultTags(p.Tags))
 		}
 	}
 
@@ -508,4 +508,13 @@ func nilOrEmpty(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// defaultTags ensures tags is never nil, preventing NOT NULL violations
+// on the projects.tags column (which has DEFAULT '{}' but explicit NULL is rejected).
+func defaultTags(tags []string) []string {
+	if tags == nil {
+		return []string{}
+	}
+	return tags
 }
