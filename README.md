@@ -1,6 +1,33 @@
 # HenKaiPan
 
-HenKaiPan is an ASPM platform for security scans, findings, knowledge articles, policy automation, and AI-assisted remediation.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
+[![CI/CD](https://github.com/Dyallab/HenKaiPan/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Dyallab/HenKaiPan/actions/workflows/ci-cd.yml)
+
+**HenKaiPan** is an open-source ASPM (Application Security Posture Management) platform. It orchestrates security scanners, correlates findings across tools, provides AI-powered remediation, and helps teams track vulnerability posture over time.
+
+**Self-hosted, fully free — no license key, no restrictions.**
+
+- Deploy with Docker Compose or Kubernetes
+- All scanners bundled in the worker image (Semgrep, Trivy, Gitleaks, Checkov, Nuclei, and more)
+- AI features via Ollama (local), OpenRouter, or Cloudflare Workers AI
+- Public release: https://github.com/Dyallab/HenKaiPan-self-hosted
+- Landing page: https://henkaipan.dyallab.com.ar
+
+## Quick Start
+
+```bash
+# 1. Copy and edit the environment file
+cp .env.example .env
+
+# 2. Start Postgres + Redis + API + Worker
+make up
+
+# 3. Open http://localhost:8080
+# Login with admin/admin (or your ADMIN_USER / ADMIN_PASS from .env)
+```
+
+See the [self-hosted repo](https://github.com/Dyallab/HenKaiPan-self-hosted) for production deployment (Docker Compose + Kubernetes).
 
 ## Product Model
 
