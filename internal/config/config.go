@@ -28,7 +28,6 @@ type Config struct {
 	CookieSecure         bool   // default: false; set true behind HTTPS
 	CookieDomain         string // optional: cookie domain for production (e.g. ".example.com")
 	CookieSameSite       string // optional: "lax" (default), "strict", or "none" (requires Secure=true)
-	LicenseKey           string // optional: license key for self-hosted features
 	WebhookSecret        string // optional: secret for HMAC webhook signature validation
 
 	SMTPHost     string // optional email notifications
@@ -105,7 +104,6 @@ func Load() *Config {
 		CookieSecure:          envBool("COOKIE_SECURE", false),
 		CookieDomain:          os.Getenv("COOKIE_DOMAIN"),
 		CookieSameSite:        envOr("COOKIE_SAMESITE", "lax"),
-		LicenseKey:            os.Getenv("LICENSE_KEY"),
 		WebhookSecret:         os.Getenv("WEBHOOK_SECRET"),
 		SMTPHost:              os.Getenv("SMTP_HOST"),
 		SMTPPort:              envOr("SMTP_PORT", "587"),
@@ -149,7 +147,6 @@ func Load() *Config {
 		"redis_addr", cfg.RedisAddr,
 		"port", cfg.Port,
 		"frontend_url_configured", cfg.FrontendURL != "",
-		"license_key_configured", cfg.LicenseKey != "",
 		"webhook_secret_configured", cfg.WebhookSecret != "",
 		"email_notifications_enabled", cfg.EmailEnabled,
 		"ai_enabled", cfg.OpenRouterAPIKey != "" || cfg.CfAPIToken != "" || cfg.OllamaURL != "",

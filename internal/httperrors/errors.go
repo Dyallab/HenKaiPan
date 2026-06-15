@@ -17,8 +17,6 @@ const (
 	ErrServiceUnavailable  = "service_unavailable"
 	ErrRateLimited         = "rate_limited"
 	ErrValidation          = "validation_error"
-	ErrLicenseRequired     = "license_required"
-	ErrFeatureNotAvailable = "feature_not_available"
 )
 
 // HTTPError represents a standardized HTTP error response

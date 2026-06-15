@@ -94,7 +94,6 @@ func OpenRouterGenerateTextWithModel(ctx context.Context, systemPrompt, userProm
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-	httpReq.Header.Set("HTTP-Referer", "https://henkaipan.dyallab.com.ar")
 	httpReq.Header.Set("X-Title", "HenKaiPan")
 
 	resp, err := http.DefaultClient.Do(httpReq)
