@@ -39,7 +39,7 @@ Version numbering follows the **self-hosted public release line**. The complete 
 | v1.12.0 | Error logging & format standardization, error sanitization, audit logging coverage |
 | v1.11.0 | Role simplification (3→2), generic config/role guards, config status endpoint |
 | v1.10.0 | Shell executor for scanners (KICS), container image scanning (trivy-image, grype-image) |
-| v1.9.0 | License signing secret embedded in binary, random admin password on first run |
+| v1.9.0 | License signing secret embedded in binary (removed in v1.26.0), random admin password on first run |
 | v1.8.2 | PR merge ref clone fix, PR comments GITHUB_TOKEN passing |
 | v1.8.1 | Migration idempotency, advisory locks, branch syntax in clone URL |
 | v1.8.0 | CI/CD Integration API, API token management, GitHub Action, Marketplace publish |
@@ -147,7 +147,7 @@ Focus: **SMB workflow & visibility** — bulk actions, Slack bot, onboarding flo
   - [x] `pagination/`: `FromQuery`, `Normalize`, defaults, boundary values
   - [x] `validation/`: `ValidateStruct`, custom validators, error formatting
   - [x] `config/`: `Load()` with various env var combinations, missing required vars, defaults
-  - [x] `license/`: Claims validation, expiration edge cases, tampered signatures
+  - [x] `license/`: Claims validation, expiration edge cases, tampered signatures (removed in v1.26.0)
   - [x] `logger/`: Init with different formats/dev modes
 
 - [x] **Phase 2 — Parser packages (fixture-based)** ✅
