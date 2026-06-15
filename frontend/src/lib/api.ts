@@ -614,8 +614,6 @@ export const api = {
     );
   },
 
-  getLicense: () => req<License>("/api/license"),
-
   // ── API Tokens (CI/CD integration) ───────────────────────────────────
   getTokens: () => req<{ tokens: any[] }>("/api/v1/tokens"),
   createToken: (data: { name: string; project_id?: string }) =>
@@ -1067,13 +1065,6 @@ export interface JiraIssueLink {
   issue_url?: string;
   status?: string;
   created_at: string;
-}
-
-export interface License {
-  valid: boolean;
-  status: string;
-  expires_at?: string;
-  features?: string[];
 }
 
 export interface ProjectCoverage {

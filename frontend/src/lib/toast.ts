@@ -16,9 +16,6 @@ interface ToastOptions {
  * Map raw API error strings to user-friendly messages
  */
 export function friendlyError(msg: string): string {
-  if (msg === 'license_required') {
-    return 'License required — please configure your license key';
-  }
   if (msg?.includes('API_KEY')) {
     return 'AI provider not configured — set your API key in settings';
   }
