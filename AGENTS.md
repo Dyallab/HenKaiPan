@@ -32,7 +32,6 @@
 | Run migration | `nix run .#migrate -- migrations/xxx.sql` |
 | Sync migration dirs | `nix run .#sync-migrations` |
 | Seed demo workspace | `docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql` |
-| Generate license | `nix run .#gen-license -- email days` |
 
 ## Architecture
 
@@ -41,7 +40,6 @@
 - **Queue** (`internal/queue/`): Asynq client + server. Job types: `scan:run` (3 retries, 30min timeout), `agent:validate` (5 retries), `webhook:send`, `email:send`, `snippet:enrich`, `digest:send`, `report:send`.
 - **SSE bridge** (`internal/events/redis_bridge.go`): worker publishes events to Redis pub/sub; API subscribes and relays to SSE clients.
 - **AI providers**: OpenRouter / Cloudflare / Ollama. Per-task selection via `AI_{REMEDIATION,SUMMARY,VALIDATION}_PROVIDER`. If unconfigured, handlers silently not registered — check worker logs.
-- **License** (`internal/license/`): offline HMAC-SHA256 validation. Feature gates: comments, audit-log, risk-acceptance, reports, ai-remediation, teams, policies, scheduling, integrations, email-notifications.
 - **Scanner packs**: `sast`, `sca`, `secrets`, `iac`, `containers` — resolved in `internal/scanner/registry.go`. Scanner binaries bundled in worker Docker image.
 
 ## Key quirks

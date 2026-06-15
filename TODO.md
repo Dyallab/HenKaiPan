@@ -1,35 +1,6 @@
 # Hen Kai Pan Roadmap
 
-## Current Commercialization Focus
-
-Target customer for the next stage:
-
-- Small engineering teams / SMBs that do not have a hard compliance mandate yet
-- Want fast security visibility without enterprise-heavy setup
-- Need a credible path toward future SOC 2 / ISO 27001 readiness
-- Care more about workflow simplicity, remediation speed, and executive visibility than deep enterprise governance on day 1
-
-Commercial model:
-
-- Primary offer: managed cloud SaaS with a monetizable plan structure
-- Secondary offer: self-hosted edition for teams that want data/control boundaries, simpler procurement, or internal deployment requirements
-- Product direction should preserve as much feature parity as possible between cloud and self-hosted, with clear packaging differences where needed
-
-Product implication:
-
-- Prioritize onboarding, repeatable scanning, remediation workflow, and lightweight reporting first
-- Delay enterprise-only requirements unless they directly unblock trust or early sales
-- Avoid hard-coupling core product value to cloud-only infrastructure unless there is a clear self-hosted fallback
-
-## Product Reset Decision (current direction)
-
-We can discard the current Apps / Repos / Scans structure and rebuild this area from zero.
-
-New target product model:
-
-- **App** = optional business grouping
-- **Project** = primary technical unit and primary thing the user creates, connects, scans, and reviews
-- **Standalone projects** are allowed (`project.app_id = NULL`)
+## Product Direction
 
 ---
 
@@ -82,7 +53,7 @@ Version numbering follows the **self-hosted public release line**. The complete 
 | v1.1.0 | Rate limiting, Ollama AI provider, Prometheus metrics |
 | v1.0.0 | Initial self-hosted release |
 
-> ⚠️ **Note:** The private repo had internal tags up to v1.6.2 that don't align with the public release line. Those tags are kept for Docker image references but are not considered official releases. Official releases follow the self-hosted CHANGELOG.
+> ⚠️ **Note:** Pre-v1.0.0 internal development tags don't align with the public release line. Those tags are kept for Docker image references but are not considered official releases. Official releases follow the self-hosted CHANGELOG.
 
 ---
 
@@ -108,8 +79,6 @@ Focus: **SMB workflow & visibility** — bulk actions, Slack bot, onboarding flo
 
 - [ ] GitHub-first onboarding flow (token or app-based), optimized for small teams
 - [ ] Capture product analytics + feedback prompts
-- [ ] Define packaging/limits for early plans (cloud vs self-hosted)
-- [ ] Billing readiness for cloud plans
 
 ### Instance Management
 
