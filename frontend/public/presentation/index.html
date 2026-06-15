@@ -669,67 +669,6 @@
                 font-weight: 700;
             }
 
-            /* Pricing section */
-            .pricing-grid {
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 16px;
-                margin-top: 18px;
-            }
-
-            .pricing-card {
-                border-radius: 24px;
-                padding: 22px;
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.06);
-                box-shadow: var(--shadow);
-            }
-
-            .pricing-tier {
-                display: inline-flex;
-                padding: 7px 10px;
-                border-radius: 999px;
-                font-size: 0.72rem;
-                font-weight: 800;
-                text-transform: uppercase;
-                letter-spacing: 0.12em;
-                margin-bottom: 14px;
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                color: var(--text);
-            }
-
-            .pricing-card h3 {
-                margin-bottom: 10px;
-            }
-
-            .pricing-card p,
-            .pricing-note {
-                color: var(--muted);
-                font-size: 0.94rem;
-            }
-
-            .pricing-list {
-                list-style: none;
-                display: grid;
-                gap: 9px;
-                margin-top: 14px;
-            }
-
-            .pricing-list li {
-                display: flex;
-                gap: 10px;
-                color: var(--muted);
-                font-size: 0.92rem;
-                align-items: start;
-            }
-
-            .pricing-list li .material-symbols-outlined {
-                color: var(--mint);
-                font-size: 18px;
-                margin-top: 1px;
-            }
-
             .proof-grid {
                 display: grid;
                 grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -843,8 +782,7 @@
                 .hero-grid,
                 .target-grid,
                 .cta-panel,
-                .footer,
-                .pricing-grid {
+                .footer {
                     grid-template-columns: 1fr;
                     display: grid;
                 }
@@ -919,7 +857,7 @@
                 </div>
                 <div class="nav-actions">
                     <a href="#features" class="nav-btn secondary">Features</a>
-                    <a href="#pricing" class="nav-btn primary">Get Started</a>
+                    <a href="#features" class="nav-btn primary">Get Started</a>
                 </div>
             </div>
         </nav>
@@ -1578,126 +1516,6 @@
                                     ><span
                                         >Risk acceptance workflow</span
                                     >
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="block" id="pricing">
-                <div class="container">
-                    <div class="section-head">
-                        <div>
-                            <h2>Simple, transparent pricing</h2>
-                            <p>
-                                Choose the deployment model that fits your needs
-                                — managed cloud for simplicity, or self-hosted
-                                for full control.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="pricing-grid">
-                        <div class="pricing-card">
-                            <span class="pricing-tier">Starter</span>
-                            <h3>For small teams</h3>
-                            <p>
-                                Everything you need to get started with
-                                application security.
-                            </p>
-                            <ul class="pricing-list">
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Up to 5 projects</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>All scanner types</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Basic reporting</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Community support</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="pricing-card">
-                            <span class="pricing-tier">Professional</span>
-                            <h3>For growing teams</h3>
-                            <p>
-                                Advanced features for teams serious about
-                                security.
-                            </p>
-                            <ul class="pricing-list">
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Unlimited projects</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>AI remediation</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>SLA tracking</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Priority support</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Compliance exports</span>
-                                </li>
-                            </ul>
-                        </div>
-
-                        <div class="pricing-card">
-                            <span class="pricing-tier">Enterprise</span>
-                            <h3>For organizations</h3>
-                            <p>
-                                Full control with self-hosted deployment and
-                                dedicated support.
-                            </p>
-                            <ul class="pricing-list">
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Self-hosted option</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>SSO / SAML</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Custom integrations</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>Dedicated support</span>
-                                </li>
-                                <li>
-                                    <span class="material-symbols-outlined"
-                                        >check_circle</span
-                                    ><span>SLA guarantees</span>
                                 </li>
                             </ul>
                         </div>
