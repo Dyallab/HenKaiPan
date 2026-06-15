@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"aspm/internal/license"
 	"net/http"
 )
 
@@ -13,7 +12,7 @@ func (h *Handler) GetConfigStatus(w http.ResponseWriter, r *http.Request) {
 			"validation":  h.aiValidation,
 		},
 		"features": map[string]bool{
-			"risk_acceptance": h.license.HasFeature(license.FeatureRiskAcceptance),
+			"risk_acceptance": true,
 		},
 		"email_enabled":  h.emailEnabled,
 		"frontend_url":   h.frontendURL != "",

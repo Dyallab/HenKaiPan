@@ -15,7 +15,6 @@ import (
 	"aspm/internal/db"
 	"aspm/internal/events"
 	"aspm/internal/handlers"
-	"aspm/internal/license"
 	"aspm/internal/logger"
 	"aspm/internal/metrics"
 	appmw "aspm/internal/middleware"
@@ -56,7 +55,6 @@ func main() {
 	defer queueClient.Close()
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
-	licSvc := license.New(cfg.LicenseKey)
 
 	// Initialize rate limiter
 	appmw.InitRateLimiter(cfg.RedisAddr)
@@ -65,7 +63,7 @@ func main() {
 	// Initialize finding detail cache (reuses the rate limiter's Redis client).
 	findingCache := cache.NewCache(appmw.Rdb)
 
-	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite, licSvc,
+	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite,
 		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
 		cfg.EmailEnabled, cfg.WebhookSecret, findingCache)
 
@@ -177,8 +175,6 @@ func main() {
 			r.Delete("/tokens/{id}", h.DeleteToken)
 		})
 
-		r.Get("/api/license", h.GetLicense)
-
 		r.Get("/api/scans", h.ListScans)
 		r.Post("/api/scans", h.CreateScan)
 		// TODO: Restore ownership check when per-team/project visibility is implemented.
@@ -215,33 +211,25 @@ func main() {
 		r.Get("/api/vulnerabilities/engine-summary", h.GetVulnerabilityEngineSummary)
 		r.With(auth.RequireRole("admin")).Patch("/api/vulnerabilities/{vulnID}/status", h.UpdateVulnerabilityStatus)
 
-		// ── Paid: Comments ──
-		r.With(licSvc.RequireFeature(license.FeatureComments)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
-			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
-			r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
-		})
+		// ── Comments ──
+		r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
+		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))
+		r.With(auth.RequireRole("admin")).Delete("/api/findings/{id}/comments/{commentID}", appmw.RequireOwnership(store.Apps, "finding")(h.DeleteFindingComment))
 
-		// ── Paid: Audit Log ──
-		r.With(licSvc.RequireFeature(license.FeatureAuditLog)).Group(func(r chi.Router) {
-			r.Get("/api/audit-logs", h.ListAuditLogs)
-		})
+		// ── Audit Log ──
+		r.Get("/api/audit-logs", h.ListAuditLogs)
 
-		// ── Paid: Risk Acceptance ──
-		r.With(licSvc.RequireFeature(license.FeatureRiskAcceptance)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.GetRiskAcceptanceByFinding)))
-			r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.ApproveRiskAcceptance)))
-			r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.RejectRiskAcceptance)))
-		})
+		// ── Risk Acceptance ──
+		r.Get("/api/findings/{id}/risk-acceptance", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.GetRiskAcceptanceByFinding)))
+		r.With(auth.RequireRole("admin")).Get("/api/risk-acceptances", h.ListRiskAcceptances)
+		r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances", h.CreateRiskAcceptance)
+		r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/approve", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.ApproveRiskAcceptance)))
+		r.With(auth.RequireRole("admin")).Post("/api/risk-acceptances/{id}/reject", appmw.RequireOwnership(store.Apps, "risk-acceptance")(http.HandlerFunc(h.RejectRiskAcceptance)))
 
-		// ── Paid: Reports & Advanced Metrics ──
-		r.With(licSvc.RequireFeature(license.FeatureReports)).Group(func(r chi.Router) {
-			r.Get("/api/metrics/trends", h.GetTrends)
-			r.Get("/api/metrics/risk", h.GetRiskScores)
-			r.Get("/api/findings/export", h.ExportFindings)
-		})
+		// ── Reports & Advanced Metrics ──
+		r.Get("/api/metrics/trends", h.GetTrends)
+		r.Get("/api/metrics/risk", h.GetRiskScores)
+		r.Get("/api/findings/export", h.ExportFindings)
 
 		// ── Free: Core Metrics ──
 		r.Get("/api/metrics/summary", h.GetMetricsSummary)
@@ -270,12 +258,10 @@ func main() {
 		r.Post("/api/projects/bulk", h.BulkCreateProjects)
 		r.Post("/api/projects/bulk-assign", h.BulkAssignProjects)
 
-		// ── Paid: AI Remediation ──
-		r.With(licSvc.RequireFeature(license.FeatureAIRemediation)).Group(func(r chi.Router) {
-			r.Post("/api/knowledge/ai-remediate", h.AIRemediate)
-			r.Post("/api/findings/{id}/analyze", appmw.RequireOwnership(store.Apps, "finding")(h.AnalyzeFinding))
-			r.Get("/api/findings/{id}/analysis", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingAnalysis))
-		})
+		// ── AI Remediation ──
+		r.Post("/api/knowledge/ai-remediate", h.AIRemediate)
+		r.Post("/api/findings/{id}/analyze", appmw.RequireOwnership(store.Apps, "finding")(h.AnalyzeFinding))
+		r.Get("/api/findings/{id}/analysis", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingAnalysis))
 
 		// ── Free: Knowledge (read) ──
 		r.Get("/api/knowledge", h.ListArticles)
@@ -291,14 +277,12 @@ func main() {
 		r.With(auth.RequireRole("admin")).Patch("/api/users/{id}", h.UpdateUser)
 		r.With(auth.RequireRole("admin")).Delete("/api/users/{id}", h.DeleteUser)
 
-		// ── Paid: Teams ──
-		r.With(licSvc.RequireFeature(license.FeatureTeams)).Group(func(r chi.Router) {
-			r.Get("/api/teams", h.ListTeams)
-			r.With(auth.RequireRole("admin")).Post("/api/teams", h.CreateTeam)
-			r.With(auth.RequireRole("admin")).Delete("/api/teams/{id}", h.DeleteTeam)
-			r.With(auth.RequireRole("admin")).Post("/api/teams/{id}/members", h.AddTeamMember)
-			r.With(auth.RequireRole("admin")).Delete("/api/teams/{id}/members/{userID}", h.RemoveTeamMember)
-		})
+		// ── Teams ──
+		r.Get("/api/teams", h.ListTeams)
+		r.With(auth.RequireRole("admin")).Post("/api/teams", h.CreateTeam)
+		r.With(auth.RequireRole("admin")).Delete("/api/teams/{id}", h.DeleteTeam)
+		r.With(auth.RequireRole("admin")).Post("/api/teams/{id}/members", h.AddTeamMember)
+		r.With(auth.RequireRole("admin")).Delete("/api/teams/{id}/members/{userID}", h.RemoveTeamMember)
 
 		// ── Free: Me ──
 		r.Get("/api/me", h.GetMe)
@@ -306,26 +290,22 @@ func main() {
 		// ── Free: Config Status ──
 		r.Get("/api/config/status", h.GetConfigStatus)
 
-		// ── Paid: Policies & Suppressions ──
-		r.With(licSvc.RequireFeature(license.FeaturePolicies)).Group(func(r chi.Router) {
-			r.With(auth.RequireRole("admin")).Get("/api/policies", h.ListPolicies)
-			r.With(auth.RequireRole("admin")).Post("/api/policies", h.CreatePolicy)
-			r.With(auth.RequireRole("admin")).Patch("/api/policies/{id}", h.UpdatePolicy)
-			r.With(auth.RequireRole("admin")).Delete("/api/policies/{id}", h.DeletePolicy)
+		// ── Policies & Suppressions ──
+		r.With(auth.RequireRole("admin")).Get("/api/policies", h.ListPolicies)
+		r.With(auth.RequireRole("admin")).Post("/api/policies", h.CreatePolicy)
+		r.With(auth.RequireRole("admin")).Patch("/api/policies/{id}", h.UpdatePolicy)
+		r.With(auth.RequireRole("admin")).Delete("/api/policies/{id}", h.DeletePolicy)
 
-			r.With(auth.RequireRole("admin")).Get("/api/suppressions", h.ListSuppressions)
-			r.With(auth.RequireRole("admin")).Post("/api/suppressions", h.CreateSuppression)
-			r.With(auth.RequireRole("admin")).Delete("/api/suppressions/{id}", h.DeleteSuppression)
-		})
+		r.With(auth.RequireRole("admin")).Get("/api/suppressions", h.ListSuppressions)
+		r.With(auth.RequireRole("admin")).Post("/api/suppressions", h.CreateSuppression)
+		r.With(auth.RequireRole("admin")).Delete("/api/suppressions/{id}", h.DeleteSuppression)
 
-		// ── Paid: Scheduling ──
-		r.With(licSvc.RequireFeature(license.FeatureScheduling)).Group(func(r chi.Router) {
-	r.Get("/api/schedules", h.ListSchedules)
-	r.Get("/api/schedules/{scheduleID}", h.GetSchedule)
-	r.With(auth.RequireRole("admin")).Post("/api/schedules", h.CreateSchedule)
-	r.With(auth.RequireRole("admin")).Patch("/api/schedules/{scheduleID}", h.UpdateSchedule)
-	r.With(auth.RequireRole("admin")).Delete("/api/schedules/{scheduleID}", h.DeleteSchedule)
-		})
+		// ── Scheduling ──
+		r.Get("/api/schedules", h.ListSchedules)
+		r.Get("/api/schedules/{scheduleID}", h.GetSchedule)
+		r.With(auth.RequireRole("admin")).Post("/api/schedules", h.CreateSchedule)
+		r.With(auth.RequireRole("admin")).Patch("/api/schedules/{scheduleID}", h.UpdateSchedule)
+		r.With(auth.RequireRole("admin")).Delete("/api/schedules/{scheduleID}", h.DeleteSchedule)
 
 		// ── Free: Webhooks ──
 		r.With(auth.RequireRole("admin")).Get("/api/webhooks", h.ListWebhooks)
@@ -334,20 +314,16 @@ func main() {
 		r.With(auth.RequireRole("admin")).Delete("/api/webhooks/{id}", h.DeleteWebhook)
 		r.With(auth.RequireRole("admin")).Post("/api/webhooks/{id}/test", h.TestWebhook)
 
-		// ── Paid: Email Notifications ──
-		r.With(licSvc.RequireFeature(license.FeatureEmailNotify)).Group(func(r chi.Router) {
-			r.With(auth.RequireRole("admin")).Get("/api/settings/notifications", h.GetNotificationSettings)
-			r.With(auth.RequireRole("admin")).Patch("/api/settings/notifications", h.UpdateNotificationSettings)
-			r.With(auth.RequireRole("admin")).Post("/api/settings/notifications/test-email", h.TestNotificationEmail)
-		})
+		// ── Email Notifications ──
+		r.With(auth.RequireRole("admin")).Get("/api/settings/notifications", h.GetNotificationSettings)
+		r.With(auth.RequireRole("admin")).Patch("/api/settings/notifications", h.UpdateNotificationSettings)
+		r.With(auth.RequireRole("admin")).Post("/api/settings/notifications/test-email", h.TestNotificationEmail)
 
-		// ── Paid: Integrations ──
-		r.With(licSvc.RequireFeature(license.FeatureIntegrations)).Group(func(r chi.Router) {
-			r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
-			r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
-			r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
-			r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
-		})
+		// ── Integrations ──
+		r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
+		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
+		r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
+		r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
 	})
 
 	// Serve embedded frontend for non-API routes (production only).
