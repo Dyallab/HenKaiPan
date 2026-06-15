@@ -71,7 +71,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Run HenKaiPan Security Scan
-        uses: dyallab/henkaipan-action@v1.4.0
+        uses: dyallab/henkaipan-action@v1.5.0
         with:
           api-url: https://henkaipan.jonathan.com.ar
           api-key: ${{ secrets.HENKAIPAN_API_KEY }}

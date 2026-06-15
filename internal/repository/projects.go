@@ -161,6 +161,24 @@ func (r *appRepo) GetProjectByID(ctx context.Context, id string) (*models.Projec
 	return &p, nil
 }
 
+func (r *appRepo) GetProjectByName(ctx context.Context, name string) (*models.Project, error) {
+	var p models.Project
+	err := r.db.QueryRow(ctx, `
+		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
+		       p.provider, p.default_branch, p.external_repo_id,
+		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
+		FROM projects p WHERE p.name = $1 AND p.app_id IS NULL`, name,
+	).Scan(&p.ID, &p.Name, &p.Description, &p.AppID, &p.RepoURL,
+		&p.Provider, &p.DefaultBranch, &p.ExternalRepoID, &p.HasToken, &p.Tags, &p.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("project not found: %w", err)
+		}
+		return nil, fmt.Errorf("get project by name: %w", err)
+	}
+	return &p, nil
+}
+
 func (r *appRepo) CreateProject(ctx context.Context, appID string, pc ProjectCreate) (*models.Project, error) {
 	var p models.Project
 	err := r.db.QueryRow(ctx, `
