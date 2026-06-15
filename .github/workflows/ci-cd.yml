@@ -73,9 +73,8 @@ jobs:
       - name: Run HenKaiPan Security Scan
         uses: dyallab/henkaipan-action@v1.5.0
         with:
-          api-url: ${{ vars.HENKAIPAN_API_URL || 'https://your-henkaipan-instance.com' }}
+          api-url: ${{ vars.HENKAIPAN_API_URL }}
           api-key: ${{ secrets.HENKAIPAN_API_KEY }}
-          project-id: ${{ secrets.HENKAIPAN_PROJECT_ID }}
           scanners: "semgrep, trivy"
           fail-on-severity: high
           post-pr-comment: "true"
