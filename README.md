@@ -13,29 +13,12 @@ HenKaiPan is an ASPM platform for security scans, findings, knowledge articles, 
 
 1. **Dashboard** — health metrics, onboarding wizard, and recent activity
 2. **Scans** — scanner status, logs, results, and cron-based scan scheduling
-3. **Findings** — filters, triage, SLA tracking, exports, cross-scan deduplication, comments (paid), and analysis
+3. **Findings** — filters, triage, SLA tracking, exports, cross-scan deduplication, comments, and analysis
 4. **Vulns** — grouped vulnerability inventory
 5. **Projects** — connect repos, manage GitHub tokens, track scan history
 6. **Knowledge** — remediation guides and AI-generated articles
 7. **Compliance** — SOC 2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
-8. **Settings** — integrations, security, policies, notifications, users, teams, license management
-
-## Commercial Features (License-Gated)
-
-HenKaiPan uses a feature-based licensing system. Core functionality is free, while advanced features require a license key:
-
-- **Finding Comments** — collaborative discussion threads on findings
-- **Audit Log** — complete audit trail of user actions
-- **Risk Acceptance** — formal risk acceptance workflow with approval chain
-- **Reports & Advanced Metrics** — trend analysis, risk scores, finding exports
-- **AI Remediation** — AI-generated fix suggestions and knowledge articles
-- **Teams** — team-based project organization and member management
-- **Policies & Suppressions** — custom scan policies and finding suppression rules
-- **Scheduling** — cron-based periodic scan scheduling
-- **Integrations** — Jira ticket creation, GitHub PR integration
-- **Email Notifications** — SMTP-based notification delivery
-
-License is validated offline via HMAC-SHA256. Configure with `LICENSE_KEY` environment variable. The signing secret is embedded in the binary.
+8. **Settings** — integrations, security, policies, notifications, users, teams
 
 ## Tech Stack
 
@@ -140,7 +123,7 @@ flowchart TD
 ## Main Components
 
 - **Frontend** — Astro 6 + Tailwind v4; UI lives in `frontend/` and uses `frontend/src/lib/api.ts`.
-- **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, job enqueueing, and license validation.
+- **API** — `cmd/api/main.go` handles auth, CRUD endpoints, metrics, job enqueueing.
 - **Worker** — `cmd/worker/main.go` runs queued scans, validations, summaries, webhooks, emails, and periodic tasks (scan scheduler, digest generator).
 - **Scanning** — scanners are registered in `internal/scanner/registry.go` as named scanners grouped into packs (`sast`, `sca`, `secrets`, `iac`, `containers`). Scanner binaries are bundled in the worker image.
 - **Scheduling** — cron-based periodic scans managed by `internal/tasks/scan_scheduler.go`, configurable from the UI.
@@ -149,7 +132,7 @@ flowchart TD
 - **Data** — PostgreSQL is the source of truth; repositories live under `internal/repository`. Database migrations auto-run on API startup via `internal/db/migrate.go`.
 - **AI & integrations** — OpenRouter / Cloudflare AI, GitHub, Jira, webhooks, and notifications.
 - **Onboarding** — guided wizard at `/dashboard/welcome` with 3-step flow (project → token → first scan) and first-run redirect.
-- **License System** — offline HMAC-SHA256 license validation with feature gates (`internal/license/`).
+
 - **Notifications** — in-app notification system with unread tracking (`internal/handlers/notifications.go`).
 
 ### Database Schema
@@ -214,9 +197,9 @@ flowchart TD
 ```text
 cmd/           # API, worker, and bot entrypoints
 frontend/      # Astro app and browser API client
-internal/      # Auth, handlers, repository, scanner, tasks, integrations, license, db
+internal/      # Auth, handlers, repository, scanner, tasks, integrations, db
 migrations/    # Database schema and changes (auto-run on startup)
-scripts/       # License generator and demo workspace seed
+scripts/       # Demo workspace seed
 docker/        # Dockerfiles for API and worker (scanner binaries bundled in worker image)
 docs/          # User guides and documentation
 ```
