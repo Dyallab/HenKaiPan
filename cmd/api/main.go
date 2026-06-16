@@ -70,7 +70,7 @@ func main() {
 		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans)
 
 	if cfg.TelemetryEnabled {
-		go telemetry.NewClient(store, cfg.TelemetryEndpoint, handlers.Version, "self-hosted").Start(context.Background())
+		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, "self-hosted").Start(context.Background())
 	}
 
 	// Per-token rate limiting constants.
