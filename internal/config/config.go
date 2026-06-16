@@ -80,8 +80,7 @@ type Config struct {
 	MaxUsers    int
 	MaxAIScans  int
 
-	TelemetryEnabled  bool
-	TelemetryEndpoint string
+	TelemetryEnabled bool
 }
 
 // Load reads env vars, validates required fields, and resolves provider configs.
@@ -144,7 +143,6 @@ func Load() *Config {
 	cfg.MaxAIScans = envInt("HENKAIPAN_MAX_AI_SCANS", -1)
 
 	cfg.TelemetryEnabled = envBool("HENKAIPAN_TELEMETRY_ENABLED", true)
-	cfg.TelemetryEndpoint = envOr("HENKAIPAN_TELEMETRY_ENDPOINT", "https://telemetry.dyallab.com.ar/api/ping")
 
 	if len(missing) > 0 {
 		for _, k := range missing {
