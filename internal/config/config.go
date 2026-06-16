@@ -74,6 +74,14 @@ type Config struct {
 
 	// CORS configuration
 	AllowedOrigins []string // default: localhost origins
+
+	// Tier limits (-1 = unlimited). Set by Cloud/Enterprise deployments.
+	MaxProjects int
+	MaxUsers    int
+	MaxAIScans  int
+
+	TelemetryEnabled  bool
+	TelemetryEndpoint string
 }
 
 // Load reads env vars, validates required fields, and resolves provider configs.
@@ -130,6 +138,13 @@ func Load() *Config {
 	}
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
 	cfg.SlackEnabled = cfg.SlackAppToken != "" && cfg.SlackBotToken != "" && cfg.APIBaseURL != "" && cfg.APIToken != ""
+
+	cfg.MaxProjects = envInt("HENKAIPAN_MAX_PROJECTS", -1)
+	cfg.MaxUsers = envInt("HENKAIPAN_MAX_USERS", -1)
+	cfg.MaxAIScans = envInt("HENKAIPAN_MAX_AI_SCANS", -1)
+
+	cfg.TelemetryEnabled = envBool("HENKAIPAN_TELEMETRY_ENABLED", true)
+	cfg.TelemetryEndpoint = envOr("HENKAIPAN_TELEMETRY_ENDPOINT", "https://telemetry.dyallab.com.ar/api/ping")
 
 	if len(missing) > 0 {
 		for _, k := range missing {
@@ -212,6 +227,19 @@ func envBool(key string, def bool) bool {
 	v, err := strconv.ParseBool(raw)
 	if err != nil {
 		slog.Warn("invalid boolean env var, using default", "key", key)
+		return def
+	}
+	return v
+}
+
+func envInt(key string, def int) int {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return def
+	}
+	v, err := strconv.Atoi(raw)
+	if err != nil {
+		slog.Warn("invalid integer env var, using default", "key", key)
 		return def
 	}
 	return v

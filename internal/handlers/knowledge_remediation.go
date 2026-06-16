@@ -23,12 +23,9 @@ func (h *Handler) AIRemediate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Same title normalization as normalizeFindingForDisplay: when title is empty,
-	// derive it from rule_id so the article gets a readable name.
-	if src.Title == "" {
-		if title := humanizeRuleID(src.RuleID); title != "" {
-			src.Title = title
-		}
+	if err := h.checkAIScanLimit(r.Context()); err != nil {
+		h.writeLimitError(w, r, err)
+		return
 	}
 
 	if cached, _ := h.store.Knowledge.FindByRuleID(r.Context(), src.RuleID); cached != nil {

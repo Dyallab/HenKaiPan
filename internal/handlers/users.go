@@ -39,6 +39,11 @@ func (h *Handler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.checkUserLimit(r.Context()); err != nil {
+		h.writeLimitError(w, r, err)
+		return
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "password hash error")

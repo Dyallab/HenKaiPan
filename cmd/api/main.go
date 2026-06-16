@@ -22,6 +22,7 @@ import (
 	"aspm/internal/queue"
 	"aspm/internal/repository"
 	"aspm/internal/secrets"
+	"aspm/internal/telemetry"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -65,7 +66,12 @@ func main() {
 
 	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite,
 		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
-		cfg.EmailEnabled, cfg.WebhookSecret, findingCache)
+		cfg.EmailEnabled, cfg.WebhookSecret, findingCache,
+		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans)
+
+	if cfg.TelemetryEnabled {
+		go telemetry.NewClient(store, cfg.TelemetryEndpoint, handlers.Version, "self-hosted").Start(context.Background())
+	}
 
 	// Per-token rate limiting constants.
 	// API tokens get their own token bucket: 60 requests burst, refills at 1/sec.
@@ -289,6 +295,9 @@ func main() {
 
 		// ── Free: Config Status ──
 		r.Get("/api/config/status", h.GetConfigStatus)
+
+		// ── Tier limits ──
+		r.With(auth.RequireRole("admin", "viewer")).Get("/api/limits", h.GetLimits)
 
 		// ── Policies & Suppressions ──
 		r.With(auth.RequireRole("admin")).Get("/api/policies", h.ListPolicies)
