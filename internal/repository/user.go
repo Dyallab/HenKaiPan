@@ -73,6 +73,12 @@ func (r *userRepo) Delete(ctx context.Context, id string) error {
 	return DeleteByID(ctx, r.db, "users", id)
 }
 
+func (r *userRepo) Count(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&n)
+	return n, err
+}
+
 func (r *userRepo) GetCredentials(ctx context.Context, username string) (id, hash, role string, err error) {
 	err = r.db.QueryRow(ctx,
 		`SELECT id, password_hash, role FROM users WHERE username = $1`, username,

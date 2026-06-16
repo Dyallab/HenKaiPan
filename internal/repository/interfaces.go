@@ -197,6 +197,7 @@ type AppRepository interface {
 	GetFindingComments(ctx context.Context, findingID string) ([]FindingComment, error)
 	CreateFindingComment(ctx context.Context, c CommentCreate) (*FindingComment, error)
 	DeleteFindingComment(ctx context.Context, commentID int64) error
+	CountProjects(ctx context.Context) (int, error)
 	// Ownership checks for IDOR prevention
 	CheckProjectOwnership(ctx context.Context, userID, projectID string) (bool, error)
 	CheckAppOwnership(ctx context.Context, userID, appID string) (bool, error)
@@ -228,6 +229,7 @@ type UserRepository interface {
 	Delete(ctx context.Context, id string) error
 	GetCredentials(ctx context.Context, username string) (id, hash, role string, err error)
 	UpdateLastLogin(ctx context.Context, id string) error
+	Count(ctx context.Context) (int, error)
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
@@ -612,6 +614,11 @@ type HealthRepository interface {
 	CheckWorker(ctx context.Context) (bool, error)
 }
 
+type UsageRepository interface {
+	IncrementAIScan(ctx context.Context, monthKey string, limit int) (bool, error)
+	GetAIScanCount(ctx context.Context, monthKey string) (int, error)
+}
+
 type Stores struct {
 	Findings       FindingRepository
 	Scans          ScanRepository
@@ -631,4 +638,5 @@ type Stores struct {
 	Notifications  NotificationRepository
 	Tokens         TokenRepository
 	Health         HealthRepository
+	Usage          UsageRepository
 }

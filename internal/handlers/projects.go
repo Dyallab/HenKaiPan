@@ -68,6 +68,11 @@ func (h *Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.checkProjectLimit(r.Context()); err != nil {
+		h.writeLimitError(w, r, err)
+		return
+	}
+
 	pc := repository.ProjectCreate{
 		Name: req.Name, Description: req.Description,
 		RepoURL: req.RepoURL, Provider: req.Provider,

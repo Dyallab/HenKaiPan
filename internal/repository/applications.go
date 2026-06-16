@@ -110,3 +110,9 @@ func (r *appRepo) Update(ctx context.Context, id string, upd AppUpdate) error {
 func (r *appRepo) Delete(ctx context.Context, id string) error {
 	return DeleteByID(ctx, r.db, "apps", id)
 }
+
+func (r *appRepo) CountProjects(ctx context.Context) (int, error) {
+	var n int
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM projects`).Scan(&n)
+	return n, err
+}

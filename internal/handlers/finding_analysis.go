@@ -52,6 +52,11 @@ func (h *Handler) AnalyzeFinding(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := h.checkAIScanLimit(r.Context()); err != nil {
+		h.writeLimitError(w, r, err)
+		return
+	}
+
 	payload, err := tasks.MarshalFindingValidatePayload(tasks.FindingValidatePayload{FindingID: id})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "internal error")
@@ -92,6 +97,11 @@ func (h *Handler) RequestFindingSummary(w http.ResponseWriter, r *http.Request) 
 			"status":     "ready",
 			"finding_id": id,
 		})
+		return
+	}
+
+	if err := h.checkAIScanLimit(r.Context()); err != nil {
+		h.writeLimitError(w, r, err)
 		return
 	}
 
