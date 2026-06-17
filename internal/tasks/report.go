@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/datascope"
+
 	"aspm/internal/ai"
 	"aspm/internal/models"
 	"aspm/internal/repository"
@@ -27,18 +29,18 @@ func HandleReportSend(store repository.Stores, sender EmailSender, frontendURL s
 			return fmt.Errorf("get notification settings: %w", err)
 		}
 
-		summary, err := store.Metrics.Summary(ctx)
+		summary, err := store.Metrics.Summary(ctx, datascope.Admin())
 		if err != nil {
 			return fmt.Errorf("get metrics summary: %w", err)
 		}
 
-		trends, err := store.Metrics.Trends(ctx, 7)
+		trends, err := store.Metrics.Trends(ctx, datascope.Admin(), 7)
 		if err != nil {
 			slog.Warn("report: trends unavailable", "err", err)
 			trends = nil
 		}
 
-		sla, err := store.Metrics.SLACompliance(ctx)
+		sla, err := store.Metrics.SLACompliance(ctx, datascope.Admin())
 		if err != nil {
 			slog.Warn("report: SLA unavailable", "err", err)
 			sla = nil

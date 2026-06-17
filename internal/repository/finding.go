@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/findings/summarymeta"
 	"aspm/internal/models"
 	"aspm/internal/scanner"
@@ -74,6 +75,13 @@ rows, err := r.db.Query(ctx, `
 		  AND (@cve_search = '' OR f.cve_id ILIKE '%' || @cve_search || '%')
 		  AND (@show_suppressed = TRUE OR f.suppressed = FALSE)
 		  AND (@file_path = '' OR f.file_path = @file_path)
+		  AND (@user_id::uuid IS NULL OR EXISTS (
+			  SELECT 1 FROM scans s2
+			  JOIN projects p ON s2.project_id = p.id
+			  JOIN apps a ON p.app_id = a.id
+			  JOIN team_members tm ON a.team_id = tm.team_id
+			  WHERE s2.id = f.scan_id AND tm.user_id = @user_id
+		  ))
 		ORDER BY
 			CASE WHEN @sort_by = 'confidence_desc' THEN COALESCE(f.confidence_score, 0) END DESC,
 			CASE WHEN @sort_by = 'confidence_asc' THEN COALESCE(f.confidence_score, 0) END ASC,
@@ -90,6 +98,7 @@ rows, err := r.db.Query(ctx, `
 			"cve_search":      f.CVESearch,
 			"show_suppressed": f.ShowSuppressed,
 			"file_path":       f.FilePath,
+			"user_id":         f.UserID,
 			"sort_by":         f.SortBy,
 			"limit":           f.Limit,
 			"offset":          offset,
@@ -140,7 +149,14 @@ rows, err := r.db.Query(ctx, `
 		      ))
 		  AND (@cve_search = '' OR cve_id ILIKE '%' || @cve_search || '%')
 		  AND (@show_suppressed = TRUE OR suppressed = FALSE)
-		  AND (@file_path = '' OR file_path = @file_path)`,
+		  AND (@file_path = '' OR file_path = @file_path)
+		  AND (@user_id::uuid IS NULL OR EXISTS (
+			  SELECT 1 FROM scans s2
+			  JOIN projects p ON s2.project_id = p.id
+			  JOIN apps a ON p.app_id = a.id
+			  JOIN team_members tm ON a.team_id = tm.team_id
+			  WHERE s2.id = f.scan_id AND tm.user_id = @user_id
+		  ))`,
 		pgx.NamedArgs{
 			"severities":      f.Severities,
 			"scanner":         f.Scanner,
@@ -150,6 +166,7 @@ rows, err := r.db.Query(ctx, `
 			"cve_search":      f.CVESearch,
 			"show_suppressed": f.ShowSuppressed,
 			"file_path":       f.FilePath,
+			"user_id":         f.UserID,
 		},
 	).Scan(&total)
 
@@ -551,7 +568,7 @@ func (r *findingRepo) RefreshBatchCorrelation(ctx context.Context, findingID str
 	return nil
 }
 
-func (r *findingRepo) GetSLASummary(ctx context.Context) (*models.SLASummary, error) {
+func (r *findingRepo) GetSLASummary(ctx context.Context, scope datascope.Scope) (*models.SLASummary, error) {
 	var s models.SLASummary
 	err := r.db.QueryRow(ctx, `
 		SELECT
@@ -564,7 +581,15 @@ func (r *findingRepo) GetSLASummary(ctx context.Context) (*models.SLASummary, er
 			                   AND status NOT IN ('fixed','verified','accepted_risk')) AS on_track,
 			COUNT(*) FILTER (WHERE sla_deadline IS NULL
 			                   AND status NOT IN ('fixed','verified','accepted_risk')) AS no_deadline
-		FROM findings`).
+		FROM findings f
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM scans s2
+			JOIN projects p ON s2.project_id = p.id
+			JOIN apps a ON p.app_id = a.id
+			JOIN team_members tm ON a.team_id = tm.team_id
+			WHERE s2.id = f.scan_id AND tm.user_id = $1
+		))`,
+	scope.UserID).
 		Scan(&s.Overdue, &s.DueToday, &s.OnTrack, &s.NoDeadline)
 	if err != nil {
 		return nil, fmt.Errorf("sla summary: %w", err)
@@ -572,7 +597,7 @@ func (r *findingRepo) GetSLASummary(ctx context.Context) (*models.SLASummary, er
 	return &s, nil
 }
 
-func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error) {
+func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter, scope datascope.Scope) ([]models.Finding, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT f.id, f.scan_id, f.scanner, f.rule_id, f.title, COALESCE(f.description, ''),
 		       f.severity, f.file_path, f.line_start, f.created_at,
@@ -589,10 +614,17 @@ func (r *findingRepo) ExportRows(ctx context.Context, f ExportFilter) ([]models.
 		WHERE ($1::text[] IS NULL OR f.severity = ANY($1))
 		  AND ($2 = '' OR f.scanner  = $2)
 		  AND ($3 = '' OR f.status   = $3)
+		  AND ($4::uuid IS NULL OR EXISTS (
+			  SELECT 1 FROM scans s2
+			  JOIN projects p ON s2.project_id = p.id
+			  JOIN apps a ON p.app_id = a.id
+			  JOIN team_members tm ON a.team_id = tm.team_id
+			  WHERE s2.id = f.scan_id AND tm.user_id = $4
+		  ))
 		ORDER BY
 			CASE f.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END,
 			f.created_at DESC`,
-		f.Severities, f.Scanner, f.Status)
+		f.Severities, f.Scanner, f.Status, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("export findings: %w", err)
 	}
@@ -875,13 +907,20 @@ func (r *findingRepo) GetForRemediation(ctx context.Context, id string) (*Remedi
 	return &src, nil
 }
 
-func (r *findingRepo) ListUniqueFiles(ctx context.Context) ([]string, error) {
+func (r *findingRepo) ListUniqueFiles(ctx context.Context, scope datascope.Scope) ([]string, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT DISTINCT f.file_path
 		FROM findings f
 		WHERE f.file_path IS NOT NULL AND f.file_path <> ''
+		  AND ($1::uuid IS NULL OR EXISTS (
+			  SELECT 1 FROM scans s2
+			  JOIN projects p ON s2.project_id = p.id
+			  JOIN apps a ON p.app_id = a.id
+			  JOIN team_members tm ON a.team_id = tm.team_id
+			  WHERE s2.id = f.scan_id AND tm.user_id = $1
+		  ))
 		ORDER BY f.file_path
-	`)
+	`, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("list unique files: %w", err)
 	}

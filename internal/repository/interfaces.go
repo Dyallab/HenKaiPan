@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 )
 
@@ -21,6 +22,7 @@ type FindingFilter struct {
 	Limit          int
 	FilePath       string
 	SortBy         string // "confidence_desc", "confidence_asc", "corroborated"
+	UserID         *string // nil = admin (no filter), non-nil = scoped to user
 }
 
 type FindingUpdate struct {
@@ -113,8 +115,8 @@ type FindingRepository interface {
 	Update(ctx context.Context, id string, upd FindingUpdate) (*models.Finding, error)
 	Insert(ctx context.Context, f FindingInsert) (string, error)
 	RefreshBatchCorrelation(ctx context.Context, findingID string) error
-	GetSLASummary(ctx context.Context) (*models.SLASummary, error)
-	ExportRows(ctx context.Context, f ExportFilter) ([]models.Finding, error)
+	GetSLASummary(ctx context.Context, scope datascope.Scope) (*models.SLASummary, error)
+	ExportRows(ctx context.Context, f ExportFilter, scope datascope.Scope) ([]models.Finding, error)
 	UpdateRemediationSlug(ctx context.Context, findingID, slug string) error
 	UpdateSnippet(ctx context.Context, id, snippet string, startLine int) error
 	GetForRemediation(ctx context.Context, id string) (*RemediationSource, error)
@@ -124,13 +126,13 @@ type FindingRepository interface {
 	MarkAISummaryFailed(ctx context.Context, fingerprint string) error
 	ListPendingSLABreaches(ctx context.Context, limit int) ([]SLABreachFinding, error)
 	MarkSLABreachAttempted(ctx context.Context, findingIDs []string) error
-	ListUniqueFiles(ctx context.Context) ([]string, error)
+	ListUniqueFiles(ctx context.Context, scope datascope.Scope) ([]string, error)
 }
 
 // ── Scans ─────────────────────────────────────────────────────────────────────
 
 type ScanRepository interface {
-	List(ctx context.Context, page, limit int) ([]models.Scan, int, error)
+	List(ctx context.Context, scope datascope.Scope, page, limit int) ([]models.Scan, int, error)
 	Get(ctx context.Context, id string) (*models.Scan, error)
 	Insert(ctx context.Context, target, scanner, batchID string, projectID *string) (string, error)
 	MarkRunning(ctx context.Context, scanID string) error
@@ -175,14 +177,14 @@ type BulkCreateResult struct {
 }
 
 type AppRepository interface {
-	List(ctx context.Context, teamFilter string) ([]models.App, error)
+	List(ctx context.Context, scope datascope.Scope) ([]models.App, error)
 	Get(ctx context.Context, id string) (*models.App, error)
 	Create(ctx context.Context, name, description string, teamID *string) (*models.App, error)
 	Update(ctx context.Context, id string, upd AppUpdate) error
 	Delete(ctx context.Context, id string) error
-	ListProjects(ctx context.Context, appID string) ([]models.Project, error)
-	ListAllProjects(ctx context.Context, appFilter string) ([]models.Project, error)
-	ListStandaloneByPattern(ctx context.Context, pattern string) ([]models.Project, error)
+	ListProjects(ctx context.Context, scope datascope.Scope, appID string) ([]models.Project, error)
+	ListAllProjects(ctx context.Context, scope datascope.Scope, appFilter string) ([]models.Project, error)
+	ListStandaloneByPattern(ctx context.Context, scope datascope.Scope, pattern string) ([]models.Project, error)
 	GetProjectByID(ctx context.Context, id string) (*models.Project, error)
 	GetProjectByName(ctx context.Context, name string) (*models.Project, error)
 	CreateProject(ctx context.Context, appID string, p ProjectCreate) (*models.Project, error)
@@ -221,15 +223,26 @@ type UserUpdate struct {
 	PasswordHash *string
 }
 
+// Credentials holds login-relevant user data including token_version for JWT.
+type Credentials struct {
+	ID           string
+	PasswordHash string
+	Role         string
+	TokenVersion int
+}
+
 type UserRepository interface {
 	List(ctx context.Context) ([]models.User, error)
 	GetByID(ctx context.Context, id string) (*models.User, error)
 	Create(ctx context.Context, u UserCreate) (*models.User, error)
 	Update(ctx context.Context, id string, upd UserUpdate) (*models.User, error)
 	Delete(ctx context.Context, id string) error
-	GetCredentials(ctx context.Context, username string) (id, hash, role string, err error)
+	GetCredentials(ctx context.Context, username string) (*Credentials, error)
 	UpdateLastLogin(ctx context.Context, id string) error
 	Count(ctx context.Context) (int, error)
+	GetTokenVersion(ctx context.Context, id string) (int, error)
+	BumpTokenVersion(ctx context.Context, id string) error
+	GetPasswordHashByID(ctx context.Context, id string) (string, error)
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
@@ -245,14 +258,14 @@ type TeamRepository interface {
 // ── Metrics ───────────────────────────────────────────────────────────────────
 
 type MetricsRepository interface {
-	Summary(ctx context.Context) (*models.MetricsSummary, error)
-	Trends(ctx context.Context, days int) ([]models.TrendPoint, error)
-	RiskScores(ctx context.Context) ([]models.RepoRiskScore, error)
-	TeamMetrics(ctx context.Context) ([]models.TeamMetrics, error)
-	SLACompliance(ctx context.Context) (*models.SLACompliance, error)
+	Summary(ctx context.Context, scope datascope.Scope) (*models.MetricsSummary, error)
+	Trends(ctx context.Context, scope datascope.Scope, days int) ([]models.TrendPoint, error)
+	RiskScores(ctx context.Context, scope datascope.Scope) ([]models.RepoRiskScore, error)
+	TeamMetrics(ctx context.Context, scope datascope.Scope) ([]models.TeamMetrics, error)
+	SLACompliance(ctx context.Context, scope datascope.Scope) (*models.SLACompliance, error)
 	ScannerHealth(ctx context.Context) ([]models.ScannerHealth, error)
 	PrometheusStats(ctx context.Context) (scansTotal, scansRunning, scansFailed int, findingsBySeverity map[string]int, err error)
-	SecurityScores(ctx context.Context, projectID *string) ([]models.SecurityScore, error)
+	SecurityScores(ctx context.Context, scope datascope.Scope, projectID *string) ([]models.SecurityScore, error)
 }
 
 // ── Knowledge ─────────────────────────────────────────────────────────────────

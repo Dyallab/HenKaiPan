@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/github"
 	"aspm/internal/repository"
 	"aspm/internal/validation"
@@ -15,8 +17,15 @@ import (
 
 func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 	appID := chi.URLParam(r, "id")
+
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
 	if appID != "" {
-		projects, err := h.store.Apps.ListProjects(r.Context(), appID)
+		projects, err := h.store.Apps.ListProjects(r.Context(), scope, appID)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 			return
@@ -30,7 +39,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 
 	// If pattern is set, delegate to pattern-based lookup
 	if pattern != "" {
-		projects, err := h.store.Apps.ListStandaloneByPattern(r.Context(), pattern)
+		projects, err := h.store.Apps.ListStandaloneByPattern(r.Context(), scope, pattern)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 			return
@@ -39,7 +48,7 @@ func (h *Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	projects, err := h.store.Apps.ListAllProjects(r.Context(), filter)
+	projects, err := h.store.Apps.ListAllProjects(r.Context(), scope, filter)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list projects")
 		return
