@@ -10,13 +10,19 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.23.0 (2026-06-11)
-**Next planned:** v1.24.0
+**Current release:** v1.28.1 (2026-06-16)
+**Next planned:** v1.29.0
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.28.1 | CI security gate for Docker builds, telemetry endpoint hardcoded |
+| v1.28.0 | Tier limits (projects/users/AI scans), anonymous telemetry, `GET /api/limits` |
+| v1.27.0 | Open source prep, MIT license, community templates, cloud pricing tiers |
+| v1.26.0 | License system removed — all features free, no license key required |
+| v1.25.0 | Auto-create project from external scan, action v1.5.0 |
+| v1.24.0 | Slack interactive bot, bulk findings actions, Nix dev environment |
 | v1.23.0 | Project tags, security scores, scheduled report delivery, knowledge article improvements, bulk findings export with consistent snippet display |
 | v1.22.0 | Finding detail perf overhaul (Redis cache, composite endpoint, ~20s→&lt;10ms), SSE memory leak/over-fetching fixes, ENABLE_PPROF, pnpm pinned |
 | v1.20.5 | GetByID query fix — missing argument caused pgx error, breaking finding detail and dependant endpoints |
@@ -57,12 +63,59 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 ---
 
-## 🔜 v1.24.0 — Planned
+## ✅ v1.24.0 — Released (2026-06-16)
 
-Focus: **SMB workflow & visibility** — bulk actions, Slack bot, onboarding flow.
+SMB workflow & visibility — Slack bot, bulk actions, Nix dev environment.
 
-- [ ] **Bulk Findings Actions**: multi-select findings → batch status change / assign / dismiss — UI-only, backend already supports PATCH
-- [ ] **Slack Interactive Bot**: Slack Socket Mode bot for triage (acknowledge, dismiss, assign) directly from Slack — interactive buttons via Block Kit
+- [x] **Bulk Findings Actions**: multi-select findings → batch status change / assign / dismiss
+- [x] **Slack Interactive Bot**: Slack Socket Mode bot for triage (acknowledge, dismiss, assign) directly from Slack — interactive buttons via Block Kit
+
+---
+
+## 🛡️ Security Hardening (Pentest 2026-06-16)
+
+Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/reports/INDEX.md) for full context.
+
+### Sprint 1 — Alta (esta semana)
+
+- [ ] **R003 — Verificar `current_password` en cambio de contraseña**
+  - Requerir `current_password` en `PATCH /api/users/{id}` para cambios propios de password (CWE-620, CVSS 8.1)
+  - Endpoint separado `POST /api/users/{id}/reset-password` para admin resets + notificación al usuario afectado
+  - Invalidar sesiones activas al cambiar password
+  - Referencia: [`R003`](../pentest/reports/R003-password-change-no-current-password.md)
+- [ ] **R002 — Re-autenticación para cambios de rol**
+  - Requerir `current_password` en `PATCH /api/users/{id}` al modificar el campo `role` (CWE-269, CVSS 7.2)
+  - Notificar al usuario afectado por email cuando su rol cambie (qué admin, desde qué IP)
+  - Alertas activas para `user.update` con cambio de `role` en audit log
+  - Referencia: [`R002`](../pentest/reports/R002-privilege-escalation-role-change.md)
+
+### Sprint 2 — Media (próximas 2 semanas)
+
+- [ ] **R001 — Allowlist de hosts git en `target` de scans**
+  - Validar URL contra allowlist: `github.com`, `gitlab.com`, `bitbucket.org` (CWE-918, CVSS 5.0)
+  - Resolver hostname y bloquear rangos RFC1918, link-local y loopback antes del `git clone`
+  - Considerar DMZ para el runner de scans (sin acceso a red interna)
+  - Referencia: [`R001`](../pentest/reports/R001-ssrf-scan-target.md)
+- [ ] **R006 — Rate limiting en `POST /api/auth/login`**
+  - Rate limiting por IP y por username vía Redis (CWE-307, CVSS 5.3)
+  - Máx 5 intentos fallidos por username en 5 min → `429 Too Many Requests` + `Retry-After`
+  - Bloqueo temporal de cuenta tras N fallos (ej: 10) + notificación por email
+  - Verificar/crear regla de rate limiting en Cloudflare WAF para esta ruta
+  - Referencia: [`R006`](../pentest/reports/R006-no-rate-limiting-login.md)
+
+### Sprint 3 — Baja (próximo mes)
+
+- [x] **R004 — Verificación de email al cambiar dirección**
+  - Requerir `current_password` en `PATCH /api/users/{id}` al modificar `email`
+  - Notificar al email **anterior** del cambio (vía queue `email:send`)
+  - Notificación in-app + email al nuevo address via `notifySecurityEvent`
+  - Invalidar sesiones activas al cambiar email (bump token_version)
+  - Referencia: [`R004`](../pentest/reports/R004-email-change-no-verification.md)
+- [x] **R005 — Agregar flag `Secure` a cookie `aspm_token`**
+  - Cambiar default de `COOKIE_SECURE` a `true` en config.go
+  - Actualizar `.env.example` para reflejar el nuevo default
+  - La cookie ya usaba `Secure` condicional vía `SetAuthCookie(secure bool)` — solo cambiaba el default
+  - Referencia: [`R005`](../pentest/reports/R005-cookie-missing-secure-flag.md)
 
 ---
 
@@ -274,4 +327,4 @@ Focus: **SMB workflow & visibility** — bulk actions, Slack bot, onboarding flo
 
 ---
 
-*Última actualización: 2026-06-11*
+*Última actualización: 2026-06-16*
