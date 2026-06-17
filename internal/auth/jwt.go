@@ -28,13 +28,14 @@ type ctxKey string
 const claimsKey ctxKey = "claims"
 
 type Claims struct {
-	Sub    string `json:"sub"`
-	Role   string `json:"role"`
-	UserID string `json:"user_id"`
-	Exp    int64  `json:"exp"`
+	Sub          string `json:"sub"`
+	Role         string `json:"role"`
+	UserID       string `json:"user_id"`
+	TokenVersion int    `json:"tok_ver"`
+	Exp          int64  `json:"exp"`
 }
 
-func IssueToken(username, role, userID string) (string, error) {
+func IssueToken(username, role, userID string, tokenVersion int) (string, error) {
 	if secret == "" {
 		panic("JWT secret not initialized. Call SetSecret() before IssueToken()")
 	}
@@ -43,6 +44,7 @@ func IssueToken(username, role, userID string) (string, error) {
 		"sub":     username,
 		"role":    role,
 		"user_id": userID,
+		"tok_ver": tokenVersion,
 		"exp":     time.Now().Add(24 * time.Hour).Unix(),
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(secret)
@@ -149,6 +151,9 @@ func GetClaims(r *http.Request) *Claims {
 	}
 	if s, ok := v["user_id"].(string); ok {
 		c.UserID = s
+	}
+	if f, ok := v["tok_ver"].(float64); ok {
+		c.TokenVersion = int(f)
 	}
 	return c
 }
