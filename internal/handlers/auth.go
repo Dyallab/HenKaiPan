@@ -2,10 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
+	appmw "aspm/internal/middleware"
 	"aspm/internal/auth"
+	"aspm/internal/ratelimit"
 	"aspm/internal/validation"
 
 	"golang.org/x/crypto/bcrypt"
@@ -26,22 +30,40 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	slog.InfoContext(r.Context(), "login attempt", "username", req.Username)
 
-	id, hash, role, err := h.store.Users.GetCredentials(r.Context(), req.Username)
+	// Rate limiting: per-username (5 in 15min) + per-IP (10 in 15min)
+	ip := clientIP(r)
+	userKey := fmt.Sprintf("login:ratelimit:user:%s", req.Username)
+	ipKey := fmt.Sprintf("login:ratelimit:ip:%s", ip)
+	if err := ratelimit.CheckRateLimit(r.Context(), appmw.Rdb, userKey, 5, 15*time.Minute); err != nil {
+		slog.WarnContext(r.Context(), "login: rate limit exceeded (user)", "username", req.Username, "ip", ip)
+		writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
+		return
+	}
+	if err := ratelimit.CheckRateLimit(r.Context(), appmw.Rdb, ipKey, 10, 15*time.Minute); err != nil {
+		slog.WarnContext(r.Context(), "login: rate limit exceeded (ip)", "ip", ip)
+		writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
+		return
+	}
+
+	creds, err := h.store.Users.GetCredentials(r.Context(), req.Username)
 	if err != nil {
 		slog.WarnContext(r.Context(), "login: user not found or db error", "username", req.Username, "error", err)
 		h.writeUnauthorized(w, r)
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(req.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(creds.PasswordHash), []byte(req.Password)); err != nil {
 		slog.WarnContext(r.Context(), "login: password mismatch", "username", req.Username)
 		h.writeUnauthorized(w, r)
 		return
 	}
 
-	h.store.Users.UpdateLastLogin(r.Context(), id)
+	// Reset rate limit counters on successful login
+	ratelimit.ResetRateLimit(r.Context(), appmw.Rdb, userKey, ipKey)
 
-	token, err := auth.IssueToken(req.Username, role, id)
+	h.store.Users.UpdateLastLogin(r.Context(), creds.ID)
+
+	token, err := auth.IssueToken(req.Username, creds.Role, creds.ID, creds.TokenVersion)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "login: token generation failed", "error", err)
 		h.writeInternal(w, r, err, "token generation failed")
@@ -55,7 +77,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"role":     role,
+		"role":     creds.Role,
 		"username": req.Username,
 	})
 	slog.InfoContext(r.Context(), "login: success", "username", req.Username)
@@ -64,4 +86,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	auth.ClearAuthCookie(w, h.cookieSecure, h.cookieDomain, h.cookieSameSite)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func clientIP(r *http.Request) string {
+	return appmw.ClientIP(r)
 }

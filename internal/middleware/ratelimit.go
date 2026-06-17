@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"aspm/internal/auth"
@@ -22,12 +24,44 @@ const (
 
 var Rdb *redis.Client
 var rateLimitFailClosed = true
+var trustedProxyCIDRs []*net.IPNet
 
 // InitRateLimiter initializes the Redis client for rate limiting
 func InitRateLimiter(addr string) {
 	Rdb = redis.NewClient(&redis.Options{
 		Addr: addr,
 	})
+}
+
+// SetTrustedProxies configures CIDR ranges for trusted reverse proxies.
+// X-Forwarded-For and X-Real-IP headers are only trusted when the direct
+// connection comes from one of these CIDRs. If no proxies are configured,
+// the first IP from X-Forwarded-For is used (backward-compatible default).
+func SetTrustedProxies(cidrs []string) error {
+	for _, c := range cidrs {
+		_, cidr, err := net.ParseCIDR(c)
+		if err != nil {
+			return fmt.Errorf("invalid trusted proxy CIDR %q: %w", c, err)
+		}
+		trustedProxyCIDRs = append(trustedProxyCIDRs, cidr)
+	}
+	return nil
+}
+
+func isTrustedProxy(ip net.IP) bool {
+	for _, cidr := range trustedProxyCIDRs {
+		if cidr.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func extractRemoteAddr(addr string) string {
+	if idx := strings.LastIndexByte(addr, ':'); idx != -1 {
+		return addr[:idx]
+	}
+	return addr
 }
 
 // Close closes the Redis connection
@@ -136,20 +170,44 @@ func isHeavyEndpoint(path string) bool {
 		path == "/api/metrics/risk"
 }
 
-// getClientIP extracts the client IP from the request
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first (for proxied requests)
+// ClientIP extracts the real client IP from the request, respecting trusted proxies.
+// If trusted proxies are configured, X-Forwarded-For and X-Real-IP are only accepted
+// when the direct connection comes from a trusted proxy. Otherwise, falls back to RemoteAddr.
+// If no trusted proxies are configured, the first IP from X-Forwarded-For is used
+// (backward-compatible with existing deployments behind reverse proxies).
+func ClientIP(r *http.Request) string {
+	directIP := net.ParseIP(extractRemoteAddr(r.RemoteAddr))
+
+	if len(trustedProxyCIDRs) > 0 && directIP != nil && !isTrustedProxy(directIP) {
+		// Connection is not from a trusted proxy — ignore proxy headers
+		if directIP != nil {
+			return directIP.String()
+		}
+		return r.RemoteAddr
+	}
+
+	// Check X-Forwarded-For header (trusted proxy or no proxies configured)
 	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return xff
+		if i := strings.IndexByte(xff, ','); i != -1 {
+			return strings.TrimSpace(xff[:i])
+		}
+		return strings.TrimSpace(xff)
 	}
 
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return xri
+		return strings.TrimSpace(xri)
 	}
 
-	// Fall back to RemoteAddr
+	if directIP != nil {
+		return directIP.String()
+	}
 	return r.RemoteAddr
+}
+
+// getClientIP extracts the client IP from the request
+func getClientIP(r *http.Request) string {
+	return ClientIP(r)
 }
 
 // getUserID extracts user ID from JWT claims in request context (if authenticated)
