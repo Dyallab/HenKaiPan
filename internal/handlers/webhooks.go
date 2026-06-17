@@ -107,8 +107,22 @@ func validateWebhookURL(raw string) error {
 	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
 		return fmt.Errorf("webhook url must not target localhost")
 	}
-	if ip := net.ParseIP(host); ip != nil && !isPublicWebhookIP(ip) {
-		return fmt.Errorf("webhook url must target a public address")
+	if ip := net.ParseIP(host); ip != nil {
+		if !isPublicWebhookIP(ip) {
+			return fmt.Errorf("webhook url must target a public address")
+		}
+		return nil
+	}
+	// Hostname — resolve DNS to prevent SSRF via DNS rebinding
+	ips, err := net.LookupHost(host)
+	if err != nil {
+		return fmt.Errorf("webhook url: failed to resolve hostname %q", host)
+	}
+	for _, ipStr := range ips {
+		resolved := net.ParseIP(ipStr)
+		if resolved == nil || !isPublicWebhookIP(resolved) {
+			return fmt.Errorf("webhook url %q resolves to a non-public address (%s)", host, ipStr)
+		}
 	}
 	return nil
 }

@@ -25,10 +25,11 @@ type Config struct {
 	RedisAddr            string // default: localhost:6379
 	Port                 string // default: 8080
 	FrontendURL          string // optional: public frontend URL for external backlinks
-	CookieSecure         bool   // default: false; set true behind HTTPS
-	CookieDomain         string // optional: cookie domain for production (e.g. ".example.com")
-	CookieSameSite       string // optional: "lax" (default), "strict", or "none" (requires Secure=true)
-	WebhookSecret        string // optional: secret for HMAC webhook signature validation
+	CookieSecure         bool   // default: true; disable for local HTTP dev
+	CookieDomain         string   // optional: cookie domain for production (e.g. ".example.com")
+	CookieSameSite       string   // optional: "lax" (default), "strict", or "none" (requires Secure=true)
+	WebhookSecret        string   // optional: secret for HMAC webhook signature validation
+	TrustedProxies       []string // optional: CIDRs of trusted reverse proxies (e.g. "10.0.0.0/8,192.168.0.0/16")
 
 	SMTPHost     string // optional email notifications
 	SMTPPort     string // default: 587
@@ -108,7 +109,7 @@ func Load() *Config {
 		RedisAddr:             get("REDIS_ADDR"),
 		Port:                  envOr("PORT", "8080"),
 		FrontendURL:           os.Getenv("FRONTEND_BASE_URL"),
-		CookieSecure:          envBool("COOKIE_SECURE", false),
+		CookieSecure:          envBool("COOKIE_SECURE", true),
 		CookieDomain:          os.Getenv("COOKIE_DOMAIN"),
 		CookieSameSite:        envOr("COOKIE_SAMESITE", "lax"),
 		WebhookSecret:         os.Getenv("WEBHOOK_SECRET"),
@@ -135,6 +136,7 @@ func Load() *Config {
 		APIBaseURL:            os.Getenv("API_BASE_URL"),
 		APIToken:              os.Getenv("API_TOKEN"),
 	}
+	cfg.TrustedProxies = envCSV("TRUSTED_PROXIES", nil)
 	cfg.EmailEnabled = cfg.SMTPHost != "" && cfg.SMTPFrom != ""
 	cfg.SlackEnabled = cfg.SlackAppToken != "" && cfg.SlackBotToken != "" && cfg.APIBaseURL != "" && cfg.APIToken != ""
 
@@ -241,4 +243,19 @@ func envInt(key string, def int) int {
 		return def
 	}
 	return v
+}
+
+func envCSV(key string, def []string) []string {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return def
+	}
+	var out []string
+	for _, s := range strings.Split(raw, ",") {
+		s = strings.TrimSpace(s)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
