@@ -8,9 +8,12 @@ import (
 	"net/http"
 	"time"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/pagination"
 	"aspm/internal/scanner"
 	"aspm/internal/tasks"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -19,8 +22,13 @@ import (
 
 func (h *Handler) ListScans(w http.ResponseWriter, r *http.Request) {
 	p := pagination.FromQuery(r.URL.Query())
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
 
-	scans, total, err := h.store.Scans.List(r.Context(), p.Page, p.Limit)
+	scans, total, err := h.store.Scans.List(r.Context(), scope, p.Page, p.Limit)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list scans")
 		return
@@ -100,6 +108,10 @@ func (h *Handler) CreateScan(w http.ResponseWriter, r *http.Request) {
 
 	if req.Target == "" {
 		writeError(w, r, http.StatusBadRequest, "target or app_id required")
+		return
+	}
+	if err := validation.ValidateGitTarget(req.Target); err != nil {
+		writeError(w, r, http.StatusBadRequest, err.Error())
 		return
 	}
 	if req.Scanner == "" {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,17 +13,45 @@ import (
 
 type metricsRepo struct{ db *pgxpool.Pool }
 
-func (r *metricsRepo) Summary(ctx context.Context) (*models.MetricsSummary, error) {
+func (r *metricsRepo) Summary(ctx context.Context, scope datascope.Scope) (*models.MetricsSummary, error) {
 	m := &models.MetricsSummary{
 		FindingsBySeverity: make(map[string]int),
 		ScansByScanner:     make(map[string]int),
 	}
 
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans`).Scan(&m.TotalScans)
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans WHERE status IN ('pending','running')`).Scan(&m.ActiveScans)
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM findings`).Scan(&m.TotalFindings)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans s
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))`, scope.UserID).Scan(&m.TotalScans)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans s
+		WHERE status IN ('pending','running')
+		  AND ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))`, scope.UserID).Scan(&m.ActiveScans)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM findings f
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM scans s2
+			JOIN projects p ON s2.project_id = p.id
+			JOIN apps a ON p.app_id = a.id
+			JOIN team_members tm ON a.team_id = tm.team_id
+			WHERE s2.id = f.scan_id AND tm.user_id = $1
+		))`, scope.UserID).Scan(&m.TotalFindings)
 
-	sevRows, _ := r.db.Query(ctx, `SELECT severity, COUNT(*) FROM findings GROUP BY severity`)
+	sevRows, _ := r.db.Query(ctx, `SELECT f.severity, COUNT(*) FROM findings f
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM scans s2
+			JOIN projects p ON s2.project_id = p.id
+			JOIN apps a ON p.app_id = a.id
+			JOIN team_members tm ON a.team_id = tm.team_id
+			WHERE s2.id = f.scan_id AND tm.user_id = $1
+		))
+		GROUP BY f.severity`, scope.UserID)
 	if sevRows != nil {
 		defer sevRows.Close()
 		for sevRows.Next() {
@@ -33,7 +62,14 @@ func (r *metricsRepo) Summary(ctx context.Context) (*models.MetricsSummary, erro
 		}
 	}
 
-	scanRows, _ := r.db.Query(ctx, `SELECT scanner, COUNT(*) FROM scans GROUP BY scanner`)
+	scanRows, _ := r.db.Query(ctx, `SELECT s.scanner, COUNT(*) FROM scans s
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))
+		GROUP BY s.scanner`, scope.UserID)
 	if scanRows != nil {
 		defer scanRows.Close()
 		for scanRows.Next() {
@@ -48,8 +84,14 @@ func (r *metricsRepo) Summary(ctx context.Context) (*models.MetricsSummary, erro
 		SELECT s.id, s.scanner, s.status, s.target, s.created_at, s.completed_at, COUNT(f.id)
 		FROM scans s
 		LEFT JOIN findings f ON f.scan_id = s.id
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))
 		GROUP BY s.id
-		ORDER BY s.created_at DESC LIMIT 5`)
+		ORDER BY s.created_at DESC LIMIT 5`, scope.UserID)
 	if recentRows != nil {
 		defer recentRows.Close()
 		for recentRows.Next() {
@@ -65,22 +107,29 @@ func (r *metricsRepo) Summary(ctx context.Context) (*models.MetricsSummary, erro
 	return m, nil
 }
 
-func (r *metricsRepo) Trends(ctx context.Context, days int) ([]models.TrendPoint, error) {
+func (r *metricsRepo) Trends(ctx context.Context, scope datascope.Scope, days int) ([]models.TrendPoint, error) {
 	if days < 1 || days > 365 {
 		days = 30
 	}
 	rows, err := r.db.Query(ctx, `
 		SELECT
-			DATE(created_at)::text AS day,
-			COUNT(*) FILTER (WHERE severity = 'critical') AS critical,
-			COUNT(*) FILTER (WHERE severity = 'high')     AS high,
-			COUNT(*) FILTER (WHERE severity = 'medium')   AS medium,
-			COUNT(*) FILTER (WHERE severity = 'low')      AS low,
-			COUNT(*) FILTER (WHERE severity = 'info')     AS info
-		FROM findings
-		WHERE created_at >= NOW() - make_interval(days => $1)
+			DATE(f.created_at)::text AS day,
+			COUNT(*) FILTER (WHERE f.severity = 'critical') AS critical,
+			COUNT(*) FILTER (WHERE f.severity = 'high')     AS high,
+			COUNT(*) FILTER (WHERE f.severity = 'medium')   AS medium,
+			COUNT(*) FILTER (WHERE f.severity = 'low')      AS low,
+			COUNT(*) FILTER (WHERE f.severity = 'info')     AS info
+		FROM findings f
+		WHERE f.created_at >= NOW() - make_interval(days => $2)
+		  AND ($1::uuid IS NULL OR EXISTS (
+			  SELECT 1 FROM scans s2
+			  JOIN projects p ON s2.project_id = p.id
+			  JOIN apps a ON p.app_id = a.id
+			  JOIN team_members tm ON a.team_id = tm.team_id
+			  WHERE s2.id = f.scan_id AND tm.user_id = $1
+		  ))
 		GROUP BY day
-		ORDER BY day`, days)
+		ORDER BY day`, scope.UserID, days)
 	if err != nil {
 		return nil, fmt.Errorf("trends: %w", err)
 	}
@@ -98,7 +147,7 @@ func (r *metricsRepo) Trends(ctx context.Context, days int) ([]models.TrendPoint
 	return points, nil
 }
 
-func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, error) {
+func (r *metricsRepo) RiskScores(ctx context.Context, scope datascope.Scope) ([]models.RepoRiskScore, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
 			COALESCE(p.id::text, '')                           AS project_id,
@@ -119,8 +168,14 @@ func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, e
 		LEFT JOIN projects p ON p.id = s.project_id OR p.repo_url = s.target
 		LEFT JOIN apps a ON a.id = p.app_id
 		LEFT JOIN findings f ON f.scan_id = s.id
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a2 ON a2.team_id = tm.team_id
+			JOIN projects p2 ON p2.app_id = a2.id
+			WHERE tm.user_id = $1 AND p2.id = s.project_id
+		))
 		GROUP BY p.id, p.name, p.repo_url, p.app_id, a.name, s.target
-		ORDER BY score DESC`)
+		ORDER BY score DESC`, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("risk scores: %w", err)
 	}
@@ -138,7 +193,7 @@ func (r *metricsRepo) RiskScores(ctx context.Context) ([]models.RepoRiskScore, e
 	return scores, nil
 }
 
-func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, error) {
+func (r *metricsRepo) TeamMetrics(ctx context.Context, scope datascope.Scope) ([]models.TeamMetrics, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT
 			t.id::text,
@@ -171,8 +226,11 @@ func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, er
 		LEFT JOIN projects p  ON p.app_id   = a.id OR (p.app_id IS NULL AND a.id IS NULL)
 		LEFT JOIN scans s     ON s.project_id = p.id AND s.status = 'completed'
 		LEFT JOIN findings f  ON f.scan_id   = s.id
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm WHERE tm.team_id = t.id AND tm.user_id = $1
+		))
 		GROUP BY t.id, t.name
-		ORDER BY score DESC`)
+		ORDER BY score DESC`, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("team metrics: %w", err)
 	}
@@ -195,7 +253,7 @@ func (r *metricsRepo) TeamMetrics(ctx context.Context) ([]models.TeamMetrics, er
 	return metrics, nil
 }
 
-func (r *metricsRepo) SLACompliance(ctx context.Context) (*models.SLACompliance, error) {
+func (r *metricsRepo) SLACompliance(ctx context.Context, scope datascope.Scope) (*models.SLACompliance, error) {
 	var s models.SLACompliance
 	err := r.db.QueryRow(ctx, `
 		SELECT
@@ -205,7 +263,14 @@ func (r *metricsRepo) SLACompliance(ctx context.Context) (*models.SLACompliance,
 			COUNT(*) FILTER (WHERE sla_deadline IS NOT NULL
 			  AND sla_deadline < NOW()
 			  AND status NOT IN ('fixed','verified','accepted_risk')) AS overdue
-		FROM findings`).
+		FROM findings f
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM scans s2
+			JOIN projects p ON s2.project_id = p.id
+			JOIN apps a ON p.app_id = a.id
+			JOIN team_members tm ON a.team_id = tm.team_id
+			WHERE s2.id = f.scan_id AND tm.user_id = $1
+		))`, scope.UserID).
 		Scan(&s.Total, &s.OnTime, &s.Overdue)
 	if err != nil {
 		return nil, fmt.Errorf("sla compliance: %w", err)
@@ -286,7 +351,7 @@ func (r *metricsRepo) PrometheusStats(ctx context.Context) (scansTotal, scansRun
 	return scansTotal, scansRunning, scansFailed, findingsBySeverity, nil
 }
 
-func (r *metricsRepo) SecurityScores(ctx context.Context, projectID *string) ([]models.SecurityScore, error) {
+func (r *metricsRepo) SecurityScores(ctx context.Context, scope datascope.Scope, projectID *string) ([]models.SecurityScore, error) {
 	query := `
 		SELECT
 			p.id::text,
@@ -300,10 +365,15 @@ func (r *metricsRepo) SecurityScores(ctx context.Context, projectID *string) ([]
 		LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
 		LEFT JOIN findings f ON f.scan_id = s.id AND f.status NOT IN ('fixed', 'verified')
 		WHERE ($1::text IS NULL OR p.id::text = $1)
+		  AND ($2::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			WHERE a.id = p.app_id AND tm.user_id = $2
+		  ))
 		GROUP BY p.id, p.name
 		ORDER BY p.name`
 
-	rows, err := r.db.Query(ctx, query, projectID)
+	rows, err := r.db.Query(ctx, query, projectID, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("security scores: %w", err)
 	}

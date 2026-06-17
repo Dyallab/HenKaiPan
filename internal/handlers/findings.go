@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/events"
 	"aspm/internal/models"
 	"aspm/internal/pagination"
@@ -25,6 +27,12 @@ import (
 func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	p := pagination.FromQuery(q)
+	claims := auth.GetClaims(r)
+
+	var userID *string
+	if claims != nil && claims.Role != "admin" {
+		userID = &claims.UserID
+	}
 
 	findings, total, err := h.store.Findings.List(r.Context(), repository.FindingFilter{
 		Severities:     parseCSVParam(q.Get("severity")),
@@ -38,6 +46,7 @@ func (h *Handler) ListFindings(w http.ResponseWriter, r *http.Request) {
 		Limit:          p.Limit,
 		FilePath:       q.Get("file_path"),
 		SortBy:         q.Get("sort_by"),
+		UserID:         userID,
 	})
 	if err != nil {
 		h.writeInternal(w, r, err, "failed to list findings")
@@ -111,7 +120,13 @@ func (h *Handler) UpdateFinding(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetSLASummary(w http.ResponseWriter, r *http.Request) {
-	s, err := h.store.Findings.GetSLASummary(r.Context())
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
+	s, err := h.store.Findings.GetSLASummary(r.Context(), scope)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to get SLA summary")
 		return
@@ -121,11 +136,17 @@ func (h *Handler) GetSLASummary(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ExportFindings(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
 	rows, err := h.store.Findings.ExportRows(r.Context(), repository.ExportFilter{
 		Severities: parseCSVParam(q.Get("severity")),
 		Scanner:    q.Get("scanner"),
 		Status:     q.Get("status"),
-	})
+	}, scope)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to export findings")
 		return
@@ -199,7 +220,13 @@ func fmtTime(t *time.Time) string {
 }
 
 func (h *Handler) GetUniqueFiles(w http.ResponseWriter, r *http.Request) {
-	files, err := h.store.Findings.ListUniqueFiles(r.Context());
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
+	files, err := h.store.Findings.ListUniqueFiles(r.Context(), scope);
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list files")
 		return

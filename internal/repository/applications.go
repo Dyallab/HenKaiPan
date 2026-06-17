@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,13 +12,15 @@ import (
 
 type appRepo struct{ db *pgxpool.Pool }
 
-func (r *appRepo) List(ctx context.Context, teamFilter string) ([]models.App, error) {
+func (r *appRepo) List(ctx context.Context, scope datascope.Scope) ([]models.App, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT a.id, a.name, a.description, a.team_id, t.name, a.created_at
 		FROM apps a
 		LEFT JOIN teams t ON t.id = a.team_id
-		WHERE ($1 = '' OR a.team_id = $1::uuid)
-		ORDER BY t.name NULLS LAST, a.name`, teamFilter)
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm WHERE tm.team_id = a.team_id AND tm.user_id = $1
+		))
+		ORDER BY t.name NULLS LAST, a.name`, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("apps list: %w", err)
 	}
@@ -73,7 +76,7 @@ func (r *appRepo) Get(ctx context.Context, id string) (*models.App, error) {
 		return nil, err
 	}
 
-	projects, _ := r.ListProjects(ctx, id)
+	projects, _ := r.ListProjects(ctx, datascope.Admin(), id)
 	if projects == nil {
 		projects = []models.Project{}
 	}

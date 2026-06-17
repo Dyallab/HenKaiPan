@@ -49,11 +49,6 @@ func RequireOwnership(store repository.AppRepository, resourceType string) func(
 				return
 			}
 
-			if hasCapability(claims.Role, "read") && r.Method == http.MethodGet {
-				next(w, r)
-				return
-			}
-
 			resourceID := extractResourceID(r, resourceType)
 			if resourceID == "" {
 				writeJSONError(w, http.StatusBadRequest, httperrors.ErrBadRequest, "Resource ID required")

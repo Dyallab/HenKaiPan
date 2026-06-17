@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -11,7 +12,7 @@ import (
 
 type scanRepo struct{ db *pgxpool.Pool }
 
-func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, int, error) {
+func (r *scanRepo) List(ctx context.Context, scope datascope.Scope, page, limit int) ([]models.Scan, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -26,9 +27,15 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 		       COUNT(f.id) as finding_count
 		FROM scans s
 		LEFT JOIN findings f ON f.scan_id = s.id
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))
 		GROUP BY s.id
 		ORDER BY s.created_at DESC
-		LIMIT $1 OFFSET $2`, limit, offset)
+		LIMIT $2 OFFSET $3`, scope.UserID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("scans list: %w", err)
 	}
@@ -46,7 +53,13 @@ func (r *scanRepo) List(ctx context.Context, page, limit int) ([]models.Scan, in
 	scans = EnsureSlice(scans)
 
 	var total int
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans`).Scan(&total)
+	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM scans s
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = s.project_id
+		))`, scope.UserID).Scan(&total)
 
 	return scans, total, nil
 }

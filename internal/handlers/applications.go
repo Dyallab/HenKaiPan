@@ -4,13 +4,21 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
 )
 
 func (h *Handler) ListApps(w http.ResponseWriter, r *http.Request) {
-	apps, err := h.store.Apps.List(r.Context(), r.URL.Query().Get("team_id"))
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
+	apps, err := h.store.Apps.List(r.Context(), scope)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list apps")
 		return

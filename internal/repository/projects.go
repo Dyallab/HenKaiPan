@@ -7,18 +7,26 @@ import (
 	"strings"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 	"aspm/internal/secrets"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Project, error) {
+func (r *appRepo) ListProjects(ctx context.Context, scope datascope.Scope, appID string) ([]models.Project, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 		       p.provider, p.default_branch, p.external_repo_id,
 		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
-		FROM projects p WHERE p.app_id = $1 ORDER BY p.name`, appID)
+		FROM projects p
+		WHERE p.app_id = $1
+		  AND ($2::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			WHERE a.id = p.app_id AND tm.user_id = $2
+		  ))
+		ORDER BY p.name`, appID, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("list projects: %w", err)
 	}
@@ -34,30 +42,42 @@ func (r *appRepo) ListProjects(ctx context.Context, appID string) ([]models.Proj
 	return EnsureSlice(projects), nil
 }
 
-func (r *appRepo) ListAllProjects(ctx context.Context, appFilter string) ([]models.Project, error) {
+func (r *appRepo) ListAllProjects(ctx context.Context, scope datascope.Scope, appFilter string) ([]models.Project, error) {
 	var query string
+	var args []any
+
+	// Scope filter: admin sees everything, non-admin only sees projects in their team's apps
+	scopeSQL := `($1::uuid IS NULL OR EXISTS (
+		SELECT 1 FROM team_members tm
+		JOIN apps a ON a.team_id = tm.team_id
+		WHERE a.id = p.app_id AND tm.user_id = $1
+	))`
+	// Standalone projects (app_id IS NULL): admin-only
+	standaloneScopeSQL := `($1::uuid IS NULL)`
 
 	if appFilter == "with_app" {
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
 			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
-			FROM projects p WHERE p.app_id IS NOT NULL ORDER BY p.name`
+			FROM projects p WHERE p.app_id IS NOT NULL AND ` + scopeSQL + ` ORDER BY p.name`
 	} else if appFilter == "without_app" {
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
 			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
-			FROM projects p WHERE p.app_id IS NULL ORDER BY p.name`
+			FROM projects p WHERE p.app_id IS NULL AND ` + standaloneScopeSQL + ` ORDER BY p.name`
 	} else {
 		query = `
 			SELECT p.id, p.name, p.description, p.app_id, p.repo_url,
 			       p.provider, p.default_branch, p.external_repo_id,
 			       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
-			FROM projects p ORDER BY p.name`
+			FROM projects p WHERE (p.app_id IS NULL AND ` + standaloneScopeSQL + `)
+			   OR (p.app_id IS NOT NULL AND ` + scopeSQL + `) ORDER BY p.name`
 	}
+	args = []any{scope.UserID}
 
-	rows, err := r.db.Query(ctx, query)
+	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list all projects: %w", err)
 	}
@@ -80,9 +100,9 @@ func (r *appRepo) ListAllProjects(ctx context.Context, appFilter string) ([]mode
 //   - "org/repo-*"       → matches https://github.com/org/repo-*
 //   - full URL           → exact match on repo_url
 //   - plain name         → matches project name
-func (r *appRepo) ListStandaloneByPattern(ctx context.Context, pattern string) ([]models.Project, error) {
+func (r *appRepo) ListStandaloneByPattern(ctx context.Context, scope datascope.Scope, pattern string) ([]models.Project, error) {
 	if pattern == "" {
-		return r.ListAllProjects(ctx, "without_app")
+		return r.ListAllProjects(ctx, scope, "without_app")
 	}
 
 	// Strip @ prefix used to denote user profiles (e.g. @torvalds/* → torvalds/*)
@@ -108,8 +128,9 @@ func (r *appRepo) ListStandaloneByPattern(ctx context.Context, pattern string) (
 		       p.github_token_encrypted IS NOT NULL as has_token, p.tags, p.created_at
 		FROM projects p
 		WHERE p.app_id IS NULL
-		  AND (p.repo_url ILIKE $1 OR p.name ILIKE $1)
-		ORDER BY p.name`, likePattern)
+		  AND ($1::uuid IS NULL) -- standalone projects: admin-only
+		  AND (p.repo_url ILIKE $2 OR p.name ILIKE $2)
+		ORDER BY p.name`, scope.UserID, likePattern)
 	if err != nil {
 		return nil, fmt.Errorf("list standalone by pattern: %w", err)
 	}

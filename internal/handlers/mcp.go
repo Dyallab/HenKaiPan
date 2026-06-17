@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/repository"
 )
 
@@ -378,9 +379,9 @@ func (h *Handler) mcpListProjects(ctx context.Context, req *jsonRPCRequest, args
 	var err error
 
 	if params.Pattern != "" {
-		projects, err = h.store.Apps.ListStandaloneByPattern(ctx, params.Pattern)
+		projects, err = h.store.Apps.ListStandaloneByPattern(ctx, datascope.Admin(), params.Pattern)
 	} else {
-		projects, err = h.store.Apps.ListAllProjects(ctx, params.Filter)
+		projects, err = h.store.Apps.ListAllProjects(ctx, datascope.Admin(), params.Filter)
 	}
 	if err != nil {
 		return mcpError(req, -32603, "Failed to list projects: "+err.Error())
@@ -513,6 +514,7 @@ func (h *Handler) mcpQueryFindings(ctx context.Context, req *jsonRPCRequest, arg
 		CVESearch:  params.CVEID,
 		Page:       params.Page,
 		Limit:      params.Limit,
+		UserID:     nil, // MCP uses API key auth — no user scope
 	})
 	if err != nil {
 		return mcpError(req, -32603, "Failed to query findings: "+err.Error())
@@ -573,7 +575,7 @@ func (h *Handler) mcpGetVulnerabilities(ctx context.Context, req *jsonRPCRequest
 }
 
 func (h *Handler) mcpDashboardSummary(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
-	metrics, err := h.store.Metrics.Summary(ctx)
+	metrics, err := h.store.Metrics.Summary(ctx, datascope.Admin())
 	if err != nil {
 		return mcpError(req, -32603, "Failed to get dashboard summary: "+err.Error())
 	}
