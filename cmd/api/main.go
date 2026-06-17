@@ -61,6 +61,14 @@ func main() {
 	appmw.InitRateLimiter(cfg.RedisAddr)
 	defer appmw.Close()
 
+	if len(cfg.TrustedProxies) > 0 {
+		if err := appmw.SetTrustedProxies(cfg.TrustedProxies); err != nil {
+			slog.Error("invalid trusted proxy CIDR", "err", err)
+			os.Exit(1)
+		}
+		slog.Info("trusted proxies configured", "cidrs", cfg.TrustedProxies)
+	}
+
 	// Initialize finding detail cache (reuses the rate limiter's Redis client).
 	findingCache := cache.NewCache(appmw.Rdb)
 
@@ -173,6 +181,7 @@ func main() {
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware)
+		r.Use(appmw.RequireValidTokenVersion(store))
 
 		// ── /api/v1/ — Token management (JWT auth) ──────────────────────────
 		r.Route("/api/v1", func(r chi.Router) {
@@ -183,11 +192,8 @@ func main() {
 
 		r.Get("/api/scans", h.ListScans)
 		r.Post("/api/scans", h.CreateScan)
-		// TODO: Restore ownership check when per-team/project visibility is implemented.
-		// r.Get("/api/scans/{id}", appmw.RequireOwnership(store.Apps, "scan")(h.GetScan))
-		// r.Get("/api/scans/{id}/findings", appmw.RequireOwnership(store.Apps, "scan")(h.GetScanFindings))
-		r.Get("/api/scans/{id}", h.GetScan)
-		r.Get("/api/scans/{id}/findings", h.GetScanFindings)
+		r.Get("/api/scans/{id}", appmw.RequireOwnership(store.Apps, "scan")(h.GetScan))
+		r.Get("/api/scans/{id}/findings", appmw.RequireOwnership(store.Apps, "scan")(h.GetScanFindings))
 
 		r.Get("/api/findings", h.ListFindings)
 		r.Get("/api/findings/{id}", appmw.RequireOwnership(store.Apps, "finding")(h.GetFinding))
@@ -281,6 +287,7 @@ func main() {
 		r.With(auth.RequireRole("admin")).Get("/api/users", h.ListUsers)
 		r.With(auth.RequireRole("admin")).Post("/api/users", h.CreateUser)
 		r.With(auth.RequireRole("admin")).Patch("/api/users/{id}", h.UpdateUser)
+		r.With(auth.RequireRole("admin")).Post("/api/users/{id}/reset-password", h.ResetPassword)
 		r.With(auth.RequireRole("admin")).Delete("/api/users/{id}", h.DeleteUser)
 
 		// ── Teams ──
@@ -329,8 +336,6 @@ func main() {
 		r.With(auth.RequireRole("admin")).Post("/api/settings/notifications/test-email", h.TestNotificationEmail)
 
 		// ── Integrations ──
-		r.Get("/api/findings/{id}/jira", h.GetFindingJiraIssue)
-		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/jira", h.CreateFindingJiraIssue)
 		r.With(auth.RequireRole("admin")).Get("/api/integrations/jira", h.GetJiraIntegration)
 		r.With(auth.RequireRole("admin")).Put("/api/integrations/jira", h.UpdateJiraIntegration)
 	})

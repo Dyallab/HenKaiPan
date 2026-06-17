@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"aspm/internal/assert"
 )
 
 func TestMapErrorProduction(t *testing.T) {
@@ -14,25 +16,11 @@ func TestMapErrorProduction(t *testing.T) {
 	err := errors.New("pq: relation \"users\" does not exist")
 	mapped := MapError(err, "An error occurred")
 
-	if mapped.Code != ErrInternal {
-		t.Errorf("expected code %s, got %s", ErrInternal, mapped.Code)
-	}
-
-	if strings.Contains(mapped.Details, "pq:") {
-		t.Error("production error exposed database error details")
-	}
-
-	if strings.Contains(mapped.Details, "users") {
-		t.Error("production error exposed table name")
-	}
-
-	if strings.Contains(mapped.Details, "pgx") {
-		t.Error("production error exposed pgx driver details")
-	}
-
-	if mapped.Details != "" {
-		t.Errorf("expected empty details in production, got: %s", mapped.Details)
-	}
+	assert.Equal(t, mapped.Code, ErrInternal)
+	assert.False(t, strings.Contains(mapped.Details, "pq:"))
+	assert.False(t, strings.Contains(mapped.Details, "users"))
+	assert.False(t, strings.Contains(mapped.Details, "pgx"))
+	assert.Equal(t, mapped.Details, "")
 }
 
 func TestMapErrorDevelopment(t *testing.T) {
@@ -42,17 +30,9 @@ func TestMapErrorDevelopment(t *testing.T) {
 	err := errors.New("pq: relation \"users\" does not exist")
 	mapped := MapError(err, "An error occurred")
 
-	if mapped.Code != ErrInternal {
-		t.Errorf("expected code %s, got %s", ErrInternal, mapped.Code)
-	}
-
-	if !strings.Contains(mapped.Details, "pq:") {
-		t.Error("development error should contain full details")
-	}
-
-	if mapped.Details != err.Error() {
-		t.Errorf("development error details should match original error, got: %s", mapped.Details)
-	}
+	assert.Equal(t, mapped.Code, ErrInternal)
+	assert.True(t, strings.Contains(mapped.Details, "pq:"))
+	assert.Equal(t, mapped.Details, err.Error())
 }
 
 func TestMapErrorNotFound(t *testing.T) {
@@ -62,13 +42,8 @@ func TestMapErrorNotFound(t *testing.T) {
 	err := errors.New("not found")
 	mapped := MapError(err, "Resource not found")
 
-	if mapped.Code != ErrNotFound {
-		t.Errorf("expected code %s, got %s", ErrNotFound, mapped.Code)
-	}
-
-	if mapped.Details != "" {
-		t.Error("production error should have empty details")
-	}
+	assert.Equal(t, mapped.Code, ErrNotFound)
+	assert.Equal(t, mapped.Details, "")
 }
 
 func TestMapErrorUnauthorized(t *testing.T) {
@@ -78,13 +53,8 @@ func TestMapErrorUnauthorized(t *testing.T) {
 	err := errors.New("invalid credentials provided")
 	mapped := MapError(err, "Invalid credentials")
 
-	if mapped.Code != ErrUnauthorized {
-		t.Errorf("expected code %s, got %s", ErrUnauthorized, mapped.Code)
-	}
-
-	if mapped.Details != "" {
-		t.Error("production error should have empty details")
-	}
+	assert.Equal(t, mapped.Code, ErrUnauthorized)
+	assert.Equal(t, mapped.Details, "")
 }
 
 func TestMapErrorAlreadyHTTPError(t *testing.T) {
@@ -94,18 +64,11 @@ func TestMapErrorAlreadyHTTPError(t *testing.T) {
 	httpErr := New(ErrConflict, "Resource already exists", "duplicate key constraint")
 	mapped := MapError(httpErr, "Default message")
 
-	if mapped.Code != ErrConflict {
-		t.Errorf("expected code %s, got %s", ErrConflict, mapped.Code)
-	}
-
-	if mapped.Details != "" {
-		t.Error("production should sanitize HTTPError details")
-	}
+	assert.Equal(t, mapped.Code, ErrConflict)
+	assert.Equal(t, mapped.Details, "")
 }
 
 func TestMapErrorNil(t *testing.T) {
 	mapped := MapError(nil, "Default message")
-	if mapped != nil {
-		t.Error("MapError(nil) should return nil")
-	}
+	assert.Nil(t, mapped)
 }

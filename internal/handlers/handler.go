@@ -10,8 +10,11 @@ import (
 
 	"aspm/internal/auth"
 	"aspm/internal/cache"
+	"aspm/internal/events"
 	"aspm/internal/httperrors"
+	"aspm/internal/models"
 	"aspm/internal/repository"
+	"aspm/internal/tasks"
 	"aspm/internal/validation"
 
 	"github.com/hibiken/asynq"
@@ -199,5 +202,55 @@ func monthKey() string {
 	now := time.Now()
 	return fmt.Sprintf("%d-%02d", now.Year(), now.Month())
 }
+
+// notifySecurityEvent creates an in-app notification + SSE event + email for security-related events
+// like password changes, role changes, and other account modifications.
+func (h *Handler) notifySecurityEvent(ctx context.Context, targetUser *models.User, eventType, title, message string) {
+	notif, err := h.store.Notifications.Create(ctx, repository.NotificationCreate{
+		UserID:     targetUser.ID,
+		Title:      title,
+		Message:    message,
+		Type:       eventType,
+		EntityType: ptr("user"),
+		EntityID:   &targetUser.ID,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "create security notification failed", "event_type", eventType, "err", err)
+	} else {
+		entityType := ""
+		if notif.EntityType != nil {
+			entityType = *notif.EntityType
+		}
+		entityID := ""
+		if notif.EntityID != nil {
+			entityID = *notif.EntityID
+		}
+		events.NewNotificationCreated(
+			notif.ID, targetUser.ID, notif.Title, notif.Type,
+			entityType, entityID, notif.AISummary,
+		).Publish()
+	}
+
+	if h.emailEnabled {
+		payload, err := tasks.MarshalEmailSendPayload(tasks.EmailSendPayload{
+			Subject: "[HenKaiPan] " + title,
+			Body:    message + "\n\nIf you did not request this change, contact your administrator.",
+			To:      []string{targetUser.Email},
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, "marshal security email payload failed", "event_type", eventType, "err", err)
+			return
+		}
+		if _, err := h.queue.EnqueueContext(ctx,
+			asynq.NewTask(tasks.TypeEmailSend, payload),
+			asynq.MaxRetry(5),
+			asynq.Timeout(30*time.Second),
+		); err != nil {
+			slog.ErrorContext(ctx, "enqueue security email failed", "event_type", eventType, "err", err)
+		}
+	}
+}
+
+
 
 
