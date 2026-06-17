@@ -17,6 +17,7 @@ import (
 	"aspm/internal/config"
 	"aspm/internal/repository"
 	"aspm/internal/scanner"
+	"aspm/internal/validation"
 	"aspm/internal/vulnerability"
 
 	"github.com/hibiken/asynq"
@@ -204,6 +205,11 @@ func HandleScan(scans repository.ScanRepository, findings repository.FindingRepo
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, url, scanID string) (dir string, execLog string, err error) {
+	// Defense-in-depth: validate target before git clone (SSRF prevention)
+	if err := validation.ValidateGitTarget(url); err != nil {
+		return "", "", fmt.Errorf("target validation failed: %w", err)
+	}
+
 	dir = filepath.Join(os.TempDir(), "aspm-scan-"+scanID)
 
 	slog.Info("cloneRepo called", "project_id", projectID, "url", url, "scan_id", scanID)

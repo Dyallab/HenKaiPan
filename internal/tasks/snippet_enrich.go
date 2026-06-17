@@ -13,6 +13,7 @@ import (
 	"aspm/internal/models"
 	"aspm/internal/repository"
 	"aspm/internal/scanner"
+	"aspm/internal/validation"
 
 	"github.com/hibiken/asynq"
 )
@@ -116,6 +117,11 @@ func HandleSnippetEnrich(apps repository.AppRepository, scans repository.ScanRep
 // cloneRepoForSnippet clones the target repository with --depth=1 for snippet
 // enrichment. It attempts to use the project's GitHub token if available.
 func cloneRepoForSnippet(ctx context.Context, apps repository.AppRepository, projectID *string, url, scanID string) (string, error) {
+	// Defense-in-depth: validate target before git clone (SSRF prevention)
+	if err := validation.ValidateGitTarget(url); err != nil {
+		return "", fmt.Errorf("target validation failed: %w", err)
+	}
+
 	dir := filepath.Join(os.TempDir(), "aspm-snippet-"+scanID)
 
 	if _, err := os.Stat(dir); err == nil {

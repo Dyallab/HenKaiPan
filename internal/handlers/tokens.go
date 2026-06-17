@@ -17,6 +17,7 @@ import (
 	"aspm/internal/auth"
 	"aspm/internal/ratelimit"
 	"aspm/internal/repository"
+	"aspm/internal/validation"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -202,10 +203,10 @@ func (h *Handler) CreateExternalScan(w http.ResponseWriter, r *http.Request) {
 		req.Scanners = []string{"all"}
 	}
 
-	// Validate repo_url if provided (before enqueuing)
+	// Validate repo_url against allowlist (SSRF prevention)
 	if req.RepoURL != "" {
-		if err := validateRepoURL(req.RepoURL); err != nil {
-			writeError(w, r, http.StatusUnprocessableEntity, fmt.Sprintf("repo_url not accessible: %s", err.Error()))
+		if err := validation.ValidateGitTarget(req.RepoURL); err != nil {
+			writeError(w, r, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
