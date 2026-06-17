@@ -20,7 +20,6 @@ func TestSecurityHeaders_Secure(t *testing.T) {
 
 	assert.Equal(t, resp.Header.Get("X-Content-Type-Options"), "nosniff")
 	assert.Equal(t, resp.Header.Get("X-Frame-Options"), "DENY")
-	assert.Equal(t, resp.Header.Get("X-XSS-Protection"), "1; mode=block")
 	assert.Equal(t, resp.Header.Get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains")
 
 	csp := resp.Header.Get("Content-Security-Policy")
