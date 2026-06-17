@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestIssueToken_ReturnsValidJWT(t *testing.T) {
-	token, err := IssueToken("alice", "admin", "usr_001")
+	token, err := IssueToken("alice", "admin", "usr_001", 0)
 	assert.NoError(t, err)
 	assert.True(t, token != "")
 
@@ -34,10 +34,15 @@ func TestIssueToken_ReturnsValidJWT(t *testing.T) {
 	assert.Equal(t, claims["sub"], "alice")
 	assert.Equal(t, claims["role"], "admin")
 	assert.Equal(t, claims["user_id"], "usr_001")
+	if tv, ok := claims["tok_ver"].(float64); ok {
+		assert.Equal(t, int(tv), 0)
+	} else {
+		t.Error("tok_ver claim missing or wrong type")
+	}
 }
 
 func TestParseToken_CookieAuth(t *testing.T) {
-	token, _ := IssueToken("bob", "viewer", "usr_002")
+	token, _ := IssueToken("bob", "viewer", "usr_002", 0)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: authCookieName, Value: token})
@@ -49,7 +54,7 @@ func TestParseToken_CookieAuth(t *testing.T) {
 }
 
 func TestParseToken_BearerAuth(t *testing.T) {
-	token, _ := IssueToken("carol", "admin", "usr_003")
+	token, _ := IssueToken("carol", "admin", "usr_003", 1)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -78,6 +83,7 @@ func TestGetClaims_FromContext(t *testing.T) {
 		"sub":     "alice",
 		"role":    "admin",
 		"user_id": "usr_001",
+		"tok_ver": float64(2),
 	})
 	req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
 
@@ -86,6 +92,7 @@ func TestGetClaims_FromContext(t *testing.T) {
 	assert.Equal(t, claims.Sub, "alice")
 	assert.Equal(t, claims.Role, "admin")
 	assert.Equal(t, claims.UserID, "usr_001")
+	assert.Equal(t, claims.TokenVersion, 2)
 }
 
 func TestGetClaims_NoClaims(t *testing.T) {
@@ -257,5 +264,5 @@ func TestIssueToken_PanicsWithoutSecret(t *testing.T) {
 			t.Error("expected panic")
 		}
 	}()
-	IssueToken("test", "admin", "usr_000")
+	IssueToken("test", "admin", "usr_000", 0)
 }

@@ -79,14 +79,35 @@ func (r *userRepo) Count(ctx context.Context) (int, error) {
 	return n, err
 }
 
-func (r *userRepo) GetCredentials(ctx context.Context, username string) (id, hash, role string, err error) {
-	err = r.db.QueryRow(ctx,
-		`SELECT id, password_hash, role FROM users WHERE username = $1`, username,
-	).Scan(&id, &hash, &role)
-	return
+func (r *userRepo) GetCredentials(ctx context.Context, username string) (*Credentials, error) {
+	var c Credentials
+	err := r.db.QueryRow(ctx,
+		`SELECT id, password_hash, role, token_version FROM users WHERE username = $1`, username,
+	).Scan(&c.ID, &c.PasswordHash, &c.Role, &c.TokenVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 func (r *userRepo) UpdateLastLogin(ctx context.Context, id string) error {
 	_, err := r.db.Exec(ctx, `UPDATE users SET last_login = NOW() WHERE id = $1`, id)
 	return err
+}
+
+func (r *userRepo) GetTokenVersion(ctx context.Context, id string) (int, error) {
+	var v int
+	err := r.db.QueryRow(ctx, `SELECT token_version FROM users WHERE id = $1`, id).Scan(&v)
+	return v, err
+}
+
+func (r *userRepo) BumpTokenVersion(ctx context.Context, id string) error {
+	_, err := r.db.Exec(ctx, `UPDATE users SET token_version = token_version + 1 WHERE id = $1`, id)
+	return err
+}
+
+func (r *userRepo) GetPasswordHashByID(ctx context.Context, id string) (string, error) {
+	var hash string
+	err := r.db.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, id).Scan(&hash)
+	return hash, err
 }
