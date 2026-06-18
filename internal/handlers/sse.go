@@ -27,7 +27,7 @@ func (h *Handler) HandleSSEEvents(w http.ResponseWriter, r *http.Request) {
 	if types := r.URL.Query().Get("types"); types != "" {
 		for _, t := range strings.Split(types, ",") {
 			t = strings.TrimSpace(t)
-			if err := events.ValidateEventType(t); err == nil {
+			if events.EventType(t).IsValid() {
 				filters = append(filters, events.EventType(t))
 			}
 		}

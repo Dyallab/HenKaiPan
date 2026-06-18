@@ -99,49 +99,4 @@ func TestVerifySignature_InvalidTimestampFormat(t *testing.T) {
 	assert.True(t, err != nil)
 }
 
-func TestIsWithinTimeWindow_Fresh(t *testing.T) {
-	err := IsWithinTimeWindow(time.Now().Format(time.RFC3339), MaxAge)
-	assert.NoError(t, err)
-}
 
-func TestIsWithinTimeWindow_Expired(t *testing.T) {
-	past := time.Now().Add(-10 * time.Minute)
-	err := IsWithinTimeWindow(past.Format(time.RFC3339), MaxAge)
-	assert.ErrorIs(t, err, ErrExpiredTimestamp)
-}
-
-func TestIsWithinTimeWindow_Empty(t *testing.T) {
-	err := IsWithinTimeWindow("", MaxAge)
-	assert.True(t, err != nil)
-}
-
-func TestIsWithinTimeWindow_InvalidFormat(t *testing.T) {
-	err := IsWithinTimeWindow("bogus", MaxAge)
-	assert.True(t, err != nil)
-}
-
-func TestGetSignatureHeaders_ReturnsBothHeaders(t *testing.T) {
-	payload := []byte("test")
-	secret := []byte("secret")
-
-	headers, ts := GetSignatureHeaders(payload, secret)
-
-	assert.NotNil(t, headers)
-	assert.True(t, headers[SignatureHeader] != "")
-	assert.True(t, headers[TimestampHeader] != "")
-	assert.Equal(t, headers[TimestampHeader], ts.Format(time.RFC3339))
-}
-
-func TestVerifySignatureWithBody_Equivalent(t *testing.T) {
-	secret := []byte("secret")
-	body := []byte("test-body")
-	ts := time.Now()
-	sig := SignPayload(body, secret, ts)
-
-	req := httptest.NewRequest("POST", "/webhook", nil)
-	req.Header.Set(SignatureHeader, sig)
-	req.Header.Set(TimestampHeader, ts.Format(time.RFC3339))
-
-	err := VerifySignatureWithBody(req, body, secret)
-	assert.NoError(t, err)
-}

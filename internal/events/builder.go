@@ -1,77 +1,5 @@
 package events
 
-import (
-	"fmt"
-)
-
-// EventBuilder provides a fluent interface for creating events
-type EventBuilder struct {
-	eventType EventType
-	data      interface{}
-	metadata  EventMetadata
-}
-
-// NewEvent creates a new event builder
-func NewEvent(eventType EventType) *EventBuilder {
-	return &EventBuilder{
-		eventType: eventType,
-		metadata:  EventMetadata{},
-	}
-}
-
-// WithData sets the event payload
-func (b *EventBuilder) WithData(data interface{}) *EventBuilder {
-	b.data = data
-	return b
-}
-
-// WithUserID sets the user ID for scoped events
-func (b *EventBuilder) WithUserID(userID string) *EventBuilder {
-	b.metadata.UserID = userID
-	return b
-}
-
-// WithProjectID sets the project ID for scoped events
-func (b *EventBuilder) WithProjectID(projectID string) *EventBuilder {
-	b.metadata.ProjectID = projectID
-	return b
-}
-
-// WithFindingID sets the finding ID for scoped events
-func (b *EventBuilder) WithFindingID(findingID string) *EventBuilder {
-	b.metadata.FindingID = findingID
-	return b
-}
-
-// WithScanID sets the scan ID for scoped events
-func (b *EventBuilder) WithScanID(scanID string) *EventBuilder {
-	b.metadata.ScanID = scanID
-	return b
-}
-
-// WithTags adds metadata tags
-func (b *EventBuilder) WithTags(tags map[string]string) *EventBuilder {
-	b.metadata.Tags = tags
-	return b
-}
-
-// Build creates the final event
-func (b *EventBuilder) Build() Event {
-	return Event{
-		Type:     b.eventType,
-		Data:     b.data,
-		Metadata: b.metadata,
-	}
-}
-
-// Publish builds and publishes the event
-func (b *EventBuilder) Publish() {
-	event := b.Build()
-	Publish(event)
-}
-
-// Type-safe event constructors
-
 // FindingSummaryData represents the payload for finding summary events
 type FindingSummaryData struct {
 	FindingID string `json:"finding_id"`
@@ -79,31 +7,34 @@ type FindingSummaryData struct {
 }
 
 // NewFindingSummaryCompleted creates a finding summary completed event
-func NewFindingSummaryCompleted(findingID, summary string) *EventBuilder {
-	return NewEvent(EventFindingSummaryCompleted).
-		WithData(FindingSummaryData{
-			FindingID: findingID,
-			Summary:   summary,
-		})
+func NewFindingSummaryCompleted(findingID, summary string) Event {
+	return Event{
+		Type: EventFindingSummaryCompleted,
+		Data: FindingSummaryData{FindingID: findingID, Summary: summary},
+		Metadata: EventMetadata{FindingID: findingID},
+	}
 }
 
 // FindingValidationData represents the payload for validation events
 type FindingValidationData struct {
-	FindingID  string  `json:"finding_id"`
-	Confidence float64 `json:"confidence"`
-	Reasoning  string  `json:"reasoning"`
-	FPLikelihood string `json:"fp_likelihood"`
+	FindingID    string  `json:"finding_id"`
+	Confidence   float64 `json:"confidence"`
+	Reasoning    string  `json:"reasoning"`
+	FPLikelihood string  `json:"fp_likelihood"`
 }
 
 // NewFindingValidationCompleted creates a finding validation completed event
-func NewFindingValidationCompleted(findingID string, confidence float64, reasoning, fpLikelihood string) *EventBuilder {
-	return NewEvent(EventFindingValidationCompleted).
-		WithData(FindingValidationData{
+func NewFindingValidationCompleted(findingID string, confidence float64, reasoning, fpLikelihood string) Event {
+	return Event{
+		Type: EventFindingValidationCompleted,
+		Data: FindingValidationData{
 			FindingID:    findingID,
 			Confidence:   confidence,
 			Reasoning:    reasoning,
 			FPLikelihood: fpLikelihood,
-		})
+		},
+		Metadata: EventMetadata{FindingID: findingID},
+	}
 }
 
 // ScanData represents the payload for scan events
@@ -116,25 +47,19 @@ type ScanData struct {
 }
 
 // NewScanCompleted creates a scan completed event
-func NewScanCompleted(scanID, projectID, scanner string, findingCount int) *EventBuilder {
-	return NewEvent(EventScanCompleted).
-		WithData(ScanData{
-			ScanID:       scanID,
-			ProjectID:    projectID,
-			Scanner:      scanner,
-			FindingCount: findingCount,
-		})
+func NewScanCompleted(scanID, projectID, scanner string, findingCount int) Event {
+	return Event{
+		Type: EventScanCompleted,
+		Data: ScanData{ScanID: scanID, ProjectID: projectID, Scanner: scanner, FindingCount: findingCount},
+	}
 }
 
 // NewScanFailed creates a scan failed event
-func NewScanFailed(scanID, projectID, scanner, errorMsg string) *EventBuilder {
-	return NewEvent(EventScanFailed).
-		WithData(ScanData{
-			ScanID:    scanID,
-			ProjectID: projectID,
-			Scanner:   scanner,
-			Error:     errorMsg,
-		})
+func NewScanFailed(scanID, projectID, scanner, errorMsg string) Event {
+	return Event{
+		Type: EventScanFailed,
+		Data: ScanData{ScanID: scanID, ProjectID: projectID, Scanner: scanner, Error: errorMsg},
+	}
 }
 
 // WebhookData represents the payload for webhook events
@@ -148,27 +73,19 @@ type WebhookData struct {
 }
 
 // NewWebhookDelivered creates a webhook delivered event
-func NewWebhookDelivered(webhookID, deliveryID, eventType string, statusCode int) *EventBuilder {
-	return NewEvent(EventWebhookDelivered).
-		WithData(WebhookData{
-			WebhookID:  webhookID,
-			DeliveryID: deliveryID,
-			EventType:  eventType,
-			Success:    true,
-			StatusCode: statusCode,
-		})
+func NewWebhookDelivered(webhookID, deliveryID, eventType string, statusCode int) Event {
+	return Event{
+		Type: EventWebhookDelivered,
+		Data: WebhookData{WebhookID: webhookID, DeliveryID: deliveryID, EventType: eventType, Success: true, StatusCode: statusCode},
+	}
 }
 
 // NewWebhookFailed creates a webhook failed event
-func NewWebhookFailed(webhookID, deliveryID, eventType, errorMsg string) *EventBuilder {
-	return NewEvent(EventWebhookFailed).
-		WithData(WebhookData{
-			WebhookID:  webhookID,
-			DeliveryID: deliveryID,
-			EventType:  eventType,
-			Success:    false,
-			Error:      errorMsg,
-		})
+func NewWebhookFailed(webhookID, deliveryID, eventType, errorMsg string) Event {
+	return Event{
+		Type: EventWebhookFailed,
+		Data: WebhookData{WebhookID: webhookID, DeliveryID: deliveryID, EventType: eventType, Success: false, Error: errorMsg},
+	}
 }
 
 // RiskAcceptanceData represents the payload for risk acceptance events
@@ -176,32 +93,24 @@ type RiskAcceptanceData struct {
 	RiskAcceptanceID string `json:"risk_acceptance_id"`
 	FindingID        string `json:"finding_id"`
 	UserID           string `json:"user_id"`
-	Status           string `json:"status"` // approved or rejected
+	Status           string `json:"status"`
 	ReviewNotes      string `json:"review_notes,omitempty"`
 }
 
 // NewRiskAcceptanceApproved creates a risk acceptance approved event
-func NewRiskAcceptanceApproved(riskID, findingID, userID, reviewNotes string) *EventBuilder {
-	return NewEvent(EventRiskAcceptanceApproved).
-		WithData(RiskAcceptanceData{
-			RiskAcceptanceID: riskID,
-			FindingID:        findingID,
-			UserID:           userID,
-			Status:           "approved",
-			ReviewNotes:      reviewNotes,
-		})
+func NewRiskAcceptanceApproved(riskID, findingID, userID, reviewNotes string) Event {
+	return Event{
+		Type: EventRiskAcceptanceApproved,
+		Data: RiskAcceptanceData{RiskAcceptanceID: riskID, FindingID: findingID, UserID: userID, Status: "approved", ReviewNotes: reviewNotes},
+	}
 }
 
 // NewRiskAcceptanceRejected creates a risk acceptance rejected event
-func NewRiskAcceptanceRejected(riskID, findingID, userID, reviewNotes string) *EventBuilder {
-	return NewEvent(EventRiskAcceptanceRejected).
-		WithData(RiskAcceptanceData{
-			RiskAcceptanceID: riskID,
-			FindingID:        findingID,
-			UserID:           userID,
-			Status:           "rejected",
-			ReviewNotes:      reviewNotes,
-		})
+func NewRiskAcceptanceRejected(riskID, findingID, userID, reviewNotes string) Event {
+	return Event{
+		Type: EventRiskAcceptanceRejected,
+		Data: RiskAcceptanceData{RiskAcceptanceID: riskID, FindingID: findingID, UserID: userID, Status: "rejected", ReviewNotes: reviewNotes},
+	}
 }
 
 // PolicyViolationData represents the payload for policy violation events
@@ -210,19 +119,15 @@ type PolicyViolationData struct {
 	PolicyName string `json:"policy_name"`
 	FindingID  string `json:"finding_id"`
 	UserID     string `json:"user_id"`
-	Action     string `json:"action"` // what action was taken
+	Action     string `json:"action"`
 }
 
 // NewPolicyViolation creates a policy violation event
-func NewPolicyViolation(policyID, policyName, findingID, userID, action string) *EventBuilder {
-	return NewEvent(EventPolicyViolation).
-		WithData(PolicyViolationData{
-			PolicyID:   policyID,
-			PolicyName: policyName,
-			FindingID:  findingID,
-			UserID:     userID,
-			Action:     action,
-		})
+func NewPolicyViolation(policyID, policyName, findingID, userID, action string) Event {
+	return Event{
+		Type: EventPolicyViolation,
+		Data: PolicyViolationData{PolicyID: policyID, PolicyName: policyName, FindingID: findingID, UserID: userID, Action: action},
+	}
 }
 
 // ScheduledTaskData represents the payload for scheduled task events
@@ -235,14 +140,11 @@ type ScheduledTaskData struct {
 }
 
 // NewScheduledTaskCompleted creates a scheduled task completed event
-func NewScheduledTaskCompleted(scheduleID, taskType, projectID string) *EventBuilder {
-	return NewEvent(EventScheduledTaskCompleted).
-		WithData(ScheduledTaskData{
-			ScheduleID: scheduleID,
-			TaskType:   taskType,
-			ProjectID:  projectID,
-			Success:    true,
-		})
+func NewScheduledTaskCompleted(scheduleID, taskType, projectID string) Event {
+	return Event{
+		Type: EventScheduledTaskCompleted,
+		Data: ScheduledTaskData{ScheduleID: scheduleID, TaskType: taskType, ProjectID: projectID, Success: true},
+	}
 }
 
 // NotificationCreatedData represents the payload for notification events
@@ -257,9 +159,10 @@ type NotificationCreatedData struct {
 }
 
 // NewNotificationCreated creates a notification created event
-func NewNotificationCreated(notificationID, userID, title, notifType, entityType, entityID, aiSummary string) *EventBuilder {
-	return NewEvent(EventNotificationCreated).
-		WithData(NotificationCreatedData{
+func NewNotificationCreated(notificationID, userID, title, notifType, entityType, entityID, aiSummary string) Event {
+	return Event{
+		Type: EventNotificationCreated,
+		Data: NotificationCreatedData{
 			NotificationID: notificationID,
 			UserID:         userID,
 			Title:          title,
@@ -267,15 +170,7 @@ func NewNotificationCreated(notificationID, userID, title, notifType, entityType
 			EntityType:     entityType,
 			EntityID:       entityID,
 			AISummary:      aiSummary,
-		})
-}
-
-// ValidateEventType checks if an event type string is valid
-func ValidateEventType(eventType string) error {
-	for _, valid := range EventTypes() {
-		if string(valid) == eventType {
-			return nil
-		}
+		},
+		Metadata: EventMetadata{UserID: userID},
 	}
-	return fmt.Errorf("invalid event type: %s", eventType)
 }

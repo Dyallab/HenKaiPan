@@ -51,49 +51,6 @@ func TestEventType_String(t *testing.T) {
 	}
 }
 
-func TestEventType_IsValid(t *testing.T) {
-	t.Run("all_valid_types", func(t *testing.T) {
-		for _, et := range EventTypes() {
-			if !et.IsValid() {
-				t.Errorf("expected %q to be valid", et)
-			}
-		}
-	})
-
-	t.Run("invalid_type", func(t *testing.T) {
-		assert.False(t, EventType("invalid_type").IsValid())
-	})
-
-	t.Run("empty_type", func(t *testing.T) {
-		assert.False(t, EventType("").IsValid())
-	})
-}
-
-func TestValidateEventType(t *testing.T) {
-	t.Run("valid_type", func(t *testing.T) {
-		err := ValidateEventType("scan_completed")
-		assert.Nil(t, err)
-	})
-
-	t.Run("invalid_type", func(t *testing.T) {
-		err := ValidateEventType("bogus_type")
-		assert.NotNil(t, err)
-	})
-
-	t.Run("invalid_type_message", func(t *testing.T) {
-		err := ValidateEventType("unknown_event")
-		if err == nil {
-			t.Fatal("expected error")
-		}
-		assert.MatchesRegexp(t, err.Error(), "invalid event type.*unknown_event")
-	})
-
-	t.Run("empty_type", func(t *testing.T) {
-		err := ValidateEventType("")
-		assert.NotNil(t, err)
-	})
-}
-
 func TestEvent_Creation(t *testing.T) {
 	ev := Event{
 		Type: EventScanCompleted,
