@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"aspm/internal/ai"
-	"aspm/internal/findings/summarymeta"
 	"aspm/internal/repository"
+	"aspm/internal/summarymeta"
 )
 
 type SummaryAgent struct {

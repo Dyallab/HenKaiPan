@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"aspm/internal/assert"
-	"aspm/internal/findings/summarymeta"
 	"aspm/internal/repository"
+	"aspm/internal/summarymeta"
 )
 
 func TestSanitizeSummary_Trims(t *testing.T) {

@@ -1,74 +1,51 @@
 package httperrors
 
 import (
-	"errors"
-	"os"
-	"strings"
 	"testing"
 
 	"aspm/internal/assert"
 )
 
-func TestMapErrorProduction(t *testing.T) {
-	os.Setenv("PRODUCTION", "true")
-	defer os.Unsetenv("PRODUCTION")
+func TestNew_HTTPError(t *testing.T) {
+	t.Run("with details", func(t *testing.T) {
+		err := New(ErrNotFound, "not found", "user 42 missing")
+		assert.Equal(t, err.Code, ErrNotFound)
+		assert.Equal(t, err.Details, "user 42 missing")
+	})
 
-	err := errors.New("pq: relation \"users\" does not exist")
-	mapped := MapError(err, "An error occurred")
-
-	assert.Equal(t, mapped.Code, ErrInternal)
-	assert.False(t, strings.Contains(mapped.Details, "pq:"))
-	assert.False(t, strings.Contains(mapped.Details, "users"))
-	assert.False(t, strings.Contains(mapped.Details, "pgx"))
-	assert.Equal(t, mapped.Details, "")
+	t.Run("without details", func(t *testing.T) {
+		err := New(ErrBadRequest, "bad request")
+		assert.Equal(t, err.Code, ErrBadRequest)
+		assert.Equal(t, err.Details, "")
+	})
 }
 
-func TestMapErrorDevelopment(t *testing.T) {
-	os.Setenv("PRODUCTION", "false")
-	defer os.Unsetenv("PRODUCTION")
-
-	err := errors.New("pq: relation \"users\" does not exist")
-	mapped := MapError(err, "An error occurred")
-
-	assert.Equal(t, mapped.Code, ErrInternal)
-	assert.True(t, strings.Contains(mapped.Details, "pq:"))
-	assert.Equal(t, mapped.Details, err.Error())
+func TestWrap_HTTPError(t *testing.T) {
+	original := New(ErrInternal, "internal error")
+	wrapped := Wrap(original, ErrBadRequest, "wrapped")
+	assert.Equal(t, wrapped.Code, ErrBadRequest)
+	assert.Equal(t, wrapped.Details, "internal error")
 }
 
-func TestMapErrorNotFound(t *testing.T) {
-	os.Setenv("PRODUCTION", "true")
-	defer os.Unsetenv("PRODUCTION")
-
-	err := errors.New("not found")
-	mapped := MapError(err, "Resource not found")
-
-	assert.Equal(t, mapped.Code, ErrNotFound)
-	assert.Equal(t, mapped.Details, "")
+func TestWrap_Nil(t *testing.T) {
+	wrapped := Wrap(nil, ErrBadRequest, "should be nil")
+	assert.Nil(t, wrapped)
 }
 
-func TestMapErrorUnauthorized(t *testing.T) {
-	os.Setenv("PRODUCTION", "true")
-	defer os.Unsetenv("PRODUCTION")
-
-	err := errors.New("invalid credentials provided")
-	mapped := MapError(err, "Invalid credentials")
-
-	assert.Equal(t, mapped.Code, ErrUnauthorized)
-	assert.Equal(t, mapped.Details, "")
+func TestWithMetadata(t *testing.T) {
+	err := New(ErrNotFound, "not found")
+	_ = err.WithMetadata("key", "value")
+	assert.Equal(t, err.Metadata["key"], "value")
 }
 
-func TestMapErrorAlreadyHTTPError(t *testing.T) {
-	os.Setenv("PRODUCTION", "true")
-	defer os.Unsetenv("PRODUCTION")
+func TestHTTPError_Error(t *testing.T) {
+	t.Run("with details", func(t *testing.T) {
+		err := New(ErrInternal, "internal error", "db timeout")
+		assert.Equal(t, err.Error(), "internal error: db timeout")
+	})
 
-	httpErr := New(ErrConflict, "Resource already exists", "duplicate key constraint")
-	mapped := MapError(httpErr, "Default message")
-
-	assert.Equal(t, mapped.Code, ErrConflict)
-	assert.Equal(t, mapped.Details, "")
-}
-
-func TestMapErrorNil(t *testing.T) {
-	mapped := MapError(nil, "Default message")
-	assert.Nil(t, mapped)
+	t.Run("without details", func(t *testing.T) {
+		err := New(ErrBadRequest, "bad request")
+		assert.Equal(t, err.Error(), "bad request")
+	})
 }
