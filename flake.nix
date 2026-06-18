@@ -78,19 +78,15 @@
             go build \
               -ldflags="${ldflags_str}" \
               -o worker ./cmd/worker
-
-            go build \
-              -ldflags="${ldflags_str}" \
-              -o bot ./cmd/bot
           '';
 
           installPhase = ''
             mkdir -p $out/bin
-            cp api worker bot $out/bin/
+            cp api worker $out/bin/
           '';
 
           meta = {
-            description = "HenKaiPan full build (API + worker + bot with embedded frontend)";
+            description = "HenKaiPan full build (API + worker with embedded frontend)";
             homepage = "https://github.com/dyallab/HenKaiPan-app";
             license = pkgs.lib.licenses.mit;
             maintainers = ["jd-apprentice"];
@@ -101,7 +97,6 @@
         packages = {
           api = mkGoBinary "api" "api";
           worker = mkGoBinary "worker" "worker";
-          bot = mkGoBinary "bot" "bot";
           full = mkFull;
           default = self.packages.${system}.api;
         };
