@@ -1,4 +1,4 @@
-.PHONY: dev-api dev-worker dev-api-hot dev-worker-hot up down build build-bot test-race test-integration
+.PHONY: dev-api dev-worker dev-api-hot dev-worker-hot up down build test-race test-integration
 
 ifneq (,$(wildcard .env))
   include .env
@@ -30,10 +30,6 @@ down:
 build:
 	go build $(LDFLAGS) -o bin/api ./cmd/api
 	go build $(LDFLAGS) -o bin/worker ./cmd/worker
-	go build $(LDFLAGS) -o bin/bot ./cmd/bot
-
-build-bot:
-	go build $(LDFLAGS) -o bin/bot ./cmd/bot
 
 test-race:
 	go test -race -count=1 ./...
