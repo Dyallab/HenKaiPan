@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/pagination"
 	"aspm/internal/repository"
 
@@ -14,6 +16,12 @@ import (
 func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	p := pagination.FromQueryWithDefaults(q, 100, 200)
+
+	claims := auth.GetClaims(r)
+	var userID *string
+	if claims != nil && claims.Role != "admin" {
+		userID = &claims.UserID
+	}
 
 	vulns, total, err := h.store.Vulnerabilities.List(r.Context(), repository.VulnerabilityFilter{
 		ProjectID:  q.Get("project_id"),
@@ -25,6 +33,7 @@ func (h *Handler) ListVulnerabilities(w http.ResponseWriter, r *http.Request) {
 		Page:       p.Page,
 		Limit:      p.Limit,
 		SortBy:     q.Get("sort"),
+		UserID:     userID,
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to list vulnerabilities", "error", err)
@@ -76,7 +85,12 @@ func (h *Handler) UpdateVulnerabilityStatus(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *Handler) GetVulnerabilityEngineSummary(w http.ResponseWriter, r *http.Request) {
-	summary, err := h.store.Vulnerabilities.GetProjectEngineSummaries(r.Context())
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+	summary, err := h.store.Vulnerabilities.GetProjectEngineSummaries(r.Context(), scope)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "failed to get vuln engine summary", "error", err)
 		writeError(w, r, http.StatusInternalServerError, "failed to get vulnerability engine summary")

@@ -9,7 +9,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     <h1 class="text-xl font-bold text-white">Apps & Projects</h1>
     <p class="text-slate-400 text-sm mt-0.5">Team → App → Project → Repo hierarchy</p>
   </div>
-  <button id="open-create-app"
+  <button id="open-create-app" data-required-role="admin"
     class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
     <span class="material-symbols-outlined text-lg">add</span>
     New App

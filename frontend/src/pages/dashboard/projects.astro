@@ -10,12 +10,12 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     <p class="text-slate-400 text-sm mt-0.5">Manage your scanned projects and connections</p>
   </div>
   <div class="flex items-center gap-2">
-    <button id="open-bulk-add"
+    <button id="open-bulk-add" data-required-role="admin"
       class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors border border-slate-700/50">
       <span class="material-symbols-outlined text-lg">download</span>
       Bulk Add
     </button>
-    <button id="open-create-project"
+    <button id="open-create-project" data-required-role="admin"
       class="flex items-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-3.5 py-2 rounded transition-colors">
       <span class="material-symbols-outlined text-lg">add</span>
       New Project

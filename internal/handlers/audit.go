@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -24,12 +25,19 @@ func (h *Handler) ListAuditLogs(w http.ResponseWriter, r *http.Request) {
 	entityType := r.URL.Query().Get("entity_type")
 	action := r.URL.Query().Get("action")
 
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
 	logs, total, err := h.store.Audit.List(r.Context(), repository.AuditFilter{
 		UserID:     userID,
 		EntityType: entityType,
 		Action:     action,
 		Page:       1,
 		Limit:      100,
+		Scope:      scope,
 	})
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list audit logs")

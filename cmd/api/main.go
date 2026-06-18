@@ -252,7 +252,7 @@ func main() {
 
 		// ── Free: Apps ──
 		r.Get("/api/apps", h.ListApps)
-		r.Post("/api/apps", h.CreateApp)
+		r.With(auth.RequireRole("admin")).Post("/api/apps", h.CreateApp)
 		r.Get("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.GetApp))
 		r.Patch("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.UpdateApp))
 		r.Delete("/api/apps/{id}", appmw.RequireOwnership(store.Apps, "app")(h.DeleteApp))
@@ -261,14 +261,14 @@ func main() {
 
 		// ── Free: Projects ──
 		r.Get("/api/projects", h.ListProjects)
-		r.Post("/api/projects", h.CreateProject)
+		r.With(auth.RequireRole("admin")).Post("/api/projects", h.CreateProject)
 		r.Get("/api/coverage", h.GetCoverageReport)
 		r.Get("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.GetProject))
 		r.Patch("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProject))
 		r.Put("/api/projects/{projectID}/github-token", appmw.RequireOwnership(store.Apps, "project")(h.UpdateProjectGitHubToken))
 		r.Delete("/api/projects/{projectID}", appmw.RequireOwnership(store.Apps, "project")(h.DeleteProject))
-		r.Post("/api/projects/bulk", h.BulkCreateProjects)
-		r.Post("/api/projects/bulk-assign", h.BulkAssignProjects)
+		r.With(auth.RequireRole("admin")).Post("/api/projects/bulk", h.BulkCreateProjects)
+		r.With(auth.RequireRole("admin")).Post("/api/projects/bulk-assign", h.BulkAssignProjects)
 
 		// ── AI Remediation ──
 		r.Post("/api/knowledge/ai-remediate", h.AIRemediate)

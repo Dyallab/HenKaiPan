@@ -28,9 +28,9 @@ const navGroups = [
     {
         label: "Governance",
         items: [
-            { id: "compliance", label: "Compliance", href: "/dashboard/compliance", icon: "verified_user" },
             { id: "audit", label: "Audit Log", href: "/dashboard/audit", icon: "fact_check" },
             { id: "inventory", label: "Asset Inventory", href: "/dashboard/inventory", icon: "inventory" },
+            { id: "compliance", label: "Compliance", href: "/dashboard/compliance", icon: "verified_user", requiredRole: "admin" },
         ],
     },
     {
@@ -121,6 +121,7 @@ const navGroups = [
                             {group.items.map((item) => (
                                 <a
                                     href={item.href}
+                                    data-required-role={item.requiredRole || undefined}
                                     class={`group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] font-medium uppercase tracking-[0.18em] transition-all duration-150 ${
                                         active === item.id
                                             ? "bg-white/5 text-ghost-white border border-white/10"
@@ -236,6 +237,7 @@ const navGroups = [
                     const nameEl = document.getElementById("username-display");
                     if (nameEl && currentUser) {
                         nameEl.textContent = currentUser.username;
+                        sessionStorage.setItem("hkp_role", currentUser.role);
                     }
                     // Hide nav groups that require a role the current user doesn't have
                     document.querySelectorAll<HTMLElement>('[data-required-role]').forEach(el => {
