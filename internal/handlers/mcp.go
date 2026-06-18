@@ -387,8 +387,7 @@ func (h *Handler) mcpListProjects(ctx context.Context, req *jsonRPCRequest, args
 		return mcpError(req, -32603, "Failed to list projects: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{"projects": projects})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{"projects": projects})}
 }
 
 func (h *Handler) mcpCreateProject(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -418,8 +417,7 @@ func (h *Handler) mcpCreateProject(ctx context.Context, req *jsonRPCRequest, arg
 		return mcpError(req, -32603, "Failed to create project: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{"project": project})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{"project": project})}
 }
 
 func (h *Handler) mcpTriggerScan(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -455,12 +453,11 @@ func (h *Handler) mcpTriggerScan(ctx context.Context, req *jsonRPCRequest, args 
 		return mcpError(req, -32603, "Failed to trigger scan: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{
 		"scan_ids": scanIDs,
 		"batch_id": batchID,
 		"status":   "accepted",
-	})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	})}
 }
 
 func (h *Handler) mcpGetScanStatus(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -478,11 +475,10 @@ func (h *Handler) mcpGetScanStatus(ctx context.Context, req *jsonRPCRequest, arg
 
 	findings, _ := h.store.Findings.GetByScanID(ctx, params.ScanID)
 
-	result, _ := json.Marshal(map[string]any{
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{
 		"scan":     scan,
 		"findings": findings,
-	})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	})}
 }
 
 func (h *Handler) mcpQueryFindings(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -520,13 +516,12 @@ func (h *Handler) mcpQueryFindings(ctx context.Context, req *jsonRPCRequest, arg
 		return mcpError(req, -32603, "Failed to query findings: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{
 		"findings": findings,
 		"total":    total,
 		"page":     params.Page,
 		"limit":    params.Limit,
-	})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	})}
 }
 
 func (h *Handler) mcpGetVulnerabilities(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -565,13 +560,12 @@ func (h *Handler) mcpGetVulnerabilities(ctx context.Context, req *jsonRPCRequest
 		return mcpError(req, -32603, "Failed to list vulnerabilities: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{
 		"vulnerabilities": vulns,
 		"total":           total,
 		"page":            params.Page,
 		"limit":           params.Limit,
-	})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	})}
 }
 
 func (h *Handler) mcpDashboardSummary(ctx context.Context, req *jsonRPCRequest, args json.RawMessage) *jsonRPCResponse {
@@ -580,11 +574,23 @@ func (h *Handler) mcpDashboardSummary(ctx context.Context, req *jsonRPCRequest, 
 		return mcpError(req, -32603, "Failed to get dashboard summary: "+err.Error())
 	}
 
-	result, _ := json.Marshal(map[string]any{"summary": metrics})
-	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: mcpToolResult(map[string]any{"summary": metrics})}
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
+
+// mcpToolResult wraps tool call data in MCP-standard content format.
+// The MCP protocol requires tools/call responses to have a "content" array
+// with at least one text entry, rather than bare business data in result.
+func mcpToolResult(data map[string]any) json.RawMessage {
+	payload, _ := json.Marshal(data)
+	wrapped, _ := json.Marshal(map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": string(payload)},
+		},
+	})
+	return wrapped
+}
 
 func mcpError(req *jsonRPCRequest, code int, message string) *jsonRPCResponse {
 	return &jsonRPCResponse{
