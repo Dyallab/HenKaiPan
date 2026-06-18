@@ -51,6 +51,7 @@ func NewScanCompleted(scanID, projectID, scanner string, findingCount int) Event
 	return Event{
 		Type: EventScanCompleted,
 		Data: ScanData{ScanID: scanID, ProjectID: projectID, Scanner: scanner, FindingCount: findingCount},
+		Metadata: EventMetadata{ProjectID: projectID},
 	}
 }
 
@@ -59,6 +60,7 @@ func NewScanFailed(scanID, projectID, scanner, errorMsg string) Event {
 	return Event{
 		Type: EventScanFailed,
 		Data: ScanData{ScanID: scanID, ProjectID: projectID, Scanner: scanner, Error: errorMsg},
+		Metadata: EventMetadata{ProjectID: projectID},
 	}
 }
 
@@ -144,6 +146,7 @@ func NewScheduledTaskCompleted(scheduleID, taskType, projectID string) Event {
 	return Event{
 		Type: EventScheduledTaskCompleted,
 		Data: ScheduledTaskData{ScheduleID: scheduleID, TaskType: taskType, ProjectID: projectID, Success: true},
+		Metadata: EventMetadata{ProjectID: projectID},
 	}
 }
 
