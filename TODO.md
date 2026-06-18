@@ -10,13 +10,15 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.28.1 (2026-06-16)
-**Next planned:** v1.29.0
+**Current release:** v1.30.0 (2026-06-17)
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.30.0 | Ponytail over-engineering audit — removed bot, testhelpers, duplicate code. CI permissions fix, secrets key derivation fix, rate limit atomicity fix, event metadata fix |
+| v1.29.1 | Simplified README, removed deprecated X-XSS-Protection header, backup script |
+| v1.29.0 | Full pentest hardening sprint — SSRF, rate limiting, session invalidation, role change hardening, email verification, cookie security, webhook DNS rebinding |
 | v1.28.1 | CI security gate for Docker builds, telemetry endpoint hardcoded |
 | v1.28.0 | Tier limits (projects/users/AI scans), anonymous telemetry, `GET /api/limits` |
 | v1.27.0 | Open source prep, MIT license, community templates, cloud pricing tiers |
@@ -76,27 +78,27 @@ SMB workflow & visibility — Slack bot, bulk actions, Nix dev environment.
 
 Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/reports/INDEX.md) for full context.
 
-### Sprint 1 — Alta (esta semana)
+### Sprint 1 — Alta (completado en v1.29.0)
 
-- [ ] **R003 — Verificar `current_password` en cambio de contraseña**
+- [x] **R003 — Verificar `current_password` en cambio de contraseña**
   - Requerir `current_password` en `PATCH /api/users/{id}` para cambios propios de password (CWE-620, CVSS 8.1)
   - Endpoint separado `POST /api/users/{id}/reset-password` para admin resets + notificación al usuario afectado
   - Invalidar sesiones activas al cambiar password
   - Referencia: [`R003`](../pentest/reports/R003-password-change-no-current-password.md)
-- [ ] **R002 — Re-autenticación para cambios de rol**
+- [x] **R002 — Re-autenticación para cambios de rol**
   - Requerir `current_password` en `PATCH /api/users/{id}` al modificar el campo `role` (CWE-269, CVSS 7.2)
   - Notificar al usuario afectado por email cuando su rol cambie (qué admin, desde qué IP)
   - Alertas activas para `user.update` con cambio de `role` en audit log
   - Referencia: [`R002`](../pentest/reports/R002-privilege-escalation-role-change.md)
 
-### Sprint 2 — Media (próximas 2 semanas)
+### Sprint 2 — Media (completado en v1.29.0)
 
-- [ ] **R001 — Allowlist de hosts git en `target` de scans**
+- [x] **R001 — Allowlist de hosts git en `target` de scans**
   - Validar URL contra allowlist: `github.com`, `gitlab.com`, `bitbucket.org` (CWE-918, CVSS 5.0)
   - Resolver hostname y bloquear rangos RFC1918, link-local y loopback antes del `git clone`
   - Considerar DMZ para el runner de scans (sin acceso a red interna)
   - Referencia: [`R001`](../pentest/reports/R001-ssrf-scan-target.md)
-- [ ] **R006 — Rate limiting en `POST /api/auth/login`**
+- [x] **R006 — Rate limiting en `POST /api/auth/login`**
   - Rate limiting por IP y por username vía Redis (CWE-307, CVSS 5.3)
   - Máx 5 intentos fallidos por username en 5 min → `429 Too Many Requests` + `Retry-After`
   - Bloqueo temporal de cuenta tras N fallos (ej: 10) + notificación por email
@@ -327,4 +329,4 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
 
 ---
 
-*Última actualización: 2026-06-16*
+*Última actualización: 2026-06-17*
