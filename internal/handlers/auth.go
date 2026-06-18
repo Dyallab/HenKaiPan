@@ -40,16 +40,15 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		{userKey, 5},
 		{ipKey, 10},
 	} {
-		count, err := appmw.Rdb.Incr(r.Context(), k.key).Result()
-		if err != nil {
+		pipe := appmw.Rdb.Pipeline()
+		incr := pipe.Incr(r.Context(), k.key)
+		pipe.Expire(r.Context(), k.key, 15*time.Minute)
+		if _, err := pipe.Exec(r.Context()); err != nil {
 			slog.ErrorContext(r.Context(), "login: rate limit check failed", "error", err)
 			writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
 			return
 		}
-		if count == 1 {
-			appmw.Rdb.Expire(r.Context(), k.key, 15*time.Minute)
-		}
-		if int(count) > k.max {
+		if int(incr.Val()) > k.max {
 			slog.WarnContext(r.Context(), "login: rate limit exceeded", "key", k.key, "ip", ip)
 			writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
 			return
