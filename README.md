@@ -222,7 +222,7 @@ flowchart TD
 ## Source Tree
 
 ```text
-cmd/           # API, worker, and bot entrypoints
+cmd/           # API and worker entrypoints
 frontend/      # Astro app and browser API client
 internal/      # Auth, handlers, repository, scanner, tasks, integrations, db
 migrations/    # Database schema and changes (auto-run on startup)

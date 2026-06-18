@@ -167,7 +167,7 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
 
 ### Testing Infrastructure
 
-**Current state**: 26 packages under `internal/`, ~15 have tests (~58%). `internal/assert/` and `internal/testhelpers/` exist. `make test` target exists. No CI test step yet.
+**Current state**: 29 packages under `internal/`, ~15 have tests (~58%). `internal/assert/` exists. `make test` target exists. No CI test step yet.
 
 **Goal**: Establish sustainable testing patterns — pragmatic, not coverage-obsessed. Prioritize packages by risk/complexity.
 
@@ -190,7 +190,7 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
   - [x] Create `make test` target: `go test ./internal/...` with race detection
   - [x] Create `make test-coverage` target with HTML output
   - [x] Optional: `make test-integration` for future DB-backed tests
-  - [x] Create `internal/testhelpers/` package: shared `NewMiniredis` helper, context factories, `TestLogger`
+  - [x] `internal/testhelpers/` package created (removed later — dead code, zero imports)
 
 - [x] **Phase 1 — Pure logic packages (no I/O, easy wins)** ✅
   - [x] `vulnerability/`: `ComputeVulnUID`, `NormalizePath`, `NormalizeVersion`, `EngineTypeFromCategory`
@@ -220,7 +220,7 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
   - **Largest surface**: 23 files, 16 interfaces, 75+ exported symbols. Highest risk for regressions.
   - Approach options: A) testcontainers-go with real PG (most reliable), B) sqlmock (fastest), C) shared Docker PG (balanced)
   - [x] Decide approach and document in \`AGENTS.md\`
-  - [ ] Create shared test DB bootstrap (`internal/testhelpers/testdb.go`)
+  - [ ] Create shared test DB bootstrap (e.g. `internal/testdb/` package)
   - [ ] Implement tests per repository interface:
     - [ ] `Stores` (core container struct)
     - [ ] `AppRepository`, `ProjectRepository`, `ScanRepository`, `FindingRepository`
@@ -234,7 +234,7 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
 - [ ] **Phase 5 — HTTP handlers (integration)**
   - **2nd largest package**: 31 files. All request routing, auth, error mapping.
   - Use `net/http/httptest` + chi test helpers.
-  - [ ] Create shared test server (`internal/testhelpers/httptest.go`) — chi router with mock stores, test JWT seed
+  - [ ] Create shared test server — chi router with mock stores, test JWT seed
   - [ ] Auth + middleware integration:
     - [ ] `JWTMiddleware`: valid/invalid/expired tokens, missing header
     - [ ] `RequireRole`: admin vs user access, missing role
