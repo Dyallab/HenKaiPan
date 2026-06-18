@@ -82,17 +82,19 @@ func (r *auditRepo) List(ctx context.Context, filter AuditFilter) ([]models.Audi
 		SELECT id, user_id, user_email, action, entity_type, entity_id,
 		       old_value, new_value, COALESCE(ip_address::text, ''), COALESCE(user_agent, ''), created_at
 		FROM audit_logs
-		WHERE (@user_id = '' OR user_id::text = @user_id)
+		WHERE (@scope_user_id::uuid IS NULL OR user_id = @scope_user_id::uuid)
+		  AND (@user_id = '' OR user_id::text = @user_id)
 		  AND (@entity_type = '' OR entity_type = @entity_type)
 		  AND (@action = '' OR action = @action)
 		ORDER BY created_at DESC
 		LIMIT @limit OFFSET @offset`,
 		pgx.NamedArgs{
-			"user_id":     filter.UserID,
-			"entity_type": filter.EntityType,
-			"action":      filter.Action,
-			"limit":       filter.Limit,
-			"offset":      offset,
+			"scope_user_id": filter.Scope.UserID,
+			"user_id":       filter.UserID,
+			"entity_type":   filter.EntityType,
+			"action":        filter.Action,
+			"limit":         filter.Limit,
+			"offset":        offset,
 		})
 	if err != nil {
 		return nil, 0, fmt.Errorf("audit list: %w", err)
@@ -121,13 +123,15 @@ func (r *auditRepo) List(ctx context.Context, filter AuditFilter) ([]models.Audi
 	var total int
 	r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM audit_logs
-		WHERE (@user_id = '' OR user_id::text = @user_id)
+		WHERE (@scope_user_id::uuid IS NULL OR user_id = @scope_user_id::uuid)
+		  AND (@user_id = '' OR user_id::text = @user_id)
 		  AND (@entity_type = '' OR entity_type = @entity_type)
 		  AND (@action = '' OR action = @action)`,
 		pgx.NamedArgs{
-			"user_id":     filter.UserID,
-			"entity_type": filter.EntityType,
-			"action":      filter.Action,
+			"scope_user_id": filter.Scope.UserID,
+			"user_id":       filter.UserID,
+			"entity_type":   filter.EntityType,
+			"action":        filter.Action,
 		}).Scan(&total)
 
 	return logs, total, nil

@@ -340,6 +340,7 @@ type AuditFilter struct {
 	Action     string
 	Page       int
 	Limit      int
+	Scope      datascope.Scope // nil UserID = no filter; non-nil = only current user's own logs
 }
 
 type RiskAcceptanceCreate struct {
@@ -424,6 +425,7 @@ type VulnerabilityFilter struct {
 	Page       int
 	Limit      int
 	SortBy     string
+	UserID     *string // nil = admin (no filter), non-nil = scoped to user's teams
 }
 
 type VulnerabilityUpsert struct {
@@ -449,7 +451,7 @@ type VulnerabilityRepository interface {
 	GetByUID(ctx context.Context, projectID, vulnUID string) (*models.Vulnerability, error)
 	List(ctx context.Context, f VulnerabilityFilter) ([]models.Vulnerability, int, error)
 	GetAffectedFindings(ctx context.Context, vulnID string) ([]AffectedFinding, error)
-	GetProjectEngineSummaries(ctx context.Context) ([]ProjectEngineSummary, error)
+	GetProjectEngineSummaries(ctx context.Context, scope datascope.Scope) ([]ProjectEngineSummary, error)
 	RecalcConfidence(ctx context.Context, vulnID string) error
 	UpdateFindingVulnID(ctx context.Context, findingID, vulnID string) error
 	UpdateStatus(ctx context.Context, id, status string) error
@@ -492,8 +494,8 @@ type ScanScheduleUpdate struct {
 }
 
 type ScheduleRepository interface {
-	ListByProject(ctx context.Context, projectID string) ([]models.ScanSchedule, error)
-	ListEnabled(ctx context.Context) ([]models.ScanSchedule, error)
+	ListByProject(ctx context.Context, scope datascope.Scope, projectID string) ([]models.ScanSchedule, error)
+	ListEnabled(ctx context.Context, scope datascope.Scope) ([]models.ScanSchedule, error)
 	ListDue(ctx context.Context) ([]models.ScanSchedule, error)
 	GetByID(ctx context.Context, id string) (*models.ScanSchedule, error)
 	Create(ctx context.Context, s ScanScheduleCreate) (*models.ScanSchedule, error)

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 
+	"aspm/internal/auth"
+	"aspm/internal/datascope"
 	"aspm/internal/repository"
 
 	"github.com/go-chi/chi/v5"
@@ -35,9 +37,15 @@ type scheduleUpdateReq struct {
 }
 
 func (h *Handler) ListSchedules(w http.ResponseWriter, r *http.Request) {
+	claims := auth.GetClaims(r)
+	scope := datascope.Admin()
+	if claims != nil && claims.Role != "admin" {
+		scope = datascope.ForUser(claims.UserID)
+	}
+
 	projectID := r.URL.Query().Get("project_id")
 	if projectID != "" {
-		schedules, err := h.store.Schedules.ListByProject(r.Context(), projectID)
+		schedules, err := h.store.Schedules.ListByProject(r.Context(), scope, projectID)
 		if err != nil {
 			writeError(w, r, http.StatusInternalServerError, "failed to list schedules")
 			return
@@ -47,7 +55,7 @@ func (h *Handler) ListSchedules(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If no project_id, return all enabled schedules (admin use)
-	schedules, err := h.store.Schedules.ListEnabled(r.Context())
+	schedules, err := h.store.Schedules.ListEnabled(r.Context(), scope)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to list schedules")
 		return

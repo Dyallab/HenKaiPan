@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"aspm/internal/datascope"
 	"aspm/internal/models"
 
 	"github.com/jackc/pgx/v5"
@@ -21,12 +22,18 @@ func scanSchedule(s *models.ScanSchedule, row interface{ Scan(...interface{}) er
 	return row.Scan(&s.ID, &s.ProjectID, &s.AppID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt)
 }
 
-func (r *scheduleRepo) ListByProject(ctx context.Context, projectID string) ([]models.ScanSchedule, error) {
+func (r *scheduleRepo) ListByProject(ctx context.Context, scope datascope.Scope, projectID string) ([]models.ScanSchedule, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT `+scheduleCols+`
 		FROM scan_schedules
-		WHERE project_id = $1
-		ORDER BY created_at DESC`, projectID)
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND p.id = scan_schedules.project_id
+		))
+		AND project_id = $2
+		ORDER BY created_at DESC`, scope.UserID, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("list schedules by project: %w", err)
 	}
@@ -43,12 +50,18 @@ func (r *scheduleRepo) ListByProject(ctx context.Context, projectID string) ([]m
 	return EnsureSlice(out), nil
 }
 
-func (r *scheduleRepo) ListEnabled(ctx context.Context) ([]models.ScanSchedule, error) {
+func (r *scheduleRepo) ListEnabled(ctx context.Context, scope datascope.Scope) ([]models.ScanSchedule, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT `+scheduleCols+`
 		FROM scan_schedules
-		WHERE enabled = TRUE
-		ORDER BY next_run ASC NULLS FIRST`)
+		WHERE ($1::uuid IS NULL OR EXISTS (
+			SELECT 1 FROM team_members tm
+			JOIN apps a ON a.team_id = tm.team_id
+			JOIN projects p ON p.app_id = a.id
+			WHERE tm.user_id = $1 AND (p.id = scan_schedules.project_id OR a.id = scan_schedules.app_id)
+		))
+		AND enabled = TRUE
+		ORDER BY next_run ASC NULLS FIRST`, scope.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("list enabled schedules: %w", err)
 	}
