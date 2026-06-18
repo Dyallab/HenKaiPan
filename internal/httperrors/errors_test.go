@@ -34,7 +34,7 @@ func TestWrap_Nil(t *testing.T) {
 
 func TestWithMetadata(t *testing.T) {
 	err := New(ErrNotFound, "not found")
-	err.WithMetadata("key", "value")
+	_ = err.WithMetadata("key", "value")
 	assert.Equal(t, err.Metadata["key"], "value")
 }
 
