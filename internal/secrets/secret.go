@@ -4,9 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 )
@@ -76,8 +77,14 @@ func newGCM() (cipher.Block, cipher.AEAD, error) {
 	if secretKey == "" {
 		return nil, nil, errors.New("secret encryption key not configured")
 	}
-	sum := sha256.Sum256([]byte(secretKey))
-	block, err := aes.NewCipher(sum[:])
+	key, err := hex.DecodeString(secretKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("invalid hex key: %w", err)
+	}
+	if len(key) != 32 {
+		return nil, nil, errors.New("key must be 32 bytes (64 hex chars)")
+	}
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -7,7 +7,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	SetKey("test-encryption-key-32bytes!")
+	SetKey("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
 	m.Run()
 }
 
@@ -62,12 +62,12 @@ func TestDecrypt_WrongKey(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Change key and try to decrypt
-	SetKey("different-key-for-test!")
+	SetKey("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	_, err = Decrypt(enc)
 	assert.True(t, err != nil) // should fail with wrong key
 
 	// Restore key for subsequent tests
-	SetKey("test-encryption-key-32bytes!")
+	SetKey("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
 }
 
 func TestDecrypt_ShortCiphertext(t *testing.T) {
