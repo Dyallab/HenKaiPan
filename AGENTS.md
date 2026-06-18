@@ -4,7 +4,7 @@
 
 - **API** (`cmd/api/main.go`): chi router, JWT auth, REST handlers. Build tag `embed_frontend` embeds `frontend/dist/` into binary.
 - **Worker** (`cmd/worker/main.go`): Asynq consumer. Runs scans, AI validation, webhooks, emails, digests. Recovers stuck scans + backfills vulnerabilities on startup.
-- **Bot** (`cmd/bot/main.go`): Scaffolding only — no implementation yet.
+<!-- Bot entrypoint removed — was scaffolding only, never implemented -->
 
 ## Dev environment
 
@@ -23,7 +23,7 @@
 | Full Docker stack | `make up` / `make down` |
 | Build Go binaries (quick) | `make build` |
 | Build Go binaries (obfuscated) | `nix run .#build-obfuscated` |
-| Build all (nix) | `nix build .#{api,worker,bot,full}` |
+| Build all (nix) | `nix build .#{api,worker,full}` |
 | Tests (internal/) | `nix run .#test` |
 | Tests (all packages) | `make test-race` |
 | Tests (integration tag) | `make test-integration` |
@@ -35,7 +35,7 @@
 
 ## Architecture
 
-- **30 packages** under `internal/` — entrypoints under `cmd/`. All Go code imports from `aspm/...`.
+- **29 packages** under `internal/` — entrypoints under `cmd/`. All Go code imports from `aspm/...`.
 - **Repository layer** (`internal/repository/`): single `NewPostgresStores(pool, redisAddr)` factory. Repos accessed via `store.X` throughout handlers/tasks.
 - **Queue** (`internal/queue/`): Asynq client + server. Job types: `scan:run` (3 retries, 30min timeout), `agent:validate` (5 retries), `webhook:send`, `email:send`, `snippet:enrich`, `digest:send`, `report:send`.
 - **SSE bridge** (`internal/events/redis_bridge.go`): worker publishes events to Redis pub/sub; API subscribes and relays to SSE clients.
@@ -53,8 +53,7 @@
 ## Tests
 
 - **27 test files** across internal packages. Most are unit tests with no external dependencies.
-- **No repository integration tests exist yet** (`internal/repository/` has zero test files). The agreed strategy: shared Docker PG (`docker compose up postgres`) with per-test schema isolation — `internal/testhelpers/` needs `NewTestDB` implemented.
-- Redis-using tests use `miniredis` via `testhelpers.NewMiniredis(t)` — no real Redis needed.
+- **No repository integration tests exist yet** (`internal/repository/` has zero test files). The agreed strategy: shared Docker PG (`docker compose up postgres`) with per-test schema isolation.
 
 ## SQL rules (enforced)
 

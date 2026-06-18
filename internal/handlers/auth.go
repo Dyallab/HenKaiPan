@@ -9,7 +9,6 @@ import (
 
 	appmw "aspm/internal/middleware"
 	"aspm/internal/auth"
-	"aspm/internal/ratelimit"
 	"aspm/internal/validation"
 
 	"golang.org/x/crypto/bcrypt"
@@ -34,15 +33,27 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	ip := clientIP(r)
 	userKey := fmt.Sprintf("login:ratelimit:user:%s", req.Username)
 	ipKey := fmt.Sprintf("login:ratelimit:ip:%s", ip)
-	if err := ratelimit.CheckRateLimit(r.Context(), appmw.Rdb, userKey, 5, 15*time.Minute); err != nil {
-		slog.WarnContext(r.Context(), "login: rate limit exceeded (user)", "username", req.Username, "ip", ip)
-		writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
-		return
-	}
-	if err := ratelimit.CheckRateLimit(r.Context(), appmw.Rdb, ipKey, 10, 15*time.Minute); err != nil {
-		slog.WarnContext(r.Context(), "login: rate limit exceeded (ip)", "ip", ip)
-		writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
-		return
+	for _, k := range []struct {
+		key string
+		max int
+	}{
+		{userKey, 5},
+		{ipKey, 10},
+	} {
+		count, err := appmw.Rdb.Incr(r.Context(), k.key).Result()
+		if err != nil {
+			slog.ErrorContext(r.Context(), "login: rate limit check failed", "error", err)
+			writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
+			return
+		}
+		if count == 1 {
+			appmw.Rdb.Expire(r.Context(), k.key, 15*time.Minute)
+		}
+		if int(count) > k.max {
+			slog.WarnContext(r.Context(), "login: rate limit exceeded", "key", k.key, "ip", ip)
+			writeError(w, r, http.StatusTooManyRequests, "too many login attempts. try again later.")
+			return
+		}
 	}
 
 	creds, err := h.store.Users.GetCredentials(r.Context(), req.Username)
@@ -59,7 +70,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reset rate limit counters on successful login
-	ratelimit.ResetRateLimit(r.Context(), appmw.Rdb, userKey, ipKey)
+	appmw.Rdb.Del(r.Context(), userKey, ipKey)
 
 	h.store.Users.UpdateLastLogin(r.Context(), creds.ID)
 
