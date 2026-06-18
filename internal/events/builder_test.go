@@ -45,6 +45,7 @@ func TestNewEvent_Constructors(t *testing.T) {
 		assert.Equal(t, d.Scanner, "semgrep")
 		assert.Equal(t, d.FindingCount, 42)
 		assert.Equal(t, d.Error, "")
+		assert.Equal(t, ev.Metadata.ProjectID, "p-1")
 	})
 
 	t.Run("ScanFailed", func(t *testing.T) {
@@ -56,6 +57,7 @@ func TestNewEvent_Constructors(t *testing.T) {
 		}
 		assert.Equal(t, d.ScanID, "s-1")
 		assert.Equal(t, d.Error, "timeout")
+		assert.Equal(t, ev.Metadata.ProjectID, "p-1")
 	})
 
 	t.Run("WebhookDelivered", func(t *testing.T) {
@@ -128,6 +130,7 @@ func TestNewEvent_Constructors(t *testing.T) {
 		assert.Equal(t, d.ScheduleID, "sch-1")
 		assert.Equal(t, d.TaskType, "scan")
 		assert.True(t, d.Success)
+		assert.Equal(t, ev.Metadata.ProjectID, "p-1")
 	})
 
 	t.Run("NotificationCreated", func(t *testing.T) {
