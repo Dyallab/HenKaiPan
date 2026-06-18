@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"aspm/internal/datascope"
-	"aspm/internal/findings/summarymeta"
+
 	"aspm/internal/models"
 	"aspm/internal/scanner"
+	"aspm/internal/summarymeta"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

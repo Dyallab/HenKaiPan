@@ -225,10 +225,10 @@ func (h *Handler) notifySecurityEvent(ctx context.Context, targetUser *models.Us
 		if notif.EntityID != nil {
 			entityID = *notif.EntityID
 		}
-		events.NewNotificationCreated(
+		events.Publish(events.NewNotificationCreated(
 			notif.ID, targetUser.ID, notif.Title, notif.Type,
 			entityType, entityID, notif.AISummary,
-		).Publish()
+		))
 	}
 
 	if h.emailEnabled {

@@ -74,7 +74,7 @@ func Close() {
 // RateLimiter middleware - applies rate limiting based on endpoint type
 func RateLimiter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := getClientIP(r)
+		ip := ClientIP(r)
 		if ip == "" {
 			ip = "unknown"
 		}
@@ -205,10 +205,7 @@ func ClientIP(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// getClientIP extracts the client IP from the request
-func getClientIP(r *http.Request) string {
-	return ClientIP(r)
-}
+
 
 // getUserID extracts user ID from JWT claims in request context (if authenticated)
 func getUserID(r *http.Request) string {

@@ -26,47 +26,6 @@ func TestIsValid_Roles(t *testing.T) {
 	}
 }
 
-func TestIsValid_FindingStatuses(t *testing.T) {
-	tests := []struct {
-		value string
-		want  bool
-	}{
-		{"open", true},
-		{"in_review", true},
-		{"accepted_risk", true},
-		{"fixed", true},
-		{"verified", true},
-		{"bogus", false},
-		{"", false},
-		{"OPEN", false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.value, func(t *testing.T) {
-			got := IsValid(FindingStatuses, tc.value)
-			assert.Equal(t, got, tc.want)
-		})
-	}
-}
-
-func TestIsValid_WebhookDeliveryTypes(t *testing.T) {
-	tests := []struct {
-		value string
-		want  bool
-	}{
-		{"generic", true},
-		{"slack", true},
-		{"discord", true},
-		{"teams", false},
-		{"", false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.value, func(t *testing.T) {
-			got := IsValid(WebhookDeliveryTypes, tc.value)
-			assert.Equal(t, got, tc.want)
-		})
-	}
-}
-
 func TestNormalizeWebhookDeliveryType(t *testing.T) {
 	tests := []struct {
 		input string

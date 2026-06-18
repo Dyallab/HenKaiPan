@@ -32,12 +32,12 @@ func HandleFindingValidate(validator *findings.ValidationAgent) asynq.HandlerFun
 		)
 
 		// Publish SSE event for real-time frontend updates
-		events.NewFindingValidationCompleted(
+		events.Publish(events.NewFindingValidationCompleted(
 			p.FindingID,
 			analysis.Confidence,
 			analysis.Reasoning,
 			string(analysis.FPLikelihood),
-		).WithFindingID(p.FindingID).Publish()
+		))
 
 		return nil
 	}

@@ -72,39 +72,4 @@ func VerifySignature(r *http.Request, body []byte, secret []byte) error {
 	return nil
 }
 
-// VerifySignatureWithBody is a convenience function that reads body and verifies signature
-// Use this when you haven't read the body yet
-func VerifySignatureWithBody(r *http.Request, body []byte, secret []byte) error {
-	return VerifySignature(r, body, secret)
-}
 
-// IsWithinTimeWindow checks if a request timestamp is recent enough
-func IsWithinTimeWindow(timestampHeader string, maxAge time.Duration) error {
-	if timestampHeader == "" {
-		return errors.New("missing timestamp")
-	}
-
-	timestamp, err := time.Parse(time.RFC3339, timestampHeader)
-	if err != nil {
-		return errors.New("invalid timestamp format")
-	}
-
-	if time.Since(timestamp) > maxAge {
-		return ErrExpiredTimestamp
-	}
-
-	return nil
-}
-
-// GetSignatureHeaders returns the signature and timestamp headers for outbound webhooks
-func GetSignatureHeaders(payload []byte, secret []byte) (map[string]string, time.Time) {
-	timestamp := time.Now()
-	signature := SignPayload(payload, secret, timestamp)
-
-	headers := map[string]string{
-		SignatureHeader: signature,
-		TimestampHeader: timestamp.Format(time.RFC3339),
-	}
-
-	return headers, timestamp
-}

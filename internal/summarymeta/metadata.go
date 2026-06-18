@@ -1,3 +1,7 @@
+// Package summarymeta computes finding summary fingerprints for AI summary caching.
+//
+// Standalone utility — no dependencies on findings or repository packages,
+// making it safe to import from both.
 package summarymeta
 
 import (
@@ -7,12 +11,15 @@ import (
 	"strings"
 )
 
+// Metadata holds the computed fingerprint and optional scanner metadata.
 type Metadata struct {
 	Fingerprint string
 	IssueType   string
 	RawExcerpt  string
 }
 
+// Build computes a fingerprint from scanner metadata and raw payload.
+// The fingerprint is a SHA256 hash of the normalized scanner, ruleID, title, and issue type.
 func Build(scanner, ruleID, title string, raw []byte) Metadata {
 	issueType := extractIssueType(scanner, raw)
 	parts := []string{
