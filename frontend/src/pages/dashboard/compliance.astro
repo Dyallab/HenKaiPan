@@ -1,0 +1,401 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Compliance Posture" active="compliance">
+
+  <!-- Header -->
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+    <div>
+      <p class="text-slate-400 text-sm mt-1 max-w-xl">
+        Real-time adherence monitoring. Findings from your scanners mapped to industry security frameworks.
+      </p>
+    </div>
+    <div class="flex gap-3 shrink-0">
+      <button id="export-btn"
+        class="flex items-center gap-2 px-4 py-2 border border-outline-variant/40 bg-surface-container text-on-surface rounded-xl hover:bg-surface-container-high transition-colors text-sm font-semibold">
+        <span class="material-symbols-outlined text-lg">download</span>
+        Export Report
+      </button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-12 gap-6">
+
+    <!-- Framework Selector -->
+    <div class="col-span-12 lg:col-span-4">
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">Select Framework</p>
+        <div class="space-y-3" id="framework-list">
+          {[
+            { id: 'soc2',    label: 'SOC2 Type II',   sub: 'Security, Availability, Confidentiality', icon: 'security',    active: true },
+            { id: 'iso27001',label: 'ISO 27001',       sub: 'Information Security Management',          icon: 'language',    active: false },
+            { id: 'pcidss',  label: 'PCI-DSS v4.0',   sub: 'Payment Card Security Standard',           icon: 'credit_card', active: false },
+          ].map(f => (
+            <button
+              data-fw={f.id}
+              class={`w-full text-left p-4 rounded-xl border-2 transition-all framework-btn ${
+                f.active
+                  ? 'border-sky-500 bg-sky-500/5'
+                  : 'border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high'
+              }`}
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class={`w-10 h-10 rounded-lg flex items-center justify-center ${f.active ? 'bg-sky-500/20' : 'bg-surface-container-highest'}`}>
+                    <span class={`material-symbols-outlined ${f.active ? 'text-sky-400' : 'text-slate-500'}`}>{f.icon}</span>
+                  </div>
+                  <div>
+                    <span class={`block font-bold text-sm ${f.active ? 'text-on-background' : 'text-slate-400'}`}>{f.label}</span>
+                    <span class="block text-xs text-slate-500 mt-0.5">{f.sub}</span>
+                  </div>
+                </div>
+                {f.active && <span class="material-symbols-outlined text-sky-400 ms-fill">check_circle</span>}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: score + drift + table -->
+    <div class="col-span-12 lg:col-span-8 space-y-6">
+
+      <!-- Score + Drift row -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Overall compliance -->
+        <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">Overall Compliance</p>
+          <div class="flex items-end justify-between mb-2">
+            <span id="compliance-pct" class="text-4xl font-black text-secondary">—</span>
+            <span id="compliance-delta" class="text-xs text-slate-500 bg-surface-container px-2 py-1 rounded font-mono"></span>
+          </div>
+          <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+            <div id="compliance-bar" class="bg-secondary h-full rounded-full transition-all duration-500" style="width:0%"></div>
+          </div>
+          <div class="grid grid-cols-3 gap-2 mt-6 text-center">
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Compliant</p>
+              <p id="count-compliant" class="text-2xl font-black text-secondary">—</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Review</p>
+              <p id="count-review" class="text-2xl font-black text-tertiary">—</p>
+            </div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Failed</p>
+              <p id="count-failed" class="text-2xl font-black text-error">—</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Category drift -->
+        <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">Category Drift</p>
+          <div id="drift-bars" class="space-y-4">
+            <p class="text-xs text-slate-500">Loading...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls table -->
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+        <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between gap-4">
+          <p id="controls-title" class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Controls — SOC2 Type II</p>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
+            <input
+              id="controls-search"
+              type="text"
+              placeholder="Search controls..."
+              class="bg-surface-container border border-outline-variant/30 rounded-lg pl-9 pr-4 py-1.5 text-xs w-52 focus:ring-1 focus:ring-sky-500 focus:border-sky-500 outline-none text-on-background placeholder:text-slate-600"
+            />
+          </div>
+        </div>
+        <div id="controls-table" class="overflow-x-auto">
+          <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  // Controls definition per framework
+  const FRAMEWORKS: Record<string, {
+    label: string;
+    controls: Array<{
+      id: string;
+      title: string;
+      desc: string;
+      scanners: string[];
+      category: string;
+    }>;
+  }> = {
+    soc2: {
+      label: 'SOC2 Type II',
+      controls: [
+        { id: 'CC6.1', title: 'Logical Access Controls',     desc: 'Access to production systems restricted to authorized personnel.',    scanners: ['trufflehog','gitleaks'],   category: 'Access Control' },
+        { id: 'CC7.1', title: 'Vulnerability Management',    desc: 'Scanning for vulnerabilities on production infrastructure.',            scanners: ['trivy','grype','osv-scanner'], category: 'Vulnerability Mgmt' },
+        { id: 'CC6.3', title: 'Secure Coding Practices',     desc: 'Code is reviewed for security vulnerabilities before deployment.',     scanners: ['semgrep','gosec'],         category: 'Data Encryption' },
+        { id: 'CC8.1', title: 'Change Management',           desc: 'System changes are documented, tested, and approved prior to rollout.', scanners: ['checkov','tfsec','kics'],  category: 'Network Security' },
+        { id: 'A1.2',  title: 'Availability Monitoring',     desc: 'System availability is monitored and incidents are tracked.',          scanners: ['nuclei'],                  category: 'Risk Management' },
+      ],
+    },
+    iso27001: {
+      label: 'ISO 27001',
+      controls: [
+        { id: 'A.12.6.1', title: 'Technical Vulnerability Mgmt',  desc: 'Information about technical vulnerabilities shall be obtained.',  scanners: ['trivy','grype','osv-scanner'], category: 'Vulnerability Mgmt' },
+        { id: 'A.14.2.1', title: 'Secure Development Policy',      desc: 'Rules for development of software shall be established.',          scanners: ['semgrep','gosec'],         category: 'Access Control' },
+        { id: 'A.9.4.1',  title: 'Restriction of Access',          desc: 'Access to information and application system functions controlled.', scanners: ['trufflehog','gitleaks'],  category: 'Access Control' },
+        { id: 'A.12.2.1', title: 'Controls Against Malicious Code', desc: 'Controls to prevent, detect, and recover from malicious code.',   scanners: ['semgrep','trivy'],         category: 'Network Security' },
+        { id: 'A.12.1.2', title: 'Change Management',              desc: 'Changes to organization, processes, and systems are controlled.',   scanners: ['checkov','tfsec'],         category: 'Risk Management' },
+      ],
+    },
+    pcidss: {
+      label: 'PCI-DSS v4.0',
+      controls: [
+        { id: 'REQ 6.3.3', title: 'Known Vulnerabilities Addressed', desc: 'All system components are protected from known vulnerabilities.',   scanners: ['trivy','grype','osv-scanner'], category: 'Vulnerability Mgmt' },
+        { id: 'REQ 6.2.4', title: 'SAST Integration',               desc: 'Software development practices prevent introduction of vulnerabilities.', scanners: ['semgrep','gosec'],    category: 'Data Encryption' },
+        { id: 'REQ 3.5',   title: 'Protect Account Data Secrets',    desc: 'Primary account number is secured wherever it is stored.',          scanners: ['trufflehog','gitleaks'],   category: 'Access Control' },
+        { id: 'REQ 11.3',  title: 'External Penetration Testing',    desc: 'External penetration testing is performed at least once yearly.',    scanners: ['nuclei'],                  category: 'Network Security' },
+        { id: 'REQ 6.4',   title: 'IaC Security Controls',           desc: 'Public-facing web applications are protected against known attacks.', scanners: ['checkov','tfsec','kics'], category: 'Risk Management' },
+      ],
+    },
+  };
+
+  type FindingMap = Record<string, { critical: number; high: number; medium: number; total: number }>;
+
+  let findingsByScanner: FindingMap = {};
+  let currentFw = 'soc2';
+
+  async function loadData() {
+    try {
+      const [metrics, { findings }] = await Promise.all([
+        api.getMetrics(),
+        api.getFindings('', ''),
+      ]);
+
+      // Build per-scanner finding counts
+      findingsByScanner = {};
+      findings.forEach(f => {
+        if (!findingsByScanner[f.scanner]) {
+          findingsByScanner[f.scanner] = { critical: 0, high: 0, medium: 0, total: 0 };
+        }
+        findingsByScanner[f.scanner].total++;
+        if (f.severity === 'critical') findingsByScanner[f.scanner].critical++;
+        else if (f.severity === 'high')     findingsByScanner[f.scanner].high++;
+        else if (f.severity === 'medium')   findingsByScanner[f.scanner].medium++;
+      });
+
+      renderFramework(currentFw);
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function controlStatus(scanners: string[]): 'compliant' | 'review' | 'failed' {
+    const combined = scanners.reduce((acc, s) => {
+      const d = findingsByScanner[s];
+      if (!d) return acc;
+      acc.critical += d.critical;
+      acc.high     += d.high;
+      acc.medium   += d.medium;
+      acc.total    += d.total;
+      return acc;
+    }, { critical: 0, high: 0, medium: 0, total: 0 });
+
+    if (combined.critical > 0) return 'failed';
+    if (combined.high > 0 || combined.medium > 0) return 'review';
+    return 'compliant';
+  }
+
+  function controlEvidenceText(scanners: string[]): { icon: string; label: string; color: string } {
+    const hasData = scanners.some(s => findingsByScanner[s]);
+    if (!hasData) return { icon: 'help', label: 'No scans yet', color: 'text-slate-500' };
+
+    const stat = controlStatus(scanners);
+    if (stat === 'compliant') return { icon: 'cloud_done',   label: 'Collected (Automated)', color: 'text-secondary' };
+    if (stat === 'review')    return { icon: 'pending',      label: 'Review Needed',         color: 'text-tertiary' };
+    return                           { icon: 'sync_problem', label: 'Issues Detected',       color: 'text-error' };
+  }
+
+  const STATUS_BADGE: Record<string, string> = {
+    compliant: 'text-secondary bg-secondary/10 border-secondary/20',
+    review:    'text-tertiary bg-tertiary/10 border-tertiary/20',
+    failed:    'text-error bg-error/10 border-error/20',
+  };
+  const STATUS_DOT: Record<string, string> = {
+    compliant: 'bg-secondary',
+    review:    'bg-tertiary',
+    failed:    'bg-error',
+  };
+  const STATUS_LABEL: Record<string, string> = {
+    compliant: 'Compliant',
+    review:    'Review Required',
+    failed:    'Non-Compliant',
+  };
+
+  function renderFramework(fwId: string) {
+    const fw = FRAMEWORKS[fwId];
+    const controls = fw.controls;
+
+    // Compute counts
+    const statuses = controls.map(c => controlStatus(c.scanners));
+    const nCompliant = statuses.filter(s => s === 'compliant').length;
+    const nReview    = statuses.filter(s => s === 'review').length;
+    const nFailed    = statuses.filter(s => s === 'failed').length;
+    const total      = controls.length;
+    const pct        = Math.round((nCompliant / total) * 100);
+
+    document.getElementById('compliance-pct')!.textContent = `${pct}%`;
+    document.getElementById('compliance-bar')!.style.width = `${pct}%`;
+    document.getElementById('compliance-delta')!.textContent = `${nCompliant}/${total} controls`;
+
+    const barColor = pct >= 90 ? 'bg-secondary' : pct >= 70 ? 'bg-tertiary' : 'bg-error';
+    document.getElementById('compliance-bar')!.className = `${barColor} h-full rounded-full transition-all duration-500`;
+    document.getElementById('compliance-pct')!.className = `text-4xl font-black ${pct >= 90 ? 'text-secondary' : pct >= 70 ? 'text-tertiary' : 'text-error'}`;
+
+    document.getElementById('count-compliant')!.textContent = String(nCompliant);
+    document.getElementById('count-review')!.textContent    = String(nReview);
+    document.getElementById('count-failed')!.textContent    = String(nFailed);
+
+    // Category drift
+    const categories = [...new Set(controls.map(c => c.category))];
+    const driftEl = document.getElementById('drift-bars')!;
+    driftEl.innerHTML = categories.map(cat => {
+      const catControls = controls.filter(c => c.category === cat);
+      const catCompliant = catControls.filter(c => controlStatus(c.scanners) === 'compliant').length;
+      const catPct = Math.round((catCompliant / catControls.length) * 100);
+      const color = catPct >= 90 ? 'bg-sky-500' : catPct >= 70 ? 'bg-tertiary' : 'bg-error';
+      return `
+        <div>
+          <div class="flex justify-between text-xs mb-1.5">
+            <span class="text-on-surface-variant">${cat}</span>
+            <span class="text-slate-500 font-mono">${catPct}%</span>
+          </div>
+          <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div class="${color} h-full rounded-full transition-all duration-500" style="width:${catPct}%"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Controls title
+    document.getElementById('controls-title')!.textContent = `Controls — ${fw.label}`;
+
+    renderControlsTable(controls);
+  }
+
+  function renderControlsTable(
+    controls: typeof FRAMEWORKS['soc2']['controls'],
+    filter = ''
+  ) {
+    const el = document.getElementById('controls-table')!;
+    const filtered = filter
+      ? controls.filter(c =>
+          c.id.toLowerCase().includes(filter) ||
+          c.title.toLowerCase().includes(filter)
+        )
+      : controls;
+
+    if (!filtered.length) {
+      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No controls match.</p>';
+      return;
+    }
+
+    el.innerHTML = `
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-slate-950/50 border-b border-slate-800">
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Control ID</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Description</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Status</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Evidence</th>
+            <th class="text-left px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">Scanners</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/50">
+          ${filtered.map(c => {
+            const stat = controlStatus(c.scanners);
+            const ev   = controlEvidenceText(c.scanners);
+            return `
+              <tr class="hover:bg-slate-900/30 transition-colors">
+                <td class="px-6 py-4">
+                  <span class="font-mono text-sky-400 font-bold text-sm">${c.id}</span>
+                </td>
+                <td class="px-6 py-4 max-w-xs">
+                  <p class="font-bold text-on-background">${c.title}</p>
+                  <p class="text-xs text-slate-500 mt-0.5 leading-relaxed">${c.desc}</p>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[stat]}">
+                    <span class="w-1.5 h-1.5 rounded-full ${STATUS_DOT[stat]}"></span>
+                    ${STATUS_LABEL[stat]}
+                  </span>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm ${ev.color}">${ev.icon}</span>
+                    <span class="text-xs ${ev.color}">${ev.label}</span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex flex-wrap gap-1">
+                    ${c.scanners.map(s => `<span class="font-mono text-[10px] text-slate-400 bg-surface-container border border-outline-variant/20 px-2 py-0.5 rounded">${s}</span>`).join('')}
+                  </div>
+                </td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // Framework switcher
+  document.querySelectorAll<HTMLButtonElement>('.framework-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fw = btn.dataset.fw!;
+      currentFw = fw;
+
+      document.querySelectorAll<HTMLButtonElement>('.framework-btn').forEach(b => {
+        const isActive = b.dataset.fw === fw;
+        b.className = `w-full text-left p-4 rounded-xl border-2 transition-all framework-btn ${
+          isActive
+            ? 'border-sky-500 bg-sky-500/5'
+            : 'border-outline-variant/20 bg-surface-container-low hover:bg-surface-container-high'
+        }`;
+        const iconEl = b.querySelector('.material-symbols-outlined.ms-fill') as HTMLElement | null;
+        const labelEl = b.querySelectorAll('span')[3] as HTMLElement | null; // name label
+        // Simplest: just re-render
+      });
+
+      renderFramework(fw);
+    });
+  });
+
+  // Search
+  document.getElementById('controls-search')!.addEventListener('input', e => {
+    const q = (e.target as HTMLInputElement).value.toLowerCase();
+    renderControlsTable(FRAMEWORKS[currentFw].controls, q);
+  });
+
+  // Export
+  document.getElementById('export-btn')!.addEventListener('click', () => {
+    const fw  = FRAMEWORKS[currentFw];
+    const rows = fw.controls.map(c => {
+      const stat = controlStatus(c.scanners);
+      return `${c.id}\t${c.title}\t${STATUS_LABEL[stat]}\t${c.scanners.join(', ')}`;
+    });
+    const tsv = ['Control ID\tTitle\tStatus\tScanners', ...rows].join('\n');
+    const blob = new Blob([tsv], { type: 'text/tab-separated-values' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `compliance-${currentFw}-${new Date().toISOString().slice(0,10)}.tsv`,
+    });
+    a.click();
+  });
+
+  loadData();
+</script>

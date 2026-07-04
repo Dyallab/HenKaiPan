@@ -1,0 +1,89 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="Sign in — ASPM">
+  <div class="min-h-screen flex items-center justify-center px-4 bg-background">
+    <div class="w-full max-w-sm">
+
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-2.5 mb-3">
+          <div class="w-9 h-9 bg-sky-500 rounded-lg flex items-center justify-center">
+            <span class="material-symbols-outlined ms-fill text-slate-950 text-xl">security</span>
+          </div>
+          <span class="font-black tracking-tighter text-sky-500 text-2xl">ASPM</span>
+        </div>
+        <p class="text-slate-500 text-sm">Sign in to your dashboard</p>
+      </div>
+
+      <div class="bg-surface-container border border-outline-variant/30 rounded-xl p-8">
+        <form id="login-form" class="space-y-5">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Username</label>
+            <input
+              id="username"
+              type="text"
+              value="admin"
+              class="w-full bg-surface-container-low border border-outline-variant/40 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Password</label>
+            <input
+              id="password"
+              type="password"
+              value="admin"
+              class="w-full bg-surface-container-low border border-outline-variant/40 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-colors"
+            />
+          </div>
+          <div id="error-msg" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5"></div>
+          <button
+            type="submit"
+            id="submit-btn"
+            class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3 rounded-lg transition-all text-sm uppercase tracking-widest"
+          >
+            Sign in
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    if (localStorage.getItem('aspm_token')) {
+      window.location.href = '/dashboard';
+    }
+
+    document.getElementById('login-form')!.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn') as HTMLButtonElement;
+      const errorEl = document.getElementById('error-msg')!;
+      const username = (document.getElementById('username') as HTMLInputElement).value;
+      const password = (document.getElementById('password') as HTMLInputElement).value;
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      errorEl.classList.add('hidden');
+
+      try {
+        const res = await fetch('http://localhost:8080/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+        if (!res.ok) {
+          const d = await res.json();
+          throw new Error(d.error || 'Invalid credentials');
+        }
+        const { token } = await res.json();
+        localStorage.setItem('aspm_token', token);
+        window.location.href = '/dashboard';
+      } catch (err: any) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    });
+  </script>
+</Layout>

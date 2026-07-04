@@ -1,0 +1,102 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Repositories" active="repos">
+
+  <!-- Add repo form -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-6 mb-6">
+    <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Add Repository</h2>
+    <form id="repo-form" class="flex gap-3 flex-wrap">
+      <input
+        id="repo-name"
+        type="text"
+        placeholder="my-service"
+        class="w-40 bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+      />
+      <div class="relative flex-1 min-w-64">
+        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-lg">link</span>
+        <input
+          id="repo-url"
+          type="text"
+          placeholder="https://github.com/org/repo"
+          class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 transition-all placeholder:text-slate-600"
+        />
+      </div>
+      <button
+        type="submit"
+        class="flex items-center gap-2 px-6 py-2.5 bg-sky-500 text-slate-950 rounded-lg text-sm font-bold hover:bg-sky-400 transition-all active:scale-95"
+      >
+        <span class="material-symbols-outlined text-lg">add</span>
+        Add Repo
+      </button>
+    </form>
+    <div id="repo-msg" class="hidden mt-3 text-sm"></div>
+  </div>
+
+  <!-- Repos list -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Repositories</h2>
+    </div>
+    <div id="repos-list">
+      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  async function loadRepos() {
+    const repos = await api.getRepos();
+    const el = document.getElementById('repos-list')!;
+    if (!repos.length) {
+      el.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No repos added yet.</p>';
+      return;
+    }
+    el.innerHTML = `<div class="divide-y divide-slate-800/50">
+      ${repos.map(r => `
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="material-symbols-outlined text-slate-500 text-base">hub</span>
+              <p class="text-sm font-bold text-on-background">${r.name}</p>
+            </div>
+            <p class="text-xs text-slate-500 font-mono truncate max-w-md">${r.url}</p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0 ml-4">
+            <a href="/dashboard/scans?repo=${encodeURIComponent(r.url)}"
+               class="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+              <span class="material-symbols-outlined text-sm">security_update_good</span>
+              Scan
+            </a>
+            <p class="text-xs text-slate-600 font-mono">${new Date(r.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+  }
+
+  document.getElementById('repo-form')!.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('repo-name') as HTMLInputElement).value.trim();
+    const url  = (document.getElementById('repo-url') as HTMLInputElement).value.trim();
+    const msg  = document.getElementById('repo-msg')!;
+    if (!url) return;
+
+    try {
+      await api.createRepo(name || url, url);
+      msg.textContent = 'Repository added.';
+      msg.className = 'mt-3 text-sm text-emerald-400';
+      (document.getElementById('repo-name') as HTMLInputElement).value = '';
+      (document.getElementById('repo-url') as HTMLInputElement).value = '';
+      loadRepos();
+    } catch (err: any) {
+      msg.textContent = err.message;
+      msg.className = 'mt-3 text-sm text-red-400';
+    }
+  });
+
+  loadRepos();
+</script>

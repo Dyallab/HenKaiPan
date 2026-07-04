@@ -1,0 +1,167 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Dashboard" active="dashboard">
+
+  <!-- Metric cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    {[
+      { id: 'metric-scans',    label: 'Total Scans',    icon: 'security_update_good', color: 'text-sky-400' },
+      { id: 'metric-critical', label: 'Critical',       icon: 'emergency',            color: 'text-red-400' },
+      { id: 'metric-high',     label: 'High',           icon: 'warning',              color: 'text-orange-400' },
+      { id: 'metric-total',    label: 'Total Findings', icon: 'biotech',              color: 'text-primary' },
+    ].map(m => (
+      <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5 hover:border-sky-500/20 transition-all">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">{m.label}</p>
+          <span class={`material-symbols-outlined text-xl ${m.color}`}>{m.icon}</span>
+        </div>
+        <p id={m.id} class={`text-3xl font-black tracking-tight ${m.color}`}>—</p>
+      </div>
+    ))}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+
+    <!-- Severity breakdown -->
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Findings by Severity</h2>
+      <div id="severity-bars" class="space-y-3"></div>
+    </div>
+
+    <!-- Scanner breakdown -->
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Scans by Tool</h2>
+      <div id="scanner-bars" class="space-y-3"></div>
+    </div>
+
+    <!-- Active scans -->
+    <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl p-5">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Active Scans</h2>
+      <p id="active-scans" class="text-4xl font-black text-sky-400">—</p>
+      <p class="text-xs text-slate-500 mt-1">pending or running</p>
+      <div class="mt-5">
+        <a href="/dashboard/scans" class="inline-flex items-center gap-2 px-4 py-2 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-bold uppercase tracking-wider hover:bg-sky-500/20 transition-colors">
+          <span class="material-symbols-outlined text-sm">add</span>
+          New Scan
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent scans -->
+  <div class="bg-surface-container-low border border-outline-variant/20 rounded-xl overflow-hidden">
+    <div class="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+      <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Recent Scans</h2>
+      <a href="/dashboard/scans" class="text-xs text-sky-400 hover:text-sky-300 font-semibold transition-colors">View all →</a>
+    </div>
+    <div id="recent-scans" class="divide-y divide-outline-variant/20">
+      <p class="px-6 py-4 text-sm text-slate-500">Loading...</p>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api } from '../../lib/api';
+
+  const SEV_COLORS: Record<string, string> = {
+    critical: 'bg-red-500',
+    high:     'bg-orange-500',
+    medium:   'bg-yellow-500',
+    low:      'bg-sky-500',
+    info:     'bg-slate-500',
+  };
+
+  const STATUS_STYLES: Record<string, string> = {
+    completed: 'text-emerald-400 bg-emerald-500/10',
+    running:   'text-sky-400 bg-sky-500/10',
+    pending:   'text-amber-400 bg-amber-500/10',
+    failed:    'text-red-400 bg-red-500/10',
+  };
+
+  const SCANNER_TYPE: Record<string, { label: string; color: string }> = {
+    semgrep:      { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+    gosec:        { label: 'SAST',      color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+    trivy:        { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    grype:        { label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    'osv-scanner':{ label: 'SCA',       color: 'text-purple-400 bg-purple-500/10 border-purple-500/20' },
+    trufflehog:   { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    gitleaks:     { label: 'Secrets',   color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+    checkov:      { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    tfsec:        { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    kics:         { label: 'IaC',       color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+    'trivy-image':{ label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    'grype-image':{ label: 'Container', color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+    nuclei:       { label: 'DAST',      color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
+    all:          { label: 'All',       color: 'text-slate-300 bg-slate-500/10 border-slate-500/20' },
+  };
+
+  function bar(label: string, value: number, total: number, colorClass: string) {
+    const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+    return `
+      <div>
+        <div class="flex justify-between text-xs mb-1.5">
+          <span class="capitalize text-slate-400 font-medium">${label}</span>
+          <span class="font-mono text-slate-400">${value}</span>
+        </div>
+        <div class="h-1.5 bg-surface-container rounded-full overflow-hidden">
+          <div class="${colorClass} h-full rounded-full transition-all" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  }
+
+  function scannerBadge(scanner: string) {
+    const t = SCANNER_TYPE[scanner] ?? { label: scanner.toUpperCase(), color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' };
+    return `<span class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${t.color}">${t.label}</span>
+            <span class="font-mono text-xs text-slate-500">${scanner}</span>`;
+  }
+
+  async function load() {
+    try {
+      const m = await api.getMetrics();
+
+      document.getElementById('metric-scans')!.textContent = String(m.total_scans);
+      document.getElementById('metric-critical')!.textContent = String(m.findings_by_severity.critical ?? 0);
+      document.getElementById('metric-high')!.textContent = String(m.findings_by_severity.high ?? 0);
+      document.getElementById('metric-total')!.textContent = String(m.total_findings);
+      document.getElementById('active-scans')!.textContent = String(m.active_scans);
+
+      const sevEl = document.getElementById('severity-bars')!;
+      sevEl.innerHTML = ['critical','high','medium','low','info'].map(s =>
+        bar(s, m.findings_by_severity[s] ?? 0, m.total_findings, SEV_COLORS[s])
+      ).join('');
+
+      const scanEl = document.getElementById('scanner-bars')!;
+      const totalScans = Object.values(m.scans_by_scanner).reduce((a: number, b: number) => a + b, 0) || 1;
+      scanEl.innerHTML = Object.entries(m.scans_by_scanner).map(([k, v]) =>
+        bar(k, v as number, totalScans as number, 'bg-sky-500')
+      ).join('') || '<p class="text-xs text-slate-500">No scans yet</p>';
+
+      const recentEl = document.getElementById('recent-scans')!;
+      if (!m.recent_scans.length) {
+        recentEl.innerHTML = '<p class="px-6 py-4 text-sm text-slate-500">No scans yet. <a href="/dashboard/scans" class="text-sky-400 hover:underline">Start one →</a></p>';
+        return;
+      }
+      recentEl.innerHTML = m.recent_scans.map(s => `
+        <div class="px-6 py-4 flex items-center justify-between hover:bg-slate-900/20 transition-colors">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-on-background truncate max-w-xs mb-1">${s.target}</p>
+            <div class="flex items-center gap-2">
+              ${scannerBadge(s.scanner)}
+              <span class="text-xs text-slate-500">${new Date(s.created_at).toLocaleString()}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 shrink-0 ml-4">
+            <span class="text-xs font-bold capitalize px-2.5 py-1 rounded ${STATUS_STYLES[s.status] ?? 'text-slate-400'}">${s.status}</span>
+            <span class="text-xs font-mono text-slate-400">${s.finding_count} findings</span>
+          </div>
+        </div>
+      `).join('');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  load();
+</script>

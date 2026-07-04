@@ -1,0 +1,371 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Apps & Projects" active="apps">
+
+<!-- Header -->
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-white">Apps & Projects</h1>
+    <p class="text-slate-400 text-sm mt-1">Team → App → Project → Repo hierarchy</p>
+  </div>
+  <button id="open-create-app"
+    class="flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs uppercase tracking-widest px-4 py-2.5 rounded transition-colors">
+    <span class="material-symbols-outlined text-lg">add</span>
+    New App
+  </button>
+</div>
+
+<!-- Team filter tabs -->
+<div id="team-tabs" class="flex gap-2 mb-6 flex-wrap"></div>
+
+<!-- Team metrics banner -->
+<div id="team-metrics-row" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-8"></div>
+
+<!-- App list -->
+<div id="app-list" class="space-y-4"></div>
+
+<!-- Empty state -->
+<div id="empty-state" class="hidden flex-col items-center justify-center py-24 text-center">
+  <span class="material-symbols-outlined text-slate-700 text-6xl mb-4">apps</span>
+  <p class="text-slate-400 font-semibold text-lg">No apps yet</p>
+  <p class="text-slate-600 text-sm mt-1">Create your first app to start organizing projects and repos.</p>
+</div>
+
+<!-- Create App Modal -->
+<div id="modal-create-app" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+    <h3 class="text-lg font-bold text-white mb-5">New Application</h3>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
+        <input id="app-name" type="text" placeholder="e.g. Payment Gateway"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
+        <textarea id="app-desc" rows="2" placeholder="Optional description"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Team</label>
+        <select id="app-team"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <option value="">— No team —</option>
+        </select>
+      </div>
+    </div>
+    <div id="app-error" class="hidden mt-3 text-red-400 text-xs"></div>
+    <div class="flex gap-3 mt-6">
+      <button id="cancel-create-app" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
+      <button id="submit-create-app" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Project Modal -->
+<div id="modal-create-project" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+  <div class="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md p-6 shadow-2xl">
+    <h3 class="text-lg font-bold text-white mb-1">New Project</h3>
+    <p id="project-modal-app-name" class="text-sky-400 text-xs mb-5"></p>
+    <div class="space-y-4">
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Name *</label>
+        <input id="project-name" type="text" placeholder="e.g. API Service"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Description</label>
+        <input id="project-desc" type="text" placeholder="Optional"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sky-500" />
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Repository</label>
+        <select id="project-repo"
+          class="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-sky-500">
+          <option value="">— Unassigned —</option>
+        </select>
+        <p class="text-slate-500 text-xs mt-1">Each repo can belong to only one project.</p>
+      </div>
+    </div>
+    <div id="project-error" class="hidden mt-3 text-red-400 text-xs"></div>
+    <div class="flex gap-3 mt-6">
+      <button id="cancel-create-project" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Cancel</button>
+      <button id="submit-create-project" class="flex-1 bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold uppercase tracking-widest py-2.5 rounded transition-colors">Create</button>
+    </div>
+  </div>
+</div>
+
+<script>
+import { api } from '../../lib/api.ts';
+import type { App, TeamMetrics, Repo, Team } from '../../lib/api.ts';
+
+let allApps: App[] = [];
+let allTeams: Team[] = [];
+let allRepos: Repo[] = [];
+let teamMetrics: TeamMetrics[] = [];
+let activeTeamFilter = '';
+let pendingProjectAppId = '';
+let pendingProjectAppName = '';
+
+const scoreColor = (score: number) =>
+  score === 0 ? 'text-emerald-400' : score < 100 ? 'text-yellow-400' : score < 500 ? 'text-orange-400' : 'text-red-400';
+
+const severityDot = (label: string, count: number, color: string) =>
+  count > 0 ? `<span class="flex items-center gap-1 text-xs ${color} font-bold">${count}<span class="text-slate-500 font-normal">${label}</span></span>` : '';
+
+function renderTeamTabs() {
+  const container = document.getElementById('team-tabs')!;
+  const teams = [...new Set(allApps.map(a => a.team_name).filter(Boolean))] as string[];
+  container.innerHTML = `
+    <button data-team="" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '' ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">All</button>
+    ${teams.map(t => {
+      const tid = allApps.find(a => a.team_name === t)?.team_id ?? '';
+      return `<button data-team="${tid}" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === tid ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">${t}</button>`;
+    }).join('')}
+    ${allApps.some(a => !a.team_id) ? `<button data-team="__unassigned__" class="team-tab px-3 py-1.5 rounded text-xs font-bold uppercase tracking-widest transition-colors ${activeTeamFilter === '__unassigned__' ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-400 hover:text-white'}">Unassigned</button>` : ''}
+  `;
+  container.querySelectorAll('.team-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeTeamFilter = (btn as HTMLElement).dataset.team ?? '';
+      renderTeamTabs();
+      renderApps();
+    });
+  });
+}
+
+function renderTeamMetrics() {
+  const container = document.getElementById('team-metrics-row')!;
+  if (!teamMetrics.length) { container.innerHTML = ''; return; }
+  container.innerHTML = teamMetrics.map(m => `
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <p class="text-white font-bold text-sm">${m.team_name}</p>
+          <p class="text-slate-500 text-xs mt-0.5">${m.app_count} app${m.app_count !== 1 ? 's' : ''} · ${m.project_count} project${m.project_count !== 1 ? 's' : ''}</p>
+        </div>
+        <span class="text-xs font-black ${scoreColor(m.score)} bg-slate-800 px-2 py-1 rounded">${m.score}</span>
+      </div>
+      <div class="flex gap-3 flex-wrap mb-3">
+        ${severityDot('C', m.critical, 'text-red-400')}
+        ${severityDot('H', m.high, 'text-orange-400')}
+        ${severityDot('M', m.medium, 'text-yellow-400')}
+        ${severityDot('L', m.low, 'text-blue-400')}
+        ${!m.critical && !m.high && !m.medium && !m.low ? '<span class="text-emerald-400 text-xs font-bold">Clean</span>' : ''}
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex-1 bg-slate-800 rounded-full h-1.5">
+          <div class="h-1.5 rounded-full ${m.sla_compliance >= 90 ? 'bg-emerald-500' : m.sla_compliance >= 70 ? 'bg-yellow-500' : 'bg-red-500'}"
+            style="width:${m.sla_compliance}%"></div>
+        </div>
+        <span class="text-xs text-slate-400 shrink-0">${m.sla_compliance.toFixed(0)}% SLA</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderApps() {
+  const container = document.getElementById('app-list')!;
+  const emptyState = document.getElementById('empty-state')!;
+
+  let filtered = allApps;
+  if (activeTeamFilter === '__unassigned__') {
+    filtered = allApps.filter(a => !a.team_id);
+  } else if (activeTeamFilter) {
+    filtered = allApps.filter(a => a.team_id === activeTeamFilter);
+  }
+
+  if (!filtered.length) {
+    container.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    emptyState.classList.add('flex');
+    return;
+  }
+  emptyState.classList.add('hidden');
+  emptyState.classList.remove('flex');
+
+  container.innerHTML = filtered.map(app => `
+    <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+      <!-- App header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-800/60">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-sky-400 text-base">folder_open</span>
+          </div>
+          <div>
+            <p class="text-white font-bold text-sm">${app.name}</p>
+            <p class="text-slate-500 text-xs mt-0.5">
+              ${app.team_name ? `<span class="text-sky-400/70">${app.team_name}</span> · ` : ''}
+              ${app.description || '<span class="italic">No description</span>'}
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-500">${app.projects.length} project${app.projects.length !== 1 ? 's' : ''}</span>
+          <button data-add-project="${app.id}" data-app-name="${app.name}"
+            class="flex items-center gap-1 bg-slate-800 hover:bg-slate-700 text-sky-400 text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded transition-colors">
+            <span class="material-symbols-outlined text-sm">add</span>
+            Project
+          </button>
+          <button data-delete-app="${app.id}"
+            class="p-1.5 text-slate-600 hover:text-red-400 rounded transition-colors">
+            <span class="material-symbols-outlined text-base">delete</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Projects list -->
+      ${app.projects.length ? `
+        <div class="divide-y divide-slate-800/50">
+          ${app.projects.map(p => `
+            <div class="flex items-center justify-between px-5 py-3 hover:bg-slate-800/30 transition-colors group">
+              <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-slate-600 text-base">code</span>
+                <div>
+                  <p class="text-slate-200 text-sm font-medium">${p.name}</p>
+                  ${p.repo_url
+                    ? `<a href="${p.repo_url}" target="_blank" class="text-xs text-slate-500 hover:text-sky-400 transition-colors">${p.repo_name || p.repo_url}</a>`
+                    : `<span class="text-xs text-slate-600 italic">No repo assigned</span>`}
+                </div>
+              </div>
+              <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                ${!p.repo_id ? `<span class="text-xs text-amber-500/70 bg-amber-500/10 px-2 py-0.5 rounded">Unmanaged</span>` : ''}
+                <button data-delete-project="${p.id}" data-app-id="${app.id}"
+                  class="p-1 text-slate-600 hover:text-red-400 rounded transition-colors">
+                  <span class="material-symbols-outlined text-sm">delete</span>
+                </button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      ` : `
+        <div class="px-5 py-6 text-center">
+          <p class="text-slate-600 text-sm">No projects yet.</p>
+        </div>
+      `}
+    </div>
+  `).join('');
+
+  // Add project buttons
+  container.querySelectorAll('[data-add-project]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingProjectAppId = (btn as HTMLElement).dataset.addProject!;
+      pendingProjectAppName = (btn as HTMLElement).dataset.appName!;
+      openCreateProjectModal();
+    });
+  });
+
+  // Delete app
+  container.querySelectorAll('[data-delete-app]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this app and all its projects?')) return;
+      await api.deleteApp((btn as HTMLElement).dataset.deleteApp!);
+      await loadAll();
+    });
+  });
+
+  // Delete project
+  container.querySelectorAll('[data-delete-project]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Delete this project?')) return;
+      const el = btn as HTMLElement;
+      await api.deleteProject(el.dataset.appId!, el.dataset.deleteProject!);
+      await loadAll();
+    });
+  });
+}
+
+function openCreateProjectModal() {
+  const modal = document.getElementById('modal-create-project')!;
+  document.getElementById('project-modal-app-name')!.textContent = pendingProjectAppName;
+  (document.getElementById('project-name') as HTMLInputElement).value = '';
+  (document.getElementById('project-desc') as HTMLInputElement).value = '';
+  document.getElementById('project-error')!.classList.add('hidden');
+
+  // Populate available repos (exclude already assigned)
+  const assignedRepoIds = new Set(
+    allApps.flatMap(a => a.projects.map(p => p.repo_id)).filter(Boolean)
+  );
+  const sel = document.getElementById('project-repo') as HTMLSelectElement;
+  sel.innerHTML = '<option value="">— Unassigned —</option>' +
+    allRepos
+      .filter(r => !assignedRepoIds.has(r.id))
+      .map(r => `<option value="${r.id}">${r.name}</option>`)
+      .join('');
+
+  modal.classList.remove('hidden');
+}
+
+async function loadAll() {
+  [allApps, allTeams, allRepos, teamMetrics] = await Promise.all([
+    api.getApps().catch(() => [] as App[]),
+    api.getTeams().catch(() => [] as import('../../lib/api.ts').Team[]),
+    api.getRepos().catch(() => [] as Repo[]),
+    api.getTeamMetrics().catch(() => [] as TeamMetrics[]),
+  ]);
+
+  // Populate team select in create-app modal
+  const teamSel = document.getElementById('app-team') as HTMLSelectElement;
+  teamSel.innerHTML = '<option value="">— No team —</option>' +
+    allTeams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+
+  renderTeamTabs();
+  renderTeamMetrics();
+  renderApps();
+}
+
+// Create App modal
+document.getElementById('open-create-app')!.addEventListener('click', () => {
+  (document.getElementById('app-name') as HTMLInputElement).value = '';
+  (document.getElementById('app-desc') as HTMLTextAreaElement).value = '';
+  document.getElementById('app-error')!.classList.add('hidden');
+  document.getElementById('modal-create-app')!.classList.remove('hidden');
+});
+document.getElementById('cancel-create-app')!.addEventListener('click', () => {
+  document.getElementById('modal-create-app')!.classList.add('hidden');
+});
+document.getElementById('submit-create-app')!.addEventListener('click', async () => {
+  const name = (document.getElementById('app-name') as HTMLInputElement).value.trim();
+  const desc = (document.getElementById('app-desc') as HTMLTextAreaElement).value.trim();
+  const teamId = (document.getElementById('app-team') as HTMLSelectElement).value || null;
+  const errEl = document.getElementById('app-error')!;
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+  try {
+    await api.createApp(name, desc, teamId);
+    document.getElementById('modal-create-app')!.classList.add('hidden');
+    await loadAll();
+  } catch (e: any) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+});
+
+// Create Project modal
+document.getElementById('cancel-create-project')!.addEventListener('click', () => {
+  document.getElementById('modal-create-project')!.classList.add('hidden');
+});
+document.getElementById('submit-create-project')!.addEventListener('click', async () => {
+  const name = (document.getElementById('project-name') as HTMLInputElement).value.trim();
+  const desc = (document.getElementById('project-desc') as HTMLInputElement).value.trim();
+  const repoId = (document.getElementById('project-repo') as HTMLSelectElement).value || null;
+  const errEl = document.getElementById('project-error')!;
+  if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('hidden'); return; }
+  try {
+    await api.createProject(pendingProjectAppId, name, desc, repoId);
+    document.getElementById('modal-create-project')!.classList.add('hidden');
+    await loadAll();
+  } catch (e: any) {
+    errEl.textContent = e.message; errEl.classList.remove('hidden');
+  }
+});
+
+// Close modals on backdrop click
+['modal-create-app', 'modal-create-project'].forEach(id => {
+  document.getElementById(id)!.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) (e.currentTarget as HTMLElement).classList.add('hidden');
+  });
+});
+
+loadAll();
+</script>
+
+</DashboardLayout>
