@@ -10,17 +10,17 @@ import (
 func (r *appRepo) CheckProjectOwnership(ctx context.Context, userID, projectID string) (bool, error) {
 	var count int
 	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) 
+		SELECT COUNT(*)
 		FROM projects p
 		JOIN apps a ON p.app_id = a.id
 		JOIN team_members tm ON a.team_id = tm.team_id
 		WHERE p.id = $1 AND tm.user_id = $2
 	`, projectID, userID).Scan(&count)
-	
+
 	if err != nil {
 		return false, fmt.Errorf("check project ownership: %w", err)
 	}
-	
+
 	return count > 0, nil
 }
 
@@ -34,11 +34,11 @@ func (r *appRepo) CheckAppOwnership(ctx context.Context, userID, appID string) (
 		JOIN team_members tm ON a.team_id = tm.team_id
 		WHERE a.id = $1 AND tm.user_id = $2
 	`, appID, userID).Scan(&count)
-	
+
 	if err != nil {
 		return false, fmt.Errorf("check app ownership: %w", err)
 	}
-	
+
 	return count > 0, nil
 }
 
@@ -54,11 +54,11 @@ func (r *appRepo) CheckScanOwnership(ctx context.Context, userID, scanID string)
 		JOIN team_members tm ON a.team_id = tm.team_id
 		WHERE s.id = $1 AND tm.user_id = $2
 	`, scanID, userID).Scan(&count)
-	
+
 	if err != nil {
 		return false, fmt.Errorf("check scan ownership: %w", err)
 	}
-	
+
 	return count > 0, nil
 }
 
@@ -75,11 +75,11 @@ func (r *appRepo) CheckFindingOwnership(ctx context.Context, userID, findingID s
 		JOIN team_members tm ON a.team_id = tm.team_id
 		WHERE f.id = $1 AND tm.user_id = $2
 	`, findingID, userID).Scan(&count)
-	
+
 	if err != nil {
 		return false, fmt.Errorf("check finding ownership: %w", err)
 	}
-	
+
 	return count > 0, nil
 }
 
@@ -97,10 +97,10 @@ func (r *appRepo) CheckRiskAcceptanceOwnership(ctx context.Context, userID, risk
 		JOIN team_members tm ON a.team_id = tm.team_id
 		WHERE ra.id = $1 AND tm.user_id = $2
 	`, riskAcceptanceID, userID).Scan(&count)
-	
+
 	if err != nil {
 		return false, fmt.Errorf("check risk acceptance ownership: %w", err)
 	}
-	
+
 	return count > 0, nil
 }

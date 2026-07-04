@@ -71,5 +71,3 @@ func VerifySignature(r *http.Request, body []byte, secret []byte) error {
 
 	return nil
 }
-
-

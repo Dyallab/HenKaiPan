@@ -188,7 +188,7 @@ func parseToken(r *http.Request) (jwt.MapClaims, error) {
 		slog.Warn("failed to extract claims")
 		return nil, jwt.ErrSignatureInvalid
 	}
-	
+
 	slog.Debug("JWT parsed successfully", "subject", claims["sub"])
 	return claims, nil
 }

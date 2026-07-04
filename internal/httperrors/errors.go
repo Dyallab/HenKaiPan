@@ -62,6 +62,3 @@ func (e *HTTPError) WithMetadata(key, value string) *HTTPError {
 	e.Metadata[key] = value
 	return e
 }
-
-
-

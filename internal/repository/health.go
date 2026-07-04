@@ -29,10 +29,10 @@ func (r *healthRepo) CheckDB(ctx context.Context) error {
 func (r *healthRepo) CheckRedis(ctx context.Context) error {
 	client := asynq.NewClient(*r.redis)
 	defer client.Close()
-	
+
 	inspector := asynq.NewInspector(*r.redis)
 	defer inspector.Close()
-	
+
 	_, err := inspector.Queues()
 	return err
 }

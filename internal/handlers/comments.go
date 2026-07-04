@@ -13,7 +13,7 @@ import (
 
 func (h *Handler) GetFindingComments(w http.ResponseWriter, r *http.Request) {
 	findingID := chi.URLParam(r, "findingID")
-	
+
 	comments, err := h.store.Apps.GetFindingComments(r.Context(), findingID)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, "failed to get comments")
@@ -24,7 +24,7 @@ func (h *Handler) GetFindingComments(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) CreateFindingComment(w http.ResponseWriter, r *http.Request) {
 	findingID := chi.URLParam(r, "findingID")
-	
+
 	claims := auth.GetClaims(r)
 	if claims == nil {
 		writeError(w, r, http.StatusUnauthorized, "unauthorized")

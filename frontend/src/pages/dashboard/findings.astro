@@ -288,7 +288,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       document.getElementById('findings-total')!.textContent = '';
       return;
     }
-    
+
     // Apply client-side sorting by credibility
     if (sortBy) {
       findings.sort((a, b) => {
@@ -302,7 +302,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         return 0;
       });
     }
-    
+
     document.getElementById('findings-total')!.textContent = `${total} total`;
 
     const el = document.getElementById('findings-table')!;
@@ -397,7 +397,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     if (hasWriteAccess) {
     const selectAllCheckbox = document.getElementById('select-all-findings') as HTMLInputElement;
     const checkboxes = document.querySelectorAll('.finding-checkbox') as NodeListOf<HTMLInputElement>;
-    
+
     selectAllCheckbox?.addEventListener('change', () => {
       checkboxes.forEach(cb => {
         (cb as HTMLInputElement).checked = selectAllCheckbox.checked;
@@ -442,7 +442,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const checkboxes = document.querySelectorAll('.finding-checkbox:checked') as NodeListOf<HTMLInputElement>;
     const bulkActions = document.getElementById('bulk-actions')!;
     const selectedCount = document.getElementById('selected-count')!;
-    
+
     if (checkboxes.length > 0) {
       bulkActions.classList.remove('hidden');
       bulkActions.classList.add('flex');

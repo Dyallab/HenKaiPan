@@ -116,6 +116,7 @@
               pnpm
               postgresql_17
               redis
+              pre-commit
               jq
             ];
 
@@ -124,6 +125,8 @@
             echo "  go:    $(go version 2>/dev/null)"
             echo "  node:  $(node --version 2>/dev/null)"
             echo "  pnpm:  $(pnpm --version 2>/dev/null)"
+            echo "  postgres: $(postgres --version 2>/dev/null)"
+            echo "  redis:  $(redis-server --version 2>/dev/null)"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           '';
         };

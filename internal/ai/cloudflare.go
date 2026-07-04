@@ -106,4 +106,3 @@ func CloudflareGenerate(ctx context.Context, model, systemPrompt, userPrompt str
 
 	return strings.TrimSpace(result.Result.Response), nil
 }
-

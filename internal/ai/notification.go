@@ -76,4 +76,3 @@ Security finding detected in ` + nc.Repository + `:
 Write 2-3 sentences max explaining what this finding means for a developer and how to address it. Be direct. No preamble.
 `)
 }
-

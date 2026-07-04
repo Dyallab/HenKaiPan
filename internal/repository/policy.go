@@ -15,7 +15,7 @@ type policyRepo struct{ db *pgxpool.Pool }
 
 func (r *policyRepo) List(ctx context.Context) ([]models.Policy, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, COALESCE(description, ''), conditions, actions, enabled, 
+		SELECT id, name, COALESCE(description, ''), conditions, actions, enabled,
 		       COALESCE(pack_type, 'custom'), COALESCE(compliance_controls, '{}'), created_at
 		FROM policies ORDER BY created_at DESC`)
 	if err != nil {

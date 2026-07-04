@@ -95,7 +95,7 @@ func (r *appRepo) ListAllProjects(ctx context.Context, scope datascope.Scope, ap
 
 // ListStandaloneByPattern returns unassigned projects whose repo_url matches the given glob pattern.
 // Pattern examples:
-//   - "facebook/*"       → matches https://github.com/facebook/*  
+//   - "facebook/*"       → matches https://github.com/facebook/*
 //   - "@user/*"          → matches https://github.com/user/*
 //   - "org/repo-*"       → matches https://github.com/org/repo-*
 //   - full URL           → exact match on repo_url
@@ -391,7 +391,7 @@ func (r *appRepo) GetProjectGitHubToken(ctx context.Context, id string) (string,
 func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.CoverageReport, error) {
 	query := `
 		WITH project_last_scan AS (
-			SELECT 
+			SELECT
 				p.id as project_id,
 				p.name as project_name,
 				MAX(s.created_at) as last_scan_at
@@ -399,17 +399,17 @@ func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.Cove
 			LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
 			GROUP BY p.id, p.name
 		)
-		SELECT 
+		SELECT
 			project_id,
 			project_name,
 			last_scan_at,
-			CASE 
+			CASE
 				WHEN last_scan_at IS NULL THEN NULL
 				ELSE EXTRACT(DAY FROM (NOW() - last_scan_at))::int
 			END as days_since_scan,
 			CASE WHEN last_scan_at IS NULL THEN true ELSE false END as never_scanned
 		FROM project_last_scan
-		ORDER BY 
+		ORDER BY
 			CASE WHEN last_scan_at IS NULL THEN 0 ELSE 1 END,
 			last_scan_at ASC
 	`
@@ -417,7 +417,7 @@ func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.Cove
 	if days > 0 {
 		query = `
 			WITH project_last_scan AS (
-				SELECT 
+				SELECT
 					p.id as project_id,
 					p.name as project_name,
 					MAX(s.created_at) as last_scan_at
@@ -425,18 +425,18 @@ func (r *appRepo) GetCoverageReport(ctx context.Context, days int) (*models.Cove
 				LEFT JOIN scans s ON s.project_id = p.id AND s.status = 'completed'
 				GROUP BY p.id, p.name
 			)
-			SELECT 
+			SELECT
 				project_id,
 				project_name,
 				last_scan_at,
-				CASE 
+				CASE
 					WHEN last_scan_at IS NULL THEN NULL
 					ELSE EXTRACT(DAY FROM (NOW() - last_scan_at))::int
 				END as days_since_scan,
 				CASE WHEN last_scan_at IS NULL THEN true ELSE false END as never_scanned
 			FROM project_last_scan
 			WHERE last_scan_at IS NULL OR last_scan_at < NOW() - ($1 || ' days')::interval
-			ORDER BY 
+			ORDER BY
 				CASE WHEN last_scan_at IS NULL THEN 0 ELSE 1 END,
 				last_scan_at ASC
 		`

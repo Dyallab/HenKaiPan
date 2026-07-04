@@ -97,11 +97,11 @@ func (r *notificationRepo) List(ctx context.Context, filter NotificationFilter) 
 		}
 		notifications = append(notifications, n)
 	}
-	
+
 	if notifications == nil {
 		notifications = []models.UserNotification{}
 	}
-	
+
 	return notifications, total, nil
 }
 

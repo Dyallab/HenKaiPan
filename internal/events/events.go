@@ -14,22 +14,22 @@ const (
 	// Finding events
 	EventFindingSummaryCompleted    EventType = "finding_summary_completed"
 	EventFindingValidationCompleted EventType = "finding_validation_completed"
-	
+
 	// Scan events
 	EventScanCompleted EventType = "scan_completed"
 	EventScanFailed    EventType = "scan_failed"
-	
+
 	// Webhook events
 	EventWebhookDelivered EventType = "webhook_delivered"
 	EventWebhookFailed    EventType = "webhook_failed"
-	
+
 	// Risk acceptance events
 	EventRiskAcceptanceApproved EventType = "risk_acceptance_approved"
 	EventRiskAcceptanceRejected EventType = "risk_acceptance_rejected"
-	
+
 	// Policy events
 	EventPolicyViolation EventType = "policy_violation"
-	
+
 	// Schedule events
 	EventScheduledTaskCompleted EventType = "scheduled_task_completed"
 
@@ -185,8 +185,8 @@ func (h *Hub) dispatchToClients(event Event) {
 		case client.events <- event:
 		default:
 			// Client buffer full, log warning
-			slog.Warn("SSE client buffer full, skipping event", 
-				"client_id", client.id, 
+			slog.Warn("SSE client buffer full, skipping event",
+				"client_id", client.id,
 				"event_type", event.Type)
 		}
 	}

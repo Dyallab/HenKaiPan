@@ -461,14 +461,14 @@ func ParseTrufflehog(data []byte) ([]FindingRow, error) {
 			sev = "critical"
 		}
 		raw, _ := json.Marshal(r)
-		
+
 		// Compute SHA256 hash of the raw secret value for correlation
 		secretHash := ""
 		if r.Raw != "" {
 			hash := sha256.Sum256([]byte(r.Raw))
 			secretHash = hex.EncodeToString(hash[:])
 		}
-		
+
 		rows = append(rows, FindingRow{
 			RuleID:      r.DetectorName,
 			Title:       fmt.Sprintf("%s secret detected", r.DetectorName),
@@ -505,14 +505,14 @@ func ParseGitleaks(data []byte) ([]FindingRow, error) {
 	var rows []FindingRow
 	for _, l := range doc {
 		raw, _ := json.Marshal(l)
-		
+
 		// Compute SHA256 hash of the Match field for correlation
 		secretHash := ""
 		if l.Match != "" {
 			hash := sha256.Sum256([]byte(l.Match))
 			secretHash = hex.EncodeToString(hash[:])
 		}
-		
+
 		rows = append(rows, FindingRow{
 			RuleID:     l.RuleID,
 			Title:      l.Description,

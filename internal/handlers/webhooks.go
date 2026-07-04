@@ -184,5 +184,3 @@ func (h *Handler) TestWebhook(w http.ResponseWriter, r *http.Request) {
 	h.auditLog(r, "webhook.test", "webhook", webhook.ID, nil, nil)
 	writeJSON(w, http.StatusOK, map[string]string{"status": "queued", "message": "Test webhook queued for delivery"})
 }
-
-

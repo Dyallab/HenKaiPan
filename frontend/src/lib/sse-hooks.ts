@@ -71,7 +71,7 @@ export function onFindingValidation(
 /**
  * Helper to create a Promise that resolves when a specific event is received
  * Useful for waiting for async operations
- * 
+ *
  * Usage:
  * ```ts
  * const summary = await waitForSSEEvent("finding_summary_completed", findingId);

@@ -69,4 +69,3 @@ func (h *Handler) normalizeFindingForDisplay(f *models.Finding) {
 		f.SnippetStartLine = f.LineStart
 	}
 }
-

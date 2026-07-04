@@ -6,7 +6,7 @@
 
 **HenKaiPan** is an open-source ASPM (Application Security Posture Management) platform. It orchestrates security scanners, correlates findings across tools, provides AI-powered remediation, and helps teams track vulnerability posture over time.
 
-**Self-hosted, fully free — no license key, no restrictions.**
+**Self-hosted, fully free, no restrictions.**
 
 - Deploy with Docker Compose or Kubernetes
 - All scanners bundled in the worker image (Semgrep, Trivy, Gitleaks, Checkov, Nuclei, and more)

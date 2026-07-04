@@ -250,7 +250,3 @@ func (h *Handler) notifySecurityEvent(ctx context.Context, targetUser *models.Us
 		}
 	}
 }
-
-
-
-

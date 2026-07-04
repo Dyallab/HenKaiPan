@@ -663,7 +663,7 @@ func (r *findingRepo) getCorrelationContext(ctx context.Context, findingID strin
 	var current correlationContext
 	err := r.db.QueryRow(ctx, `
 		SELECT f.id, f.scan_id, s.scan_batch_id, f.scanner, COALESCE(f.rule_id, ''),
-		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.cve_id, 
+		       COALESCE(f.file_path, ''), COALESCE(f.line_start, 0), f.cve_id,
 		       COALESCE(f.secret_hash, ''), f.suppressed, COALESCE(f.pkg_name, '')
 		FROM findings f
 		JOIN scans s ON s.id = f.scan_id

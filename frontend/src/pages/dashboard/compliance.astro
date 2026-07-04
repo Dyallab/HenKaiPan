@@ -58,7 +58,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       <h2 class="text-lg font-bold text-white">Recommended Policy Packs</h2>
     </div>
     <p class="text-sm text-slate-400 mb-4">Enable these pre-configured policies to automatically enforce compliance controls.</p>
-    
+
     <div class="grid md:grid-cols-2 gap-4">
       <!-- SOC2 Starter Pack -->
       <div class="bg-surface-container-low border border-cyan-500/20 rounded-xl p-5">
@@ -309,11 +309,11 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   function updatePackButtons() {
     const soc2Btn = document.getElementById('enable-soc2-pack')!;
     const isoBtn = document.getElementById('enable-iso-pack')!;
-    
+
     // SOC2 has 5 policies, ISO has 2
     const soc2AllEnabled = enabledPoliciesByPack['soc2-starter'] >= 5;
     const isoAllEnabled = enabledPoliciesByPack['iso27001-basics'] >= 2;
-    
+
     if (soc2AllEnabled) {
       soc2Btn.innerHTML = '<span class="material-symbols-outlined text-base">check</span> SOC2 Enabled';
       soc2Btn.classList.remove('bg-cyan-500', 'hover:bg-cyan-400');
@@ -332,14 +332,14 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const compliant = fw.controls.filter(c => controlStatus(c.scanners) === 'compliant').length;
     const total = fw.controls.length;
     const pct = Math.round((compliant / total) * 100);
-    
+
     document.getElementById('progress-pct')!.textContent = `${pct}%`;
     document.getElementById('progress-text')!.textContent = `${compliant} of ${total} controls`;
-    
+
     // Count enabled policies
     const totalEnabled = enabledPoliciesByPack['soc2-starter'] + enabledPoliciesByPack['iso27001-basics'];
     document.getElementById('policies-enabled')!.textContent = String(totalEnabled);
-    
+
     // Count open findings
     const openFindings = Object.values(findingsByScanner).reduce((acc, s) => acc + s.total, 0);
     document.getElementById('findings-open')!.textContent = String(openFindings);
@@ -534,7 +534,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const fw  = FRAMEWORKS[currentFw];
     const rows = fw.controls.map(c => {
       const stat = controlStatus(c.scanners);
-      const policiesForControl = allPolicies.filter(p => 
+      const policiesForControl = allPolicies.filter(p =>
         p.enabled && p.compliance_controls?.includes(c.id)
       );
       const policyNames = policiesForControl.map(p => p.name).join('; ');
@@ -554,7 +554,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const btn = document.getElementById('enable-soc2-pack')!;
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Enabling...';
-    
+
     try {
       // Enable all soc2-starter policies
       const soc2Policies = allPolicies.filter(p => p.pack_type === 'soc2-starter');
@@ -585,7 +585,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const btn = document.getElementById('enable-iso-pack')!;
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined text-base">progress_activity</span> Enabling...';
-    
+
     try {
       // Enable all iso27001-basics policies
       const isoPolicies = allPolicies.filter(p => p.pack_type === 'iso27001-basics');

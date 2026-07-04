@@ -98,5 +98,3 @@ func TestVerifySignature_InvalidTimestampFormat(t *testing.T) {
 	err := VerifySignature(req, []byte("body"), []byte("secret"))
 	assert.True(t, err != nil)
 }
-
-

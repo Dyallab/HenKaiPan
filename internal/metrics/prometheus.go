@@ -150,5 +150,3 @@ func collectDBMetrics(getMetrics func() (int, int, int, map[string]int, error)) 
 		findingsTotal.WithLabelValues(severity).Set(float64(count))
 	}
 }
-
-

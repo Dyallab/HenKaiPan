@@ -152,13 +152,13 @@ func (r *webhookRepo) ListEnabled(ctx context.Context) ([]models.Webhook, error)
 
 func (r *webhookRepo) UpdateDeliveryStats(ctx context.Context, id string, success bool, statusCode int, responseBody string, errorMsg string) error {
 	query := `
-		UPDATE webhooks 
+		UPDATE webhooks
 		SET last_delivery = NOW(),
 		    delivery_count = delivery_count + 1,
 		    error_count = error_count + CASE WHEN @success THEN 0 ELSE 1 END,
 		    last_error = CASE WHEN @success THEN NULL ELSE @error_msg END
 		WHERE id = @id`
-	
+
 	_, err := r.db.Exec(ctx, query, pgx.NamedArgs{
 		"success":    success,
 		"error_msg":  errorMsg,
@@ -185,9 +185,9 @@ func (r *webhookRepo) LogDelivery(ctx context.Context, l WebhookDeliveryInsert) 
 func (r *webhookRepo) GetDeliveryLogs(ctx context.Context, webhookID string, limit int) ([]models.WebhookDeliveryLog, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, webhook_id, event_type, payload, status_code, response_body, error_message, created_at
-		FROM webhook_delivery_logs 
-		WHERE webhook_id = $1 
-		ORDER BY created_at DESC 
+		FROM webhook_delivery_logs
+		WHERE webhook_id = $1
+		ORDER BY created_at DESC
 		LIMIT $2`, webhookID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("get delivery logs: %w", err)
