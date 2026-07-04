@@ -10,12 +10,14 @@ Version numbering follows the **self-hosted public release line**. The complete 
 
 📖 **Full CHANGELOG:** [`github.com/Dyallab/HenKaiPan-self-hosted`](https://github.com/Dyallab/HenKaiPan-self-hosted/blob/main/CHANGELOG.md)
 
-**Current release:** v1.30.0 (2026-06-17)
+**Current release:** v1.30.2 (2026-06-18)
 
 ### Completed Releases (summary)
 
 | Version | Key Changes |
 |---------|-------------|
+| v1.30.2 | Datascope authorization — team-scoped vulns/audit logs/schedules, admin-only resource creation, viewer UI hardening |
+| v1.30.1 | MCP response format — handlers return MCP-standard `content` array for LLM client compatibility |
 | v1.30.0 | Ponytail over-engineering audit — removed bot, testhelpers, duplicate code. CI permissions fix, secrets key derivation fix, rate limit atomicity fix, event metadata fix |
 | v1.29.1 | Simplified README, removed deprecated X-XSS-Protection header, backup script |
 | v1.29.0 | Full pentest hardening sprint — SSRF, rate limiting, session invalidation, role change hardening, email verification, cookie security, webhook DNS rebinding |
@@ -74,102 +76,166 @@ SMB workflow & visibility — Slack bot, bulk actions, Nix dev environment.
 
 ---
 
+## ✅ v1.30.2 — Released (2026-06-18)
+
+Datascope authorization enforcement — close gaps left after v1.29.0 team-scoped access.
+
+- [x] **Datascope on vulnerability queries**: `GET /api/vulnerabilities` and `GET /api/vulnerabilities/engine-summary` filter by team membership
+- [x] **Datascope on audit logs**: `GET /api/audit-logs` scoped to current user for non-admin roles
+- [x] **Datascope on schedules**: `GET /api/schedules` filters by team membership
+- [x] **Admin-only write endpoints**: `POST /api/apps`, `POST /api/projects`, bulk create/assign require admin role
+- [x] **Viewer UI hardening**: hide admin nav/actions; guard findings bulk actions and user assignment
+- [x] **Findings page 403 toast**: stop calling admin-only `/api/users` for viewers
+
+---
+
+## ✅ v1.30.1 — Released (2026-06-18)
+
+MCP LLM client compatibility fix.
+
+- [x] **MCP response format**: handlers use `mcpToolResult` wrapper — MCP-standard `content` array instead of bare JSON
+
+---
+
+## ✅ v1.30.0 — Released (2026-06-17)
+
+Ponytail over-engineering audit + hardening fixes.
+
+- [x] **Over-engineering audit**: removed bot binary, dead `internal/testhelpers/`, consolidated duplicate rate limiters
+- [x] **CI workflow permissions**: top-level `permissions:` block to prevent GITHUB_TOKEN over-scoping
+- [x] **Secrets key derivation**: `hex.DecodeString` for hex-encoded encryption keys (was incorrect SHA256)
+- [x] **Rate limit atomicity**: single Redis pipeline for `Incr` + `Expire` on login rate limiting
+- [x] **Event metadata propagation**: `Metadata.ProjectID` set in scan creation and schedule event constructors
+
+---
+
 ## 🛡️ Security Hardening (Pentest 2026-06-16)
 
 Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/reports/INDEX.md) for full context.
 
-### Sprint 1 — Alta (completado en v1.29.0)
+### Sprint 1 — High (completed in v1.29.0)
 
-- [x] **R003 — Verificar `current_password` en cambio de contraseña**
-  - Requerir `current_password` en `PATCH /api/users/{id}` para cambios propios de password (CWE-620, CVSS 8.1)
-  - Endpoint separado `POST /api/users/{id}/reset-password` para admin resets + notificación al usuario afectado
-  - Invalidar sesiones activas al cambiar password
-  - Referencia: [`R003`](../pentest/reports/R003-password-change-no-current-password.md)
-- [x] **R002 — Re-autenticación para cambios de rol**
-  - Requerir `current_password` en `PATCH /api/users/{id}` al modificar el campo `role` (CWE-269, CVSS 7.2)
-  - Notificar al usuario afectado por email cuando su rol cambie (qué admin, desde qué IP)
-  - Alertas activas para `user.update` con cambio de `role` en audit log
-  - Referencia: [`R002`](../pentest/reports/R002-privilege-escalation-role-change.md)
+- [x] **R003 — Require `current_password` on password change**
+  - Require `current_password` on `PATCH /api/users/{id}` for own password changes (CWE-620, CVSS 8.1)
+  - Separate `POST /api/users/{id}/reset-password` endpoint for admin resets + notify the affected user
+  - Invalidate active sessions on password change
+  - Reference: [`R003`](../pentest/reports/R003-password-change-no-current-password.md)
+- [x] **R002 — Re-authentication for role changes**
+  - Require `current_password` on `PATCH /api/users/{id}` when modifying the `role` field (CWE-269, CVSS 7.2)
+  - Notify the affected user by email when their role changes (which admin, from what IP)
+  - Active alerts for `user.update` with `role` change in audit log
+  - Reference: [`R002`](../pentest/reports/R002-privilege-escalation-role-change.md)
 
-### Sprint 2 — Media (completado en v1.29.0)
+### Sprint 2 — Medium (completed in v1.29.0)
 
-- [x] **R001 — Allowlist de hosts git en `target` de scans**
-  - Validar URL contra allowlist: `github.com`, `gitlab.com`, `bitbucket.org` (CWE-918, CVSS 5.0)
-  - Resolver hostname y bloquear rangos RFC1918, link-local y loopback antes del `git clone`
-  - Considerar DMZ para el runner de scans (sin acceso a red interna)
-  - Referencia: [`R001`](../pentest/reports/R001-ssrf-scan-target.md)
-- [x] **R006 — Rate limiting en `POST /api/auth/login`**
-  - Rate limiting por IP y por username vía Redis (CWE-307, CVSS 5.3)
-  - Máx 5 intentos fallidos por username en 5 min → `429 Too Many Requests` + `Retry-After`
-  - Bloqueo temporal de cuenta tras N fallos (ej: 10) + notificación por email
-  - Verificar/crear regla de rate limiting en Cloudflare WAF para esta ruta
-  - Referencia: [`R006`](../pentest/reports/R006-no-rate-limiting-login.md)
+- [x] **R001 — Git host allowlist in scan `target`**
+  - Validate URL against allowlist: `github.com`, `gitlab.com`, `bitbucket.org` (CWE-918, CVSS 5.0)
+  - Resolve hostname and block RFC1918, link-local, and loopback ranges before `git clone`
+  - Consider DMZ for the scan runner (no internal network access)
+  - Reference: [`R001`](../pentest/reports/R001-ssrf-scan-target.md)
+- [x] **R006 — Rate limiting on `POST /api/auth/login`**
+  - Rate limiting by IP and by username via Redis (CWE-307, CVSS 5.3)
+  - Max 5 failed attempts per username in 5 min → `429 Too Many Requests` + `Retry-After`
+  - Temporary account lockout after N failures (e.g., 10) + email notification
+  - Verify/create rate limiting rule in Cloudflare WAF for this route
+  - Reference: [`R006`](../pentest/reports/R006-no-rate-limiting-login.md)
 
-### Sprint 3 — Baja (próximo mes)
+### Sprint 3 — Low (completed in v1.29.0)
 
-- [x] **R004 — Verificación de email al cambiar dirección**
-  - Requerir `current_password` en `PATCH /api/users/{id}` al modificar `email`
-  - Notificar al email **anterior** del cambio (vía queue `email:send`)
-  - Notificación in-app + email al nuevo address via `notifySecurityEvent`
-  - Invalidar sesiones activas al cambiar email (bump token_version)
-  - Referencia: [`R004`](../pentest/reports/R004-email-change-no-verification.md)
-- [x] **R005 — Agregar flag `Secure` a cookie `aspm_token`**
-  - Cambiar default de `COOKIE_SECURE` a `true` en config.go
-  - Actualizar `.env.example` para reflejar el nuevo default
-  - La cookie ya usaba `Secure` condicional vía `SetAuthCookie(secure bool)` — solo cambiaba el default
-  - Referencia: [`R005`](../pentest/reports/R005-cookie-missing-secure-flag.md)
+- [x] **R004 — Email verification on address change**
+  - Require `current_password` on `PATCH /api/users/{id}` when modifying `email`
+  - Notify the **previous** email of the change (via `email:send` queue)
+  - In-app notification + email to new address via `notifySecurityEvent`
+  - Invalidate active sessions on email change (bump token_version)
+  - Reference: [`R004`](../pentest/reports/R004-email-change-no-verification.md)
+- [x] **R005 — Add `Secure` flag to `aspm_token` cookie**
+  - Change `COOKIE_SECURE` default to `true` in config.go
+  - Update `.env.example` to reflect the new default
+  - The cookie already used `Secure` conditionally via `SetAuthCookie(secure bool)` — only the default changed
+  - Reference: [`R005`](../pentest/reports/R005-cookie-missing-secure-flag.md)
+
+---
+
+## Completed (CHANGELOG audit ≤ v1.30.2)
+
+Items that were open in the backlog but are already in production per [`HenKaiPan-self-hosted/CHANGELOG.md`](../HenKaiPan-self-hosted/CHANGELOG.md).
+
+### UX & Platform
+
+- [x] `GET /api/coverage`, badges, and filter on Projects — v1.20.0
+- [x] Scanner Health Dashboard — v1.20.0
+- [x] Scanner CI cache — v1.20.0
+- [x] **Scheduled report delivery** (email/Slack) — v1.23.0 (`Report scheduling`: weekly/daily + email/slack channels)
+- [x] **Per-token rate limiting** for API keys — token bucket in `APIKeyAuth` (60 req/min burst; see v1.29.0 rate limit package)
+- [x] **SSRF validation on git targets** — v1.29.0 (allowlist + DNS; covers `repo_url` hardening in scans, not accessibility preflight)
+
+### Instance & Distribution
+
+- [x] **Backup script** (`scripts/backup.sh`) — v1.29.1 (step 1 of safe-update flow)
+- [x] **Anonymous telemetry opt-out** — v1.28.0 (`HENKAIPAN_TELEMETRY_ENABLED`, daily ping to telemetry.dyallab.com.ar)
+- [x] **Tier limits** + `GET /api/limits` — v1.28.0
+- [x] **Auto-create project from GitHub Action** — v1.25.0 (part of CI/CD onboarding; wizard UI still pending)
+
+### Testing & CI
+
+- [x] Phases 0–3 — see Testing Infrastructure section
+- [x] **`go test -race` in CI** — `ci-cd.yml` workflow (blocks build since v1.28.1)
+- [x] **DB test approach documented** — `AGENTS.md` (testcontainers vs sqlmock decision)
+
+### Observability
+
+- [x] **pprof endpoints** (`ENABLE_PPROF`) — v1.22.0 (profiling infra; active optimization still pending)
 
 ---
 
 ## Backlog
 
+*Last audit against CHANGELOG: 2026-06-27 · current release: v1.30.2*
+
 ### UX & Quality of Life
 
-- [x] `GET /api/coverage` — scan coverage report (projects without scans in last N days)
-- [x] Projects page badges: "Never scanned" / "Last scan: X days ago"
-- [x] Projects filter: "Show only projects without recent scans"
 - [ ] `@username` mentions in comments → email notification
 
 ### Onboarding & Growth
 
-- [ ] GitHub-first onboarding flow (token or app-based), optimized for small teams
-- [ ] Capture product analytics + feedback prompts
+- [ ] **GitHub-first onboarding wizard** (token or app-based UI flow) — *partial: auto-create v1.25.0, bulk import v1.6.0, docs CI/CD v1.8.0*
+- [ ] Capture product analytics + feedback prompts — *distinct from anonymous telemetry v1.28.0*
 
 ### Instance Management
 
-- [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why
-- [ ] **Safe-Update Flow**: sequence for updating (DB Backup → Pull → Migrate → Restart)
+- [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why — *partial: MIT + cloud pricing v1.27.0, license removed v1.26.0*
+- [ ] **Safe-Update Flow** documented end-to-end: DB Backup → Pull → Migrate → Restart — *backup script v1.29.1; missing unified operational guide*
 - [ ] Data export/import strategy to support migration between cloud and self-hosted
-- [ ] Minimal telemetry model for self-hosted (opt-in)
 - [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
 
 ### Enterprise Features
 
 - [ ] SAML / OIDC SSO
 - [ ] Multi-tenant support (organizations)
-- [ ] Advanced RBAC (custom roles, granular permissions)
+- [ ] **Advanced RBAC** (custom roles, granular permissions) — *partial: capability matrix v1.12.1, team-scoped access v1.29.0, datascope v1.30.2*
 - [ ] Audit log export + SIEM integration
 
 ### Tech Debt
 
-- [x] **SQL Injection Audit**: review all raw SQL queries for injection vulnerabilities
+- [x] **SQL Injection Audit** — completed (see findings below)
   - [x] Audit all raw SQL queries (`db.Query`, `db.QueryRow`, `db.Exec`)
   - [x] Verify parameterized queries everywhere (no string concatenation)
   - [x] Check repository layer for dynamic query building
   - [x] Review migration files for any dynamic SQL patterns
   - [x] Scan for `fmt.Sprintf` used with SQL statements
   - **Findings**: 1 real injection risk fixed (`helpers.go:19` whitelist), 2 LIMIT/OFFSET parameterized (`notification.go:73`, `vulnerability_new.go:175`)
-- [ ] **API versioning**: migrate existing endpoints to `/api/v1/...` with deprecation strategy
+- [ ] **API versioning**: migrate remaining endpoints to `/api/v1/...` — *partial: external scans + tokens in v1.8.0*
   - [ ] Define migration strategy (co-locate `/api/` and `/api/v1/` during transition)
   - [ ] Migrate routes one by one (start with auth, then projects/scans/findings)
   - [ ] Update frontend to point to `/api/v1/`
   - [ ] Deprecate old `/api/` routes with `Deprecation` header
   - [ ] Rollback strategy
-- [ ] **Inconsistent error messages**: ~200 message strings for same error codes. Frontend reads `code` field so non-blocking. Consider doing incrementally as part of API versioning migration.
+- [ ] **Inconsistent error messages**: ~200 message strings for same error codes — *partial: `{code, message}` format v1.12.0; incremental unification with API versioning*
+- [ ] **Legacy repo terminology** in API/endpoints — migrate to "project" (operational note, no dedicated release)
 
 ### Testing Infrastructure
 
-**Current state**: 29 packages under `internal/`, ~15 have tests (~58%). `internal/assert/` exists. `make test` target exists. No CI test step yet.
+**Current state**: Phases 0–3 completed. `go test -race ./internal/...` runs in CI (`ci-cd.yml`). ~58% of packages have tests. Missing coverage gate and phases 4–8.
 
 **Goal**: Establish sustainable testing patterns — pragmatic, not coverage-obsessed. Prioritize packages by risk/complexity.
 
@@ -192,7 +258,7 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
   - [x] Create `make test` target: `go test ./internal/...` with race detection
   - [x] Create `make test-coverage` target with HTML output
   - [x] Optional: `make test-integration` for future DB-backed tests
-  - [x] `internal/testhelpers/` package created (removed later — dead code, zero imports)
+  - [x] `internal/testhelpers/` package created (removed in v1.30.0 — dead code)
 
 - [x] **Phase 1 — Pure logic packages (no I/O, easy wins)** ✅
   - [x] `vulnerability/`: `ComputeVulnUID`, `NormalizePath`, `NormalizeVersion`, `EngineTypeFromCategory`
@@ -220,8 +286,8 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
 
 - [ ] **Phase 4 — Repository layer (DB-backed)**
   - **Largest surface**: 23 files, 16 interfaces, 75+ exported symbols. Highest risk for regressions.
-  - Approach options: A) testcontainers-go with real PG (most reliable), B) sqlmock (fastest), C) shared Docker PG (balanced)
-  - [x] Decide approach and document in \`AGENTS.md\`
+  - Approach: testcontainers-go with real PG (documented in `AGENTS.md`)
+  - [x] Decide approach and document in `AGENTS.md`
   - [ ] Create shared test DB bootstrap (e.g. `internal/testdb/` package)
   - [ ] Implement tests per repository interface:
     - [ ] `Stores` (core container struct)
@@ -271,10 +337,10 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
   - [ ] `jira/`: `NewClient`, `CreateIssueRequest`/`Response` serialization
 
 - [ ] **Phase 7 — CI integration & coverage gates**
-  - [ ] Add `make test` to CI workflow (GitHub Actions)
+  - [x] Run tests in CI — `go test -race -count=1 ./internal/...` in `ci-cd.yml` (v1.28.1+)
   - [ ] Set coverage floor (start at 20%, increase over time)
-  - [ ] Add `make test-race` for race detection in CI
-  - [ ] Document test conventions in `AGENTS.md`
+  - [ ] Expand `AGENTS.md` with full test conventions (beyond DB approach)
+  - [ ] Optional: dedicated `make test-race` target mirroring CI
 
 - [ ] **Phase 8 — Stress & concurrency tests**
   - [ ] Concurrent scan dispatch correctness
@@ -282,37 +348,101 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
   - [ ] Event hub concurrent pub/sub
   - [ ] Repository concurrent access (DB isolation levels)
 
----
 ### Scanner Extensions
 
+- [ ] **Dependency Inventory Sync**: Parse manifests (package-lock.json, go.mod, Cargo.lock, requirements.txt, poetry.lock, pom.xml, etc.) from connected repos → normalize (ecosystem, name, version, source_file) → persist in `project_dependencies` → batch query OSV `/v1/query` to detect vulns without a prior SCA scan. Independent of SBOM; prerequisite for proactive threat intel matching.
 - [ ] SBOM generation and tracking
 - [ ] Custom scanner plugins (community-contributed scanners with standardized interface)
-- [ ] **Scanner Marketplace** (largo plazo) — discovery, install, and cross-correlation of third-party scanners; requires standardized plugin contract, sandboxed execution, and contribution guidelines
+- [ ] **Scanner Marketplace** (long-term) — discovery, install, and cross-correlation of third-party scanners; requires standardized plugin contract, sandboxed execution, and contribution guidelines
+
+### Threat Intelligence & Proactive Exposure *(in design — see detailed discussion)*
+
+Vision: **ingest industry threats** (new CVEs, KEV, GHSA/OSV) and cross-reference them against the **dependency inventory** (via Dependency Inventory Sync) and **existing scan findings**. On match, **report impact** and optionally **trigger targeted scans**. Does not require SBOM as a prerequisite — inventory sync + OSV batch covers the initial gap.
+
+**Two orthogonal tracks:**
+
+| Track | Question | Evidence | Sources |
+|-------|----------|-----------|---------|
+| **Track 1 — Inventory (Posture)** | Do we have it? | `declared` → `detected` → `corroborated` | Inventory sync, SCA findings, container scans, SBOM |
+| **Track 2 — Runtime (Risk)** | Is it exploitable? | `L0` no deployed → `L1` not reachable → `L2` exploitable → `L3` active exploitation → `L4` compromised | Nuclei CVE templates, KEV overlay, SIEM integration |
+
+- **Explicit evidence states** (no fuzzy scores): `declared` (manifest), `detected` (scanner), `corroborated` (2+ sources), `exploitable` (DAST/Nuclei positive), `active_threat` (KEV + any of the above)
+- **Verify-first**: match by package name without CVE → silent rescan, don't show in UI until confirmed
+- **KEV overlay first-class**: `is_kev` flag → red badge, priority notification, differentiated alert flow
+- **Dual badge UI**: inventory_status + runtime_status per advisory, visible in table and detail view
+
+**Components:**
+
+- [ ] **Dependency Inventory Sync**: see Scanner Extensions (prerequisite)
+- [ ] **Configurable threat intel feed**: periodic ingest from opt-in sources — CISA KEV (public API, no key), OSV API (`/v1/query` bulk), NVD (phase 2, rate limits + heavier CPE matching) — with dedup by `cve_id` / GHSA / source+external_id
+- [ ] **Threat advisory entity**: `threat_advisories` table with external_id, source, cve_id, title, severity, cvss_score, is_kev, affected_json (packages/CPE), published_at, raw_json
+- [ ] **Track 1 — Inventory matching**:
+  - [ ] Match by exact `cve_id` in `vulnerabilities`/`findings` (evidence: `detected`)
+  - [ ] Match by package@version against `project_dependencies` (evidence: `declared`)
+  - [ ] Corroborated match (2+ sources) → evidence: `corroborated`
+  - [ ] Silent rescan for unconfirmed matches (verify-first)
+  - [ ] KEV overlay: KEV advisory + any match → `active_threat`
+- [ ] **Track 2 — Runtime assessment**:
+  - [ ] L0–L4 levels per project+advisory, with promotion rules
+  - [ ] Nuclei CVE template against `runtime_url` when there's an inventory hit
+  - [ ] KEV + L2 → urgent notification (active exploitation)
+  - [ ] L4 requires external integration (SIEM webhook, manual report)
+- [ ] **Exposure report**: “Threats affecting us” view/API — both tracks visible, filter by track/status, link to vuln/project
+- [ ] **Automatic response (opt-in)**:
+  - [ ] On new match → notification (email/Slack/webhook) + advisory linked to project
+  - [ ] Enqueue **targeted scan** — Trivy/Grype repo rescan, `trivy-image` on known images, Nuclei with `-t CVE-YYYY-NNNN` against `runtime_url` — reuse `scan_schedules` + worker, no new pipeline
+  - [ ] Policy by severity and track: alert vs auto-scan vs auto-scan + SLA breach
+- [ ] **Integration with Full-Scan Validation Pipeline**: threat match in SCA → chain PoC/DAST to confirm runtime exploitability (see next section)
+
+**Implementation phases:**
+
+| Phase | What | Dependencies | Value |
+|-------|------|-------------|-------|
+| F1 | Dependency Inventory Sync + OSV batch query | Connected repos | Detect vulns without prior scan |
+| F2 | Threat feed (KEV+OSV) + Track 1 matching | F1 + `vulnerabilities.cve_id` index | "Does it affect us?" by inventory |
+| F3 | `runtime_url` on projects + targeted Nuclei CVE + Track 2 L0–L2 | F2, projects.runtime_url | "Is it exploitable?" |
+| F4 | KEV overlay + dual badge UI | F3 | Visual prioritization + urgent notification |
+| F5 | SIEM/webhook integration for L4 + evidence dashboard | F4 | "Are we compromised?" |
+
+**Concrete MVP (F1+F2, ~3-4 weeks dev):**
+1. Migration: `project_dependencies` + `threat_advisories` + `project_inventory_hits`
+2. Manifest parser + OSV batch query worker
+3. CISA KEV fetcher + exact CVE matcher
+4. 6h scheduler (same pattern as `StartSLABreachMonitor`)
+5. API `GET /api/threats/exposures` + "Affecting us" dashboard
+6. Webhook/email notification for `active_threat`
+
+### Full-Scan Validation Pipeline *(idea — build + runtime)*
+
+Vision: a **chained full scan** — static analysis output doesn't stay as an isolated alert; actionable context is derived and **dynamically confirmed** at build (CI/staging) and at runtime (deployed environment). Complements the existing cross-scanner correlation (v1.16–v1.17) with **exploitability validation**. Pairs with **Threat Intelligence** when the threat comes from outside (industry) rather than from a scan.
+
+- [ ] **SAST → DAST chain**: From SAST findings (semgrep, gosec, checkov, etc.), extract attack surface (routes, parameters, sinks) and enqueue DAST (nuclei or other) against configurable targets — validate in **build** (preview/CI) and in **runtime** (prod/staging)
+- [ ] **SCA → exploitability → PoC/DAST chain**: From CVE/GHSA in SCA, assess reachability and known exploit method; generate or select PoC/check template and confirm via DAST or dedicated exploit scanner
+- [ ] **Validation status on vulnerability**: Extend the model (`vulnerabilities`) with confirmation evidence — e.g. `validated_build`, `validated_runtime`, `poc_attempted`, `exploit_confirmed` — linking SAST/SCA findings with DAST/PoC evidence on the same canonical row. Aligns with Threat Intel Track 2 evidence states (`L0–L4`).
+- [ ] **Worker orchestration**: Staged pipeline — static scan completes → enrich context → trigger validation scan (no blind re-scan; payload with targets derived from the parent finding)
+- [ ] **Build vs runtime targets**: Per-project/app config — CI/preview URL vs runtime URL (`runtime_url` for Threat Intel Track 2); policy on which validations run in each phase and when to block merge vs just alert
+- [ ] **Evidence chain UI**: On finding/vuln detail, show the full chain (SAST → hypothesis → DAST/PoC → confirmed/rejected) with timestamps and environment where validated. Integrate Threat Intel dual badge UI (inventory_status + runtime_status) when applicable.
 
 ### CI/CD & API Security
 
-- [ ] Per-token rate limiting for API tokens
 - [ ] Token rotation endpoint (optional)
-- [ ] Validate `repo_url` is accessible before enqueuing external scans
+- [ ] **Preflight `repo_url` accessibility** before enqueuing external scans — *distinct from SSRF allowlist v1.29.0 (verify the repo is reachable/cloneable)*
 
 ### Platform Health
 
-- [x] Scanner Health Dashboard — failure rates, avg duration, success % table
-- [ ] Queue monitoring dashboard (Asynq metrics)
-- [ ] Performance profiling + optimization
-- [x] **Cache scanners in CI**: Worker Docker build downloads all scanner binaries from scratch. Add GitHub Actions caching for downloaded tarballs to reduce build time from ~10min to <2min
+- [ ] Queue monitoring dashboard (Asynq metrics) — *Prometheus queue collector v1.1.0; missing UI*
+- [ ] Active performance optimization pass — *pprof infra v1.22.0; profiling ≠ optimization*
 
 ### Workflow Enhancements
 
 - [ ] Finding templates (pre-defined triage workflows)
-- [ ] Automated assignment rules (beyond policies)
-- [ ] SLA customization per project/app
+- [ ] Automated assignment rules beyond existing policies — *auto-triage v1.0.0; ad-hoc rules pending*
+- [ ] SLA customization per project/app — *SLA tracking global v1.0.0*
 - [ ] Custom fields on findings
 
 ### Reporting & Compliance
 
-- [ ] Scheduled report delivery (email/Slack)
-- [ ] Custom report templates
+- [ ] Custom report templates — *scheduled delivery v1.23.0; custom templates pending*
 - [ ] Compliance evidence collection automation
 - [ ] Vendor risk assessment module
 
@@ -320,13 +450,13 @@ Findings from internal pentest — see [`pentest/reports/INDEX.md`](../pentest/r
 
 ## Notes
 
-- **Scanner execution**: Scanners run as binaries via `os/exec` in the worker process — no Docker socket, no container isolation per scan
-- **Repos page**: Legacy, superseded by Projects
-- **Legacy repo references**: Some API endpoints still use "repo" terminology — migrate to "project"
+- **Scanner execution**: Scanners run as binaries via `os/exec` in the worker process — no Docker socket, no container isolation per scan (v1.5.0)
+- **Repos page**: Legacy, removed v1.13.0 — superseded by Projects
+- **Legacy repo references**: Some API endpoints still use "repo" terminology — migrate to "project" (backlog Tech Debt)
 - **PDF reports**: Browser print stylesheet exists, verify it works correctly
-- **Credibility UI**: Complete — badges, sorting, corroborating scanner names, correlation reasons
-- **pnpm 11**: Frontend Docker build requires `--ignore-scripts` + explicit `pnpm rebuild esbuild sharp`
+- **Credibility UI**: Complete — v1.16.0 (badges, sorting, corroborating scanner names, correlation reasons)
+- **pnpm 11**: Frontend Docker build requires `--ignore-scripts` + explicit `pnpm rebuild esbuild sharp` (v1.5.1)
 
 ---
 
-*Última actualización: 2026-06-17*
+*Last updated: 2026-06-28*
