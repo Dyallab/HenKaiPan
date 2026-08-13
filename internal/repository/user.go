@@ -13,7 +13,7 @@ type userRepo struct{ db *pgxpool.Pool }
 
 func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, username, email, role, created_at, last_login FROM users ORDER BY created_at`)
+		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users ORDER BY created_at`)
 	if err != nil {
 		return nil, fmt.Errorf("users list: %w", err)
 	}
@@ -22,7 +22,7 @@ func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject); err != nil {
 			continue
 		}
 		users = append(users, u)
@@ -33,8 +33,19 @@ func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 func (r *userRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(ctx,
-		`SELECT id, username, email, role, created_at, last_login FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin)
+		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users WHERE id = $1`, id,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *userRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	var u models.User
+	err := r.db.QueryRow(ctx,
+		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users WHERE email = $1`, email,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +57,9 @@ func (r *userRepo) Create(ctx context.Context, u UserCreate) (*models.User, erro
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO users (username, email, password_hash, role)
 		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, username, email, role, created_at, last_login`,
+		 RETURNING id, username, email, role, created_at, last_login, sso_provider, sso_subject`,
 		u.Username, u.Email, u.PasswordHash, u.Role,
-	).Scan(&out.ID, &out.Username, &out.Email, &out.Role, &out.CreatedAt, &out.LastLogin)
+	).Scan(&out.ID, &out.Username, &out.Email, &out.Role, &out.CreatedAt, &out.LastLogin, &out.SSOProvider, &out.SSOSubject)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -110,4 +121,22 @@ func (r *userRepo) GetPasswordHashByID(ctx context.Context, id string) (string, 
 	var hash string
 	err := r.db.QueryRow(ctx, `SELECT password_hash FROM users WHERE id = $1`, id).Scan(&hash)
 	return hash, err
+}
+
+func (r *userRepo) GetUserBySSOIdentity(ctx context.Context, provider, subject string) (*models.User, error) {
+	var u models.User
+	err := r.db.QueryRow(ctx,
+		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users
+		 WHERE sso_provider = $1 AND sso_subject = $2`, provider, subject,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func (r *userRepo) LinkSSOIdentity(ctx context.Context, id, provider, subject string) error {
+	_, err := r.db.Exec(ctx,
+		`UPDATE users SET sso_provider = $2, sso_subject = $3 WHERE id = $1`, id, provider, subject)
+	return err
 }

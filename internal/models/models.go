@@ -231,12 +231,14 @@ type Suppression struct {
 }
 
 type User struct {
-	ID        string     `json:"id"`
-	Username  string     `json:"username"`
-	Email     string     `json:"email"`
-	Role      string     `json:"role"`
-	CreatedAt time.Time  `json:"created_at"`
-	LastLogin *time.Time `json:"last_login,omitempty"`
+	ID          string     `json:"id"`
+	Username    string     `json:"username"`
+	Email       string     `json:"email"`
+	Role        string     `json:"role"`
+	CreatedAt   time.Time  `json:"created_at"`
+	LastLogin   *time.Time `json:"last_login,omitempty"`
+	SSOProvider string     `json:"sso_provider,omitempty"`
+	SSOSubject  string     `json:"sso_subject,omitempty"`
 }
 
 type Team struct {

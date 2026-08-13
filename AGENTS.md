@@ -40,6 +40,7 @@
 - **Queue** (`internal/queue/`): Asynq client + server. Job types: `scan:run` (3 retries, 30min timeout), `agent:validate` (5 retries), `webhook:send`, `email:send`, `snippet:enrich`, `digest:send`, `report:send`.
 - **SSE bridge** (`internal/events/redis_bridge.go`): worker publishes events to Redis pub/sub; API subscribes and relays to SSE clients.
 - **AI providers**: OpenRouter / Cloudflare / Ollama. Per-task selection via `AI_{REMEDIATION,SUMMARY,VALIDATION}_PROVIDER`. If unconfigured, handlers silently not registered — check worker logs.
+- **SSO/OIDC**: `internal/sso/provider.go` wraps `coreos/go-oidc`. Env-var config (`SSO_ENABLED`, `SSO_ISSUER_URL`, `SSO_CLIENT_ID`, `SSO_CLIENT_SECRET`, `SSO_ADMIN_GROUP`, `SSO_GROUP_CLAIM`). Claims come **only** from the signed ID token (no UserInfo fallback) — IdP must ship `email`/`groups` in the ID token. Group claim maps to role via `ResolveRole`; role is re-synced on every SSO login. Setup guide: `docs/sso-authelia.md`.
 - **Scanner packs**: `sast`, `sca`, `secrets`, `iac`, `containers` — resolved in `internal/scanner/registry.go`. Scanner binaries bundled in worker Docker image.
 
 ## Key quirks

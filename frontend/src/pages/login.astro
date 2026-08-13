@@ -16,6 +16,20 @@ import Layout from "@layouts/Layout.astro";
             </div>
 
             <div class="bg-shadow-tint border border-white/10 rounded-lg p-8">
+                <div id="sso-button-container" class="hidden mb-5">
+                    <a
+                        href="/api/auth/sso/login"
+                        class="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-ghost-white font-medium py-3 rounded-lg transition-all text-sm"
+                    >
+                        <span class="material-symbols-outlined text-xl">login</span>
+                        Sign in with SSO
+                    </a>
+                    <div class="flex items-center gap-3 my-4">
+                        <div class="flex-1 h-px bg-white/10"></div>
+                        <span class="text-xs text-iron-slate uppercase tracking-wider">or</span>
+                        <div class="flex-1 h-px bg-white/10"></div>
+                    </div>
+                </div>
                 <form id="login-form" class="space-y-5">
                     <div>
                         <label class="block text-xs font-medium uppercase tracking-wider text-iron-slate mb-2">Username</label>
@@ -48,6 +62,7 @@ import Layout from "@layouts/Layout.astro";
     <script>
         import { API_BASE } from "@lib/api";
         import { toast } from "@lib/toast";
+        import { getConfigStatus } from "@lib/config";
 
         (async () => {
             try {
@@ -58,6 +73,27 @@ import Layout from "@layouts/Layout.astro";
                 console.error("Auth check error:", err);
             }
         })();
+
+        (async () => {
+            try {
+                const cfg = await getConfigStatus();
+                if (cfg.features?.sso) {
+                    document.getElementById("sso-button-container")?.classList.remove("hidden");
+                }
+            } catch {
+                // SSO config unavailable — keep button hidden
+            }
+        })();
+
+        const ssoError = new URLSearchParams(window.location.search).get("error");
+        if (ssoError) {
+            const messages: Record<string, string> = {
+                sso_failed: "SSO login failed. Please try again or contact your administrator.",
+                sso_no_email: "SSO provider did not return an email address. Contact your administrator.",
+                sso_error: "An error occurred during SSO login. Please try again.",
+            };
+            toast(messages[ssoError] ?? "SSO login error.", "error");
+        }
 
         document.getElementById("login-form")!.addEventListener("submit", async (e) => {
             e.preventDefault();

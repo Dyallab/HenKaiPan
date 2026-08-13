@@ -46,6 +46,7 @@ See the [self-hosted repo](https://github.com/Dyallab/HenKaiPan-self-hosted) for
 6. **Knowledge** — remediation guides and AI-generated articles
 7. **Compliance** — SOC 2 / ISO 27001 / PCI-DSS frameworks, control mapping, TSV export
 8. **Settings** — integrations, security, policies, notifications, users, teams
+9. **SSO (OIDC)** — single sign-on via any OpenID Connect provider (Keycloak, Authelia, Google Workspace, etc.), with group-claim-based role mapping. See [`docs/sso-authelia.md`](docs/sso-authelia.md) for setup.
 
 ## Tech Stack
 
@@ -287,6 +288,7 @@ Copy `.env.example` to `.env` and configure the required variables. With direnv,
 - **Server**: Port, Redis configuration
 - **Integrations**: GitHub, SMTP/email
 - **AI**: OpenRouter, Cloudflare Workers AI, and/or Ollama configuration
+- **SSO (OIDC)**: `SSO_ENABLED`, `SSO_ISSUER_URL`, `SSO_CLIENT_ID`, `SSO_CLIENT_SECRET`, and role-mapping vars. See [`docs/sso-authelia.md`](docs/sso-authelia.md).
 
 If AI providers are not configured, AI remediation, validation, and summary features will be disabled.
 
