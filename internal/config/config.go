@@ -75,6 +75,16 @@ type Config struct {
 	MaxAIScans  int
 
 	TelemetryEnabled bool
+
+	// SSO / OIDC configuration (optional).
+	// SSO_ENABLED gates whether the SSO login endpoints are registered.
+	SSOEnabled     bool   // SSO_ENABLED (default false)
+	SSOIssuerURL   string // SSO_ISSUER_URL
+	SSOClientID    string // SSO_CLIENT_ID
+	SSOClientSecret string // SSO_CLIENT_SECRET
+	SSORedirectURI string // SSO_REDIRECT_URI (default: /api/auth/sso/callback)
+	SSOAdminGroup  string // SSO_ADMIN_GROUP (OIDC group claim value that maps to 'admin')
+	SSOGroupClaim  string // SSO_GROUP_CLAIM (default: 'groups')
 }
 
 // Load reads env vars, validates required fields, and resolves provider configs.
@@ -134,6 +144,14 @@ func Load() *Config {
 
 	cfg.TelemetryEnabled = envBool("HENKAIPAN_TELEMETRY_ENABLED", true)
 
+	cfg.SSOEnabled = envBool("SSO_ENABLED", false)
+	cfg.SSOIssuerURL = os.Getenv("SSO_ISSUER_URL")
+	cfg.SSOClientID = os.Getenv("SSO_CLIENT_ID")
+	cfg.SSOClientSecret = os.Getenv("SSO_CLIENT_SECRET")
+	cfg.SSORedirectURI = envOr("SSO_REDIRECT_URI", "/api/auth/sso/callback")
+	cfg.SSOAdminGroup = os.Getenv("SSO_ADMIN_GROUP")
+	cfg.SSOGroupClaim = envOr("SSO_GROUP_CLAIM", "groups")
+
 	if len(missing) > 0 {
 		for _, k := range missing {
 			slog.Error("required env var not set", "key", k)
@@ -148,6 +166,7 @@ func Load() *Config {
 
 	slog.Info("config loaded",
 		"redis_addr", cfg.RedisAddr,
+		"sso_enabled", cfg.SSOEnabled,
 		"port", cfg.Port,
 		"frontend_url_configured", cfg.FrontendURL != "",
 		"webhook_secret_configured", cfg.WebhookSecret != "",

@@ -2,6 +2,9 @@ package auth
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -205,3 +208,49 @@ func tokenFromRequest(r *http.Request) string {
 }
 
 func jwtSecret() string { return secret }
+
+// SignState produces an authenticated OIDC state value so a client-provided
+// state can be verified as one issued by this server. The format is
+// base64url(state).base64url(HMAC-SHA256(state)).
+func SignState(state string) (string, error) {
+	if secret == "" {
+		return "", jwt.ErrSignatureInvalid
+	}
+	mac := hmac.New(sha256.New, []byte(jwtSecret()))
+	if _, err := mac.Write([]byte(state)); err != nil {
+		return "", err
+	}
+	sig := mac.Sum(nil)
+	return base64.RawURLEncoding.EncodeToString([]byte(state)) + "." +
+		base64.RawURLEncoding.EncodeToString(sig), nil
+}
+
+// VerifyState checks the HMAC signature on a value returned by SignState and
+// recovers the original state. It returns an error for malformed or tampered
+// values.
+func VerifyState(signed string) (string, error) {
+	if secret == "" {
+		return "", jwt.ErrSignatureInvalid
+	}
+	parts := strings.SplitN(signed, ".", 2)
+	if len(parts) != 2 {
+		return "", jwt.ErrSignatureInvalid
+	}
+	stateBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
+	if err != nil {
+		return "", jwt.ErrSignatureInvalid
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return "", jwt.ErrSignatureInvalid
+	}
+
+	mac := hmac.New(sha256.New, []byte(jwtSecret()))
+	if _, err := mac.Write(stateBytes); err != nil {
+		return "", err
+	}
+	if !hmac.Equal(sig, mac.Sum(nil)) {
+		return "", jwt.ErrSignatureInvalid
+	}
+	return string(stateBytes), nil
+}

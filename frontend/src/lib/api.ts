@@ -175,6 +175,7 @@ export const api = {
   getConfigStatus: () =>
     req<{
       ai: { remediation: boolean; summary: boolean; validation: boolean };
+      features: { risk_acceptance: boolean; sso: boolean };
       email_enabled: boolean;
       frontend_url: boolean;
       webhook_secret: boolean;

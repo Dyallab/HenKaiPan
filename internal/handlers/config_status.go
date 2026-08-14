@@ -13,6 +13,7 @@ func (h *Handler) GetConfigStatus(w http.ResponseWriter, r *http.Request) {
 		},
 		"features": map[string]bool{
 			"risk_acceptance": true,
+			"sso":             h.ssoEnabled,
 		},
 		"email_enabled":  h.emailEnabled,
 		"frontend_url":   h.frontendURL != "",

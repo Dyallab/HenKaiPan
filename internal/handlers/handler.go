@@ -14,6 +14,7 @@ import (
 	"aspm/internal/httperrors"
 	"aspm/internal/models"
 	"aspm/internal/repository"
+	"aspm/internal/sso"
 	"aspm/internal/tasks"
 	"aspm/internal/validation"
 
@@ -36,10 +37,12 @@ type Handler struct {
 	maxProjects    int
 	maxUsers       int
 	maxAIScans     int
+	ssoEnabled     bool
+	ssoProvider    *sso.Provider
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, aiRemediation, aiSummary, aiValidation bool, emailEnabled bool, webhookSecret string, findingCache *cache.Cache, maxProjects, maxUsers, maxAIScans int) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, aiRemediation: aiRemediation, aiSummary: aiSummary, aiValidation: aiValidation, emailEnabled: emailEnabled, webhookSecret: webhookSecret, FindingCache: findingCache, maxProjects: maxProjects, maxUsers: maxUsers, maxAIScans: maxAIScans}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, aiRemediation, aiSummary, aiValidation bool, emailEnabled bool, webhookSecret string, findingCache *cache.Cache, maxProjects, maxUsers, maxAIScans int, ssoEnabled bool, ssoProvider *sso.Provider) *Handler {
+	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, aiRemediation: aiRemediation, aiSummary: aiSummary, aiValidation: aiValidation, emailEnabled: emailEnabled, webhookSecret: webhookSecret, FindingCache: findingCache, maxProjects: maxProjects, maxUsers: maxUsers, maxAIScans: maxAIScans, ssoEnabled: ssoEnabled, ssoProvider: ssoProvider}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

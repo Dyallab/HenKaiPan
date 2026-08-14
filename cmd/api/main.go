@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"os"
+	"strings"
 	"time"
 
 	"aspm/internal/ai"
@@ -22,8 +23,10 @@ import (
 	"aspm/internal/queue"
 	"aspm/internal/repository"
 	"aspm/internal/secrets"
+	"aspm/internal/sso"
 	"aspm/internal/telemetry"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/hibiken/asynq"
@@ -40,6 +43,35 @@ func main() {
 	ai.SetOpenRouterConfig(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
 	if cfg.CfAPIToken != "" {
 		ai.SetCloudflareConfig(cfg.CfAccountID, cfg.CfAPIToken)
+	}
+
+	// Initialize SSO/OIDC provider if enabled.
+	var ssoProvider *sso.Provider
+	if cfg.SSOEnabled && cfg.SSOIssuerURL != "" && cfg.SSOClientID != "" && cfg.SSOClientSecret != "" {
+		redirectURI := cfg.SSORedirectURI
+		if !strings.HasPrefix(redirectURI, "http") {
+			// Relative path → construct full URL from frontend URL or request scheme.
+			base := strings.TrimRight(cfg.FrontendURL, "/")
+			if base == "" {
+				base = "http://localhost:" + cfg.Port
+			}
+			redirectURI = base + redirectURI
+		}
+		var err error
+		// OIDC discovery performs an HTTP request at startup; bound it so a
+		// slow or unreachable IdP cannot hang the API process.
+		oidcCtx := oidc.ClientContext(context.Background(), &http.Client{
+			Timeout: 10 * time.Second,
+		})
+		ssoProvider, err = sso.NewProvider(oidcCtx, cfg.SSOIssuerURL, cfg.SSOClientID,
+			cfg.SSOClientSecret, redirectURI, cfg.SSOGroupClaim, cfg.SSOAdminGroup)
+		if err != nil {
+			slog.Error("failed to initialize SSO provider", "err", err)
+		} else {
+			slog.Info("SSO provider initialized", "issuer", cfg.SSOIssuerURL)
+		}
+	} else if cfg.SSOEnabled {
+		slog.Warn("SSO_ENABLED is true but SSO_ISSUER_URL/SSO_CLIENT_ID/SSO_CLIENT_SECRET not configured")
 	}
 
 	pool := db.Connect(cfg.DatabaseURL)
@@ -75,7 +107,8 @@ func main() {
 	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite,
 		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
 		cfg.EmailEnabled, cfg.WebhookSecret, findingCache,
-		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans)
+		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans,
+		cfg.SSOEnabled && ssoProvider != nil, ssoProvider)
 
 	if cfg.TelemetryEnabled {
 		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, "self-hosted").Start(context.Background())
@@ -162,9 +195,12 @@ func main() {
 	r.Get("/api/health", h.GetHealth)
 	r.Get("/api/version", h.GetVersion)
 	r.Get("/api/version/check", h.GetVersionCheck)
+	r.Get("/api/config/status", h.GetConfigStatus)
 
 	r.Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
+	r.Get("/api/auth/sso/login", h.SSOLogin)
+	r.Get("/api/auth/sso/callback", h.SSOCallback)
 
 	// ── /api/v1/scans — External CI/CD endpoints (API key auth, no JWT) ────
 	r.Route("/api/v1/scans", func(r chi.Router) {
@@ -299,9 +335,6 @@ func main() {
 
 		// ── Free: Me ──
 		r.Get("/api/me", h.GetMe)
-
-		// ── Free: Config Status ──
-		r.Get("/api/config/status", h.GetConfigStatus)
 
 		// ── Tier limits ──
 		r.With(auth.RequireRole("admin", "viewer")).Get("/api/limits", h.GetLimits)

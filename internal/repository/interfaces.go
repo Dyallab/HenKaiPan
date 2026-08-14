@@ -234,6 +234,7 @@ type Credentials struct {
 type UserRepository interface {
 	List(ctx context.Context) ([]models.User, error)
 	GetByID(ctx context.Context, id string) (*models.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	Create(ctx context.Context, u UserCreate) (*models.User, error)
 	Update(ctx context.Context, id string, upd UserUpdate) (*models.User, error)
 	Delete(ctx context.Context, id string) error
@@ -243,6 +244,8 @@ type UserRepository interface {
 	GetTokenVersion(ctx context.Context, id string) (int, error)
 	BumpTokenVersion(ctx context.Context, id string) error
 	GetPasswordHashByID(ctx context.Context, id string) (string, error)
+	GetUserBySSOIdentity(ctx context.Context, provider, subject string) (*models.User, error)
+	LinkSSOIdentity(ctx context.Context, id, provider, subject string) error
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────
