@@ -115,6 +115,13 @@ func (p *Provider) ExchangeAndVerify(ctx context.Context, code string) (*Claims,
 		return nil, fmt.Errorf("parse ID token claims: %w", err)
 	}
 
+	// The email claim is only trustworthy for account linking when the IdP
+	// asserts it is verified. Reject missing/false email_verified up front so
+	// resolveSSOUser never links an existing account from an unverified email.
+	if claims.Email != "" && !claims.EmailVerified {
+		return nil, fmt.Errorf("ID token missing or unverified email_verified claim")
+	}
+
 	// Handle custom group claim names (e.g. "roles", "custom_claims").
 	if p.groupClaim != "groups" && len(claims.Groups) == 0 {
 		var all map[string]json.RawMessage

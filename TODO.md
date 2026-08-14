@@ -210,7 +210,7 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
 
 ### Enterprise Features
 
-- [x] OIDC SSO (single sign-on via OpenID Connect) — feature-flagged, env-var config, group-claim role mapping. See `docs/sso-authelia.md` for the Authelia + LLDAP guide.
+- [x] OIDC SSO (single sign-on via OpenID Connect) — feature-flagged, env-var config, group-claim role mapping. See `docs/sso-authelia.md` for the Authelia guide.
 - [ ] SAML SSO
 - [ ] Multi-tenant support (organizations)
 - [ ] **Advanced RBAC** (custom roles, granular permissions) — *partial: capability matrix v1.12.1, team-scoped access v1.29.0, datascope v1.30.2*

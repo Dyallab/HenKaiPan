@@ -33,10 +33,16 @@ func (h *Handler) SSOLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Store state in a short-lived signed cookie (HttpOnly, 5min).
+	signed, err := auth.SignState(nonce.State)
+	if err != nil {
+		h.writeInternal(w, r, err, "failed to sign SSO state")
+		return
+	}
+
+	// Store signed state in a short-lived cookie (HttpOnly, 5min).
 	cookie := &http.Cookie{
 		Name:     ssoStateCookie,
-		Value:    nonce.State,
+		Value:    signed,
 		Path:     "/",
 		MaxAge:   int(5 * time.Minute / time.Second),
 		HttpOnly: true,
@@ -68,9 +74,14 @@ func (h *Handler) SSOCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify state matches the cookie we set in SSOLogin.
+	// Verify the callback state against the signed cookie set in SSOLogin.
 	cookie, err := r.Cookie(ssoStateCookie)
-	if err != nil || cookie.Value == "" || cookie.Value != state {
+	if err != nil || cookie.Value == "" {
+		writeError(w, r, http.StatusBadRequest, "invalid or expired SSO state")
+		return
+	}
+	cookieState, err := auth.VerifyState(cookie.Value)
+	if err != nil || cookieState != state {
 		writeError(w, r, http.StatusBadRequest, "invalid or expired SSO state")
 		return
 	}
@@ -126,7 +137,9 @@ func (h *Handler) SSOCallback(w http.ResponseWriter, r *http.Request) {
 
 // resolveSSOUser finds or creates the local user for the given OIDC claims.
 // Order: (1) match by (provider, subject), (2) match by email + link,
-// (3) create new; if username already exists with a different email, link to it.
+// (3) create new. Linking is restricted to an existing account whose verified
+// email matches the claim; a username collision is returned as an error rather
+// than silently linking the identity to an unrelated account.
 // On every resolution the role is re-evaluated from the IdP group claim and
 // synced if it changed (so group-membership changes take effect on next login).
 func (h *Handler) resolveSSOUser(ctx context.Context, provider string, claims *sso.Claims) (*models.User, error) {
@@ -145,8 +158,8 @@ func (h *Handler) resolveSSOUser(ctx context.Context, provider string, claims *s
 		if err := h.store.Users.LinkSSOIdentity(ctx, user.ID, provider, claims.Subject); err != nil {
 			return nil, fmt.Errorf("link sso identity: %w", err)
 		}
-		user.SSOProvider = provider
-		user.SSOSubject = claims.Subject
+		user.SSOProvider = &provider
+		user.SSOSubject = &claims.Subject
 		slog.InfoContext(ctx, "sso identity linked to existing user", "user_id", user.ID, "email", claims.Email)
 		return h.syncSSORole(ctx, user, claims)
 	}
@@ -168,30 +181,13 @@ func (h *Handler) resolveSSOUser(ctx context.Context, provider string, claims *s
 		Role:         role,
 	})
 	if err != nil {
-		// 3b. Username conflict with a different email → link the SSO identity
-		// to the existing user with that username (avoids duplicate-key failure).
-		if strings.Contains(err.Error(), "users_username_key") {
-			creds, cErr := h.store.Users.GetCredentials(ctx, username)
-			if cErr != nil {
-				return nil, fmt.Errorf("get existing user by username: %w", cErr)
-			}
-			if err := h.store.Users.LinkSSOIdentity(ctx, creds.ID, provider, claims.Subject); err != nil {
-				return nil, fmt.Errorf("link sso identity (username match): %w", err)
-			}
-			user, err = h.store.Users.GetByID(ctx, creds.ID)
-			if err != nil {
-				return nil, fmt.Errorf("get linked user by id: %w", err)
-			}
-			slog.InfoContext(ctx, "sso identity linked to existing user by username", "user_id", user.ID, "username", username)
-			return h.syncSSORole(ctx, user, claims)
-		}
 		return nil, fmt.Errorf("create sso user: %w", err)
 	}
 	if err := h.store.Users.LinkSSOIdentity(ctx, user.ID, provider, claims.Subject); err != nil {
 		return nil, fmt.Errorf("link sso identity (new user): %w", err)
 	}
-	user.SSOProvider = provider
-	user.SSOSubject = claims.Subject
+	user.SSOProvider = &provider
+	user.SSOSubject = &claims.Subject
 	slog.InfoContext(ctx, "sso user created", "user_id", user.ID, "email", claims.Email, "role", role)
 	return user, nil
 }

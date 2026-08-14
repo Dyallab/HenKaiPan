@@ -18,6 +18,11 @@ var migrationFS embed.FS
 
 const migrationDir = "migrations"
 
+// noTxMarker must be the first line of a migration that needs to run outside
+// a transaction (for example CREATE INDEX CONCURRENTLY). Such migrations must
+// be written to be idempotent because a partial run cannot be rolled back.
+const noTxMarker = "-- NO TRANSACTION"
+
 func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	slog.Info("running database migrations")
 
@@ -74,29 +79,54 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		ver := versionFromPath(f)
 		slog.Info("applying migration", "file", f, "version", ver)
 
-		tx, err := conn.Begin(ctx)
-		if err != nil {
-			return fmt.Errorf("begin tx for %s: %w", f, err)
-		}
-
-		if _, err := tx.Exec(ctx, string(data)); err != nil {
-			_ = tx.Rollback(ctx)
-			return fmt.Errorf("exec migration %s: %w", f, err)
-		}
-
-		if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, ver); err != nil {
-			_ = tx.Rollback(ctx)
-			return fmt.Errorf("record migration %s: %w", f, err)
-		}
-
-		if err := tx.Commit(ctx); err != nil {
-			return fmt.Errorf("commit migration %s: %w", f, err)
+		if isNonTransactional(data) {
+			if err := applyNonTransactional(ctx, conn, string(data), ver); err != nil {
+				return fmt.Errorf("exec migration %s: %w", f, err)
+			}
+		} else {
+			if err := applyTransactional(ctx, conn, string(data), ver); err != nil {
+				return fmt.Errorf("exec migration %s: %w", f, err)
+			}
 		}
 
 		slog.Info("migration applied", "version", ver)
 	}
 
 	slog.Info("migrations complete", "applied", len(pending))
+	return nil
+}
+
+func isNonTransactional(data []byte) bool {
+	s := strings.TrimSpace(string(data))
+	return strings.HasPrefix(s, noTxMarker)
+}
+
+func applyTransactional(ctx context.Context, conn *pgxpool.Conn, sql, ver string) error {
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	if _, err := tx.Exec(ctx, sql); err != nil {
+		_ = tx.Rollback(ctx)
+		return err
+	}
+	if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, ver); err != nil {
+		_ = tx.Rollback(ctx)
+		return fmt.Errorf("record migration: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func applyNonTransactional(ctx context.Context, conn *pgxpool.Conn, sql, ver string) error {
+	if _, err := conn.Exec(ctx, sql); err != nil {
+		return err
+	}
+	if _, err := conn.Exec(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, ver); err != nil {
+		return fmt.Errorf("record migration: %w", err)
+	}
 	return nil
 }
 

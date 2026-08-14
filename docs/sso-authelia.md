@@ -32,7 +32,11 @@ Add this service to your `docker-compose.yml` (alongside HenKaiPan):
     volumes:
       - ./authelia:/config
     ports:
-      - "9091:9091"  # internal only if behind reverse proxy
+      # Bind to loopback only: the reverse proxy on the host reaches Authelia
+      # via 127.0.0.1, while the port stays hidden from the network. If the
+      # proxy is also containerized on the same Docker network, remove this
+      # ports mapping entirely and reach Authelia by its service name instead.
+      - "127.0.0.1:9091:9091"
     environment:
       - AUTHELIA_TELEMETRY_METRICS_ENABLED=false
     healthcheck:
@@ -62,6 +66,8 @@ log:
 identity_validation:
   reset_password:
     jwt_lifespan: '5 minutes'
+    # Required for signing password-reset JWTs. Use a long random secret.
+    jwt_secret: 'replace-with-a-long-random-secret'
 
 authentication:
   file:
@@ -74,12 +80,16 @@ access_control:
       policy: one_factor  # or two_factor for stricter auth
 
 session:
+  # Required for signing session cookies. Use a long random secret.
+  secret: 'replace-with-a-long-random-secret'
   cookies:
     - domain: 'example.com'
-      authelia_url: 'auth.example.com'
-      default_redirection_url: 'henkaipan.example.com'
+      authelia_url: 'https://auth.example.com'
+      default_redirection_url: 'https://henkaipan.example.com'
 
 storage:
+  # Required for encrypting session storage. Use a long random secret.
+  encryption_key: 'replace-with-a-long-random-secret'
   local:
     path: '/config/db.sqlite3'
 
@@ -89,11 +99,17 @@ notifier:
 
 identity_providers:
   oidc:
-    hmac_secret: '...'
+    # Random alphanumeric secret, at least 64 characters. Generate with:
+    #   openssl rand -base64 64
+    hmac_secret: 'replace-with-at-least-64-random-characters'
     jwks:
+      # RSA private key (PKCS#8 PEM), at least 2048 bits, indented 10 spaces.
+      # Generate with:
+      #   openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+      #     -outform PEM -out authelia-oidc.pem
       - key: |
           -----BEGIN PRIVATE KEY-----
-          ...PKCS#8 key content, indented 10 spaces...
+          replace-with-PKCS8-key-content-indented-10-spaces
           -----END PRIVATE KEY-----
     lifespans:
       access_token: '1h'
@@ -107,6 +123,7 @@ identity_providers:
       henkaipan:
         id_token:
           - email
+          - email_verified
           - groups
           - preferred_username
     clients:
@@ -274,7 +291,7 @@ HenKaiPan maps Authelia groups to local roles:
 
 If a user is in BOTH `admins` and `henkaipan-users`, they get `admin` (admin takes priority).
 
-> **Important — the `groups` scope MUST be requested.** HenKaiPan requests `openid`, `email`, `profile`, **and `groups`** scopes from the IdP. The consent screen must show "Access your group memberships" — if it only shows OpenID/email/profile, the `groups` claim will be empty and role mapping won't work. This requires BOTH:
+> **Important — the `groups` scope MUST be requested.** HenKaiPan requests `openid`, `email`, `profile`, **and `groups`** scopes from the IdP. With `consent_mode: implicit`, Authelia skips the consent screen, so verify instead that Authelia grants the `groups` scope and that the signed ID token actually contains the `groups` claim (decode the ID token after a login). If `groups` is empty, role mapping won't work. This requires BOTH:
 > 1. Authelia client config includes `groups` in `scopes`
 > 2. HenKaiPan's OIDC provider requests the `groups` scope (it does by default)
 
@@ -285,7 +302,7 @@ If a user is in BOTH `admins` and `henkaipan-users`, they get `admin` (admin tak
 **First SSO login for an email that already exists in HenKaiPan:**
 
 - The SSO identity (`sso_provider` + `sso_subject`) is linked to the existing user
-- The existing user's role and team assignments are preserved
+- Existing team assignments are preserved. The user's role is re-synchronized from the IdP group claim.
 - This allows pre-provisioning users before enabling SSO
 
 **First SSO login for a new email:**

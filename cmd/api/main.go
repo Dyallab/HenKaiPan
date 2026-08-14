@@ -26,6 +26,7 @@ import (
 	"aspm/internal/sso"
 	"aspm/internal/telemetry"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/hibiken/asynq"
@@ -57,7 +58,12 @@ func main() {
 			redirectURI = base + redirectURI
 		}
 		var err error
-		ssoProvider, err = sso.NewProvider(context.Background(), cfg.SSOIssuerURL, cfg.SSOClientID,
+		// OIDC discovery performs an HTTP request at startup; bound it so a
+		// slow or unreachable IdP cannot hang the API process.
+		oidcCtx := oidc.ClientContext(context.Background(), &http.Client{
+			Timeout: 10 * time.Second,
+		})
+		ssoProvider, err = sso.NewProvider(oidcCtx, cfg.SSOIssuerURL, cfg.SSOClientID,
 			cfg.SSOClientSecret, redirectURI, cfg.SSOGroupClaim, cfg.SSOAdminGroup)
 		if err != nil {
 			slog.Error("failed to initialize SSO provider", "err", err)
@@ -102,7 +108,7 @@ func main() {
 		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
 		cfg.EmailEnabled, cfg.WebhookSecret, findingCache,
 		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans,
-		cfg.SSOEnabled, ssoProvider)
+		cfg.SSOEnabled && ssoProvider != nil, ssoProvider)
 
 	if cfg.TelemetryEnabled {
 		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, "self-hosted").Start(context.Background())

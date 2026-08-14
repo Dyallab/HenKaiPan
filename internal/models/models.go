@@ -237,8 +237,8 @@ type User struct {
 	Role        string     `json:"role"`
 	CreatedAt   time.Time  `json:"created_at"`
 	LastLogin   *time.Time `json:"last_login,omitempty"`
-	SSOProvider string     `json:"sso_provider,omitempty"`
-	SSOSubject  string     `json:"sso_subject,omitempty"`
+	SSOProvider *string    `json:"sso_provider,omitempty"`
+	SSOSubject  *string    `json:"sso_subject,omitempty"`
 }
 
 type Team struct {
