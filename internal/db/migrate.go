@@ -121,13 +121,144 @@ func applyTransactional(ctx context.Context, conn *pgxpool.Conn, sql, ver string
 }
 
 func applyNonTransactional(ctx context.Context, conn *pgxpool.Conn, sql, ver string) error {
-	if _, err := conn.Exec(ctx, sql); err != nil {
-		return err
+	for _, stmt := range splitSQLStatements(sql) {
+		if _, err := conn.Exec(ctx, stmt); err != nil {
+			return err
+		}
 	}
 	if _, err := conn.Exec(ctx, `INSERT INTO schema_migrations (version) VALUES ($1)`, ver); err != nil {
 		return fmt.Errorf("record migration: %w", err)
 	}
 	return nil
+}
+
+// splitSQLStatements splits a SQL script into individual statements so each can
+// be executed separately. pgx runs argument-less Exec through the PostgreSQL
+// simple protocol, which implicitly wraps multi-statement scripts in a
+// transaction — that breaks CREATE INDEX CONCURRENTLY even when the migration
+// itself is marked no-transaction.
+func splitSQLStatements(sql string) []string {
+	var statements []string
+	var current strings.Builder
+	state := ""
+	var dollarTag string
+
+	for i := 0; i < len(sql); {
+		c := sql[i]
+
+		switch state {
+		case "line":
+			current.WriteByte(c)
+			if c == '\n' {
+				state = ""
+			}
+			i++
+			continue
+		case "block":
+			if c == '*' && i+1 < len(sql) && sql[i+1] == '/' {
+				current.WriteString("*/")
+				state = ""
+				i += 2
+			} else {
+				current.WriteByte(c)
+				i++
+			}
+			continue
+		case "single":
+			if c == '\'' && i+1 < len(sql) && sql[i+1] == '\'' {
+				current.WriteString("''")
+				i += 2
+			} else {
+				current.WriteByte(c)
+				if c == '\'' {
+					state = ""
+				}
+				i++
+			}
+			continue
+		case "double":
+			if c == '"' && i+1 < len(sql) && sql[i+1] == '"' {
+				current.WriteString(`""`)
+				i += 2
+			} else {
+				current.WriteByte(c)
+				if c == '"' {
+					state = ""
+				}
+				i++
+			}
+			continue
+		case "dollar":
+			if strings.HasPrefix(sql[i:], dollarTag) {
+				current.WriteString(dollarTag)
+				i += len(dollarTag)
+				state = ""
+			} else {
+				current.WriteByte(c)
+				i++
+			}
+			continue
+		}
+
+		switch {
+		case c == '-' && i+1 < len(sql) && sql[i+1] == '-':
+			current.WriteString("--")
+			state = "line"
+			i += 2
+		case c == '/' && i+1 < len(sql) && sql[i+1] == '*':
+			current.WriteString("/*")
+			state = "block"
+			i += 2
+		case c == '\'':
+			current.WriteByte(c)
+			state = "single"
+			i++
+		case c == '"':
+			current.WriteByte(c)
+			state = "double"
+			i++
+		case c == '$':
+			if j := strings.IndexByte(sql[i+1:], '$'); j >= 0 {
+				tag := sql[i : i+j+2]
+				if isDollarTag(tag) {
+					current.WriteString(tag)
+					dollarTag = tag
+					state = "dollar"
+					i += len(tag)
+					continue
+				}
+			}
+			current.WriteByte(c)
+			i++
+		case c == ';':
+			if stmt := strings.TrimSpace(current.String()); stmt != "" {
+				statements = append(statements, stmt)
+			}
+			current.Reset()
+			i++
+		default:
+			current.WriteByte(c)
+			i++
+		}
+	}
+
+	if stmt := strings.TrimSpace(current.String()); stmt != "" {
+		statements = append(statements, stmt)
+	}
+
+	return statements
+}
+
+func isDollarTag(tag string) bool {
+	if len(tag) < 2 || tag[0] != '$' || tag[len(tag)-1] != '$' {
+		return false
+	}
+	for _, r := range tag[1 : len(tag)-1] {
+		if !(r == '_' || (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')) {
+			return false
+		}
+	}
+	return true
 }
 
 func ensureSchemaTableWithConn(ctx context.Context, conn *pgxpool.Conn) error {
