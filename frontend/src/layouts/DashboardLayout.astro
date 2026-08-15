@@ -237,7 +237,6 @@ const navGroups = [
                     const nameEl = document.getElementById("username-display");
                     if (nameEl && currentUser) {
                         nameEl.textContent = currentUser.username;
-                        sessionStorage.setItem("hkp_role", currentUser.role);
                     }
                     // Hide nav groups that require a role the current user doesn't have
                     document.querySelectorAll<HTMLElement>('[data-required-role]').forEach(el => {

@@ -16,14 +16,15 @@ import Layout from "@layouts/Layout.astro";
             </div>
 
             <div class="bg-shadow-tint border border-white/10 rounded-lg p-8">
-                <div id="sso-button-container" class="hidden mb-5">
-                    <a
-                        href="/api/auth/sso/login"
+                <div id="sso-button-container" class="mb-5">
+                    <button
+                        id="sso-button"
+                        type="button"
                         class="w-full flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-ghost-white font-medium py-3 rounded-lg transition-all text-sm"
                     >
                         <span class="material-symbols-outlined text-xl">login</span>
                         Sign in with SSO
-                    </a>
+                    </button>
                     <div class="flex items-center gap-3 my-4">
                         <div class="flex-1 h-px bg-white/10"></div>
                         <span class="text-xs text-iron-slate uppercase tracking-wider">or</span>
@@ -60,9 +61,8 @@ import Layout from "@layouts/Layout.astro";
     </div>
 
     <script>
-        import { API_BASE } from "@lib/api";
+        import { API_BASE, api } from "@lib/api";
         import { toast } from "@lib/toast";
-        import { getConfigStatus } from "@lib/config";
 
         (async () => {
             try {
@@ -75,14 +75,22 @@ import Layout from "@layouts/Layout.astro";
         })();
 
         (async () => {
+            const btn = document.getElementById("sso-button") as HTMLButtonElement;
+            let ssoEnabled = false;
             try {
-                const cfg = await getConfigStatus();
-                if (cfg.features?.sso) {
-                    document.getElementById("sso-button-container")?.classList.remove("hidden");
-                }
+                const { enabled } = await api.getSSOStatus();
+                ssoEnabled = enabled;
             } catch {
-                // SSO config unavailable — keep button hidden
+                // SSO status unavailable — treat as disabled
             }
+
+            btn.addEventListener("click", () => {
+                if (ssoEnabled) {
+                    window.location.href = "/api/auth/sso/login";
+                } else {
+                    toast("SSO is not enabled for this deployment.", "info");
+                }
+            });
         })();
 
         const ssoError = new URLSearchParams(window.location.search).get("error");

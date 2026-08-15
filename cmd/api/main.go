@@ -193,9 +193,7 @@ func main() {
 	}
 
 	r.Get("/api/health", h.GetHealth)
-	r.Get("/api/version", h.GetVersion)
-	r.Get("/api/version/check", h.GetVersionCheck)
-	r.Get("/api/config/status", h.GetConfigStatus)
+	r.Get("/api/auth/sso/status", h.GetSSOStatus)
 
 	r.Post("/api/auth/login", h.Login)
 	r.Post("/api/auth/logout", h.Logout)
@@ -335,6 +333,16 @@ func main() {
 
 		// ── Free: Me ──
 		r.Get("/api/me", h.GetMe)
+
+		// ── Version (authenticated — fingerprinting) ──
+		r.Get("/api/version", h.GetVersion)
+		r.Get("/api/version/check", h.GetVersionCheck)
+
+		// ── Detailed health (authenticated — infra details) ──
+		r.Get("/api/health/detailed", h.GetDetailedHealth)
+
+		// ── Config status (authenticated — deployment fingerprinting) ──
+		r.Get("/api/config/status", h.GetConfigStatus)
 
 		// ── Tier limits ──
 		r.With(auth.RequireRole("admin", "viewer")).Get("/api/limits", h.GetLimits)

@@ -172,6 +172,9 @@ export const api = {
 
   getMe: () => req<User>("/api/me"),
 
+  getSSOStatus: () =>
+    req<{ enabled: boolean }>("/api/auth/sso/status"),
+
   getConfigStatus: () =>
     req<{
       ai: { remediation: boolean; summary: boolean; validation: boolean };

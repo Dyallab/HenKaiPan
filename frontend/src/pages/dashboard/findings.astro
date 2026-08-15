@@ -438,7 +438,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   }
 
   function updateBulkActions() {
-    if (sessionStorage.getItem("hkp_role") !== "admin") return;
+    if (!hasWriteAccess) return;
     const checkboxes = document.querySelectorAll('.finding-checkbox:checked') as NodeListOf<HTMLInputElement>;
     const bulkActions = document.getElementById('bulk-actions')!;
     const selectedCount = document.getElementById('selected-count')!;
@@ -578,7 +578,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
   loadSLA();
   loadFileOptions();
-  if (sessionStorage.getItem("hkp_role") === "admin") {
+  if (hasWriteAccess) {
     loadUsers();
   }
   loadFindings();

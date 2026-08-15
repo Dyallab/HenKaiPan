@@ -230,7 +230,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
         async function fetchHealth() {
             try {
                 const [health, version] = await Promise.all([
-                    api.get("/api/health"),
+                    api.get("/api/health/detailed"),
                     api.get("/api/version"),
                 ]);
 

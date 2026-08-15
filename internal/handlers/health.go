@@ -28,7 +28,20 @@ type HealthCheckResult struct {
 	Error   string `json:"error,omitempty"`
 }
 
+// GetHealth is the public health endpoint used by Docker/K8s probes. It
+// performs the same checks as the detailed endpoint but only exposes the
+// overall status, keeping infrastructure details out of anonymous reach.
 func (h *Handler) GetHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": h.runHealthChecks(r).Status})
+}
+
+// GetDetailedHealth exposes the full per-component health details. It is
+// registered behind JWT auth so only authenticated users can see infra state.
+func (h *Handler) GetDetailedHealth(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.runHealthChecks(r))
+}
+
+func (h *Handler) runHealthChecks(r *http.Request) HealthCheck {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 
@@ -122,7 +135,7 @@ func (h *Handler) GetHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 	}
 
-	writeJSON(w, http.StatusOK, response)
+	return response
 }
 
 func formatLatency(d time.Duration) string {

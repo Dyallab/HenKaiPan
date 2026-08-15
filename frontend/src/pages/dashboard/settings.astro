@@ -736,24 +736,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                             Sign Out
                         </button>
                     </div>
-                    <div
-                        class="flex items-center justify-between pt-4 border-t border-error/10"
-                    >
-                        <div>
-                            <p class="text-sm font-semibold text-on-background">
-                                Clear All Local Data
-                            </p>
-                            <p class="text-xs text-slate-500">
-                                Remove all locally stored tokens and settings.
-                            </p>
-                        </div>
-                        <button
-                            id="danger-clear"
-                            class="px-4 py-2 border border-error/40 text-error rounded-lg text-sm font-bold hover:bg-error/10 transition-all"
-                        >
-                            Clear Data
-                        </button>
-                    </div>
                 </div>
             </section>
 
@@ -1464,21 +1446,6 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             } finally {
                 window.location.href = "/login";
             }
-        });
-
-    document
-        .getElementById("danger-clear")!
-        .addEventListener("click", async () => {
-            if (!confirm("Clear all locally stored settings?")) return;
-
-            try {
-                await api.logout();
-            } catch {}
-
-            [
-                "aspm_webhooks",
-            ].forEach((k) => localStorage.removeItem(k));
-            window.location.href = "/login";
         });
 
     // ---------- Users ----------
