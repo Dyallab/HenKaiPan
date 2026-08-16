@@ -238,6 +238,9 @@ func (h *Handler) mcpInitialize(req *jsonRPCRequest) *jsonRPCResponse {
 }
 
 // ── Tools / List ──────────────────────────────────────────────────────────
+//
+// Keep the tool catalog below in sync with the machine-readable spec published at
+// @dyallab/docs/llms/mcp-tools.json (package version 1.15.0+).
 
 func (h *Handler) mcpToolsList(req *jsonRPCRequest) *jsonRPCResponse {
 	tools := []mcpTool{
