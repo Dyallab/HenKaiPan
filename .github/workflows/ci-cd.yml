@@ -79,7 +79,7 @@ jobs:
         with:
           api-url: ${{ vars.HENKAIPAN_API_URL }}
           api-key: ${{ secrets.HENKAIPAN_API_KEY }}
-          scanners: "semgrep, trivy"
+          scanners: "all"
           fail-on-severity: high
           post-pr-comment: "true"
         env:
