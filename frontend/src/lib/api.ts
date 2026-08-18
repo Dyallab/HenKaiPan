@@ -177,12 +177,19 @@ export const api = {
 
   getConfigStatus: () =>
     req<{
-      ai: { remediation: boolean; summary: boolean; validation: boolean };
+      ai: {
+        remediation: AITaskConfig;
+        summary: AITaskConfig;
+        validation: AITaskConfig;
+      };
       features: { risk_acceptance: boolean; sso: boolean };
       email_enabled: boolean;
       frontend_url: boolean;
       webhook_secret: boolean;
     }>("/api/config/status"),
+
+  getOpenRouterStatus: () =>
+    req<OpenRouterStatus>("/api/ai/openrouter/status"),
 
   // Knowledge Center
   getArticles: (q = "", scanner = "", tag = "", cwe_id = "", rule_id = "") =>
@@ -912,6 +919,30 @@ export interface ProjectEngineSummary {
   by_engine: Record<string, number>;
   total_vulns: number;
   total_open: number;
+}
+
+export interface OpenRouterKeyUsage {
+  label: string;
+  limit: number | null;
+  limit_reset: string | null;
+  limit_remaining: number | null;
+  usage: number;
+  usage_daily: number;
+  usage_weekly: number;
+  usage_monthly: number;
+  is_free_tier: boolean;
+}
+
+export interface OpenRouterStatus {
+  configured: boolean;
+  usage?: OpenRouterKeyUsage;
+  error?: string;
+}
+
+export interface AITaskConfig {
+  enabled: boolean;
+  provider: string;
+  model: string;
 }
 
 export interface App {

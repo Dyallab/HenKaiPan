@@ -21,6 +21,20 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+// AITaskConfig describes which provider/model a single AI task uses.
+type AITaskConfig struct {
+	Enabled  bool   `json:"enabled"`
+	Provider string `json:"provider"`
+	Model    string `json:"model"`
+}
+
+// AIConfig groups the three AI tasks (remediation, summary, validation).
+type AIConfig struct {
+	Remediation AITaskConfig `json:"remediation"`
+	Summary     AITaskConfig `json:"summary"`
+	Validation  AITaskConfig `json:"validation"`
+}
+
 type Handler struct {
 	store          repository.Stores
 	queue          *asynq.Client
@@ -31,6 +45,7 @@ type Handler struct {
 	aiRemediation  bool
 	aiSummary      bool
 	aiValidation   bool
+	aiConfig       AIConfig
 	emailEnabled   bool
 	webhookSecret  string
 	FindingCache   *cache.Cache
@@ -41,8 +56,27 @@ type Handler struct {
 	ssoProvider    *sso.Provider
 }
 
-func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, aiRemediation, aiSummary, aiValidation bool, emailEnabled bool, webhookSecret string, findingCache *cache.Cache, maxProjects, maxUsers, maxAIScans int, ssoEnabled bool, ssoProvider *sso.Provider) *Handler {
-	return &Handler{store: store, queue: queue, frontendURL: frontendURL, cookieSecure: cookieSecure, cookieDomain: cookieDomain, cookieSameSite: cookieSameSite, aiRemediation: aiRemediation, aiSummary: aiSummary, aiValidation: aiValidation, emailEnabled: emailEnabled, webhookSecret: webhookSecret, FindingCache: findingCache, maxProjects: maxProjects, maxUsers: maxUsers, maxAIScans: maxAIScans, ssoEnabled: ssoEnabled, ssoProvider: ssoProvider}
+func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, aiConfig AIConfig, emailEnabled bool, webhookSecret string, findingCache *cache.Cache, maxProjects, maxUsers, maxAIScans int, ssoEnabled bool, ssoProvider *sso.Provider) *Handler {
+	return &Handler{
+		store:          store,
+		queue:          queue,
+		frontendURL:    frontendURL,
+		cookieSecure:   cookieSecure,
+		cookieDomain:   cookieDomain,
+		cookieSameSite: cookieSameSite,
+		aiRemediation:  aiConfig.Remediation.Enabled,
+		aiSummary:      aiConfig.Summary.Enabled,
+		aiValidation:   aiConfig.Validation.Enabled,
+		aiConfig:       aiConfig,
+		emailEnabled:   emailEnabled,
+		webhookSecret:  webhookSecret,
+		FindingCache:   findingCache,
+		maxProjects:    maxProjects,
+		maxUsers:       maxUsers,
+		maxAIScans:     maxAIScans,
+		ssoEnabled:     ssoEnabled,
+		ssoProvider:    ssoProvider,
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

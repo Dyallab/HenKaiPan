@@ -15,10 +15,10 @@ func (h *Handler) GetSSOStatus(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetConfigStatus(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ai": map[string]bool{
-			"remediation": h.aiRemediation,
-			"summary":     h.aiSummary,
-			"validation":  h.aiValidation,
+		"ai": map[string]any{
+			"remediation": h.aiConfig.Remediation,
+			"summary":     h.aiConfig.Summary,
+			"validation":  h.aiConfig.Validation,
 		},
 		"features": map[string]bool{
 			"risk_acceptance": true,

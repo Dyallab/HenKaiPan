@@ -12,12 +12,61 @@ import (
 )
 
 const apiURL = "https://openrouter.ai/api/v1/chat/completions"
+const keyURL = "https://openrouter.ai/api/v1/key"
 const defaultModel = "openai/gpt-4.1-mini"
 
 var apiKey string
 
 func OpenRouterKey() string {
 	return apiKey
+}
+
+// OpenRouterKeyUsage describes the credit usage and limit for the configured API key.
+type OpenRouterKeyUsage struct {
+	Label          string   `json:"label"`
+	Limit          *float64 `json:"limit"`
+	LimitReset     *string  `json:"limit_reset"`
+	LimitRemaining *float64 `json:"limit_remaining"`
+	Usage          float64  `json:"usage"`
+	UsageDaily     float64  `json:"usage_daily"`
+	UsageWeekly    float64  `json:"usage_weekly"`
+	UsageMonthly   float64  `json:"usage_monthly"`
+	IsFreeTier     bool     `json:"is_free_tier"`
+}
+
+// GetOpenRouterKeyUsage fetches the current usage/limit for the configured OpenRouter API key.
+func GetOpenRouterKeyUsage(ctx context.Context) (*OpenRouterKeyUsage, error) {
+	if apiKey == "" {
+		return nil, errors.New("OPENROUTER_API_KEY not set")
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, http.MethodGet, keyURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create openrouter key request: %w", err)
+	}
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+
+	resp, err := http.DefaultClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("call openrouter key: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read openrouter key response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("openrouter key API %d: %s", resp.StatusCode, string(raw))
+	}
+
+	var envelope struct {
+		Data OpenRouterKeyUsage `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return nil, fmt.Errorf("decode openrouter key response: %w", err)
+	}
+	return &envelope.Data, nil
 }
 
 var model = defaultModel

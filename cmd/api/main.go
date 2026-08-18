@@ -104,8 +104,26 @@ func main() {
 	// Initialize finding detail cache (reuses the rate limiter's Redis client).
 	findingCache := cache.NewCache(appmw.Rdb)
 
+	aiConfig := handlers.AIConfig{
+		Remediation: handlers.AITaskConfig{
+			Enabled:  cfg.RemediationConfig.IsConfigured,
+			Provider: cfg.RemediationConfig.Name,
+			Model:    cfg.RemediationConfig.Model,
+		},
+		Summary: handlers.AITaskConfig{
+			Enabled:  cfg.SummaryConfig.IsConfigured,
+			Provider: cfg.SummaryConfig.Name,
+			Model:    cfg.SummaryConfig.Model,
+		},
+		Validation: handlers.AITaskConfig{
+			Enabled:  cfg.ValidationConfig.IsConfigured,
+			Provider: cfg.ValidationConfig.Name,
+			Model:    cfg.ValidationConfig.Model,
+		},
+	}
+
 	h := handlers.New(store, queueClient, cfg.FrontendURL, cfg.CookieSecure, cfg.CookieDomain, cfg.CookieSameSite,
-		cfg.RemediationConfig.IsConfigured, cfg.SummaryConfig.IsConfigured, cfg.ValidationConfig.IsConfigured,
+		aiConfig,
 		cfg.EmailEnabled, cfg.WebhookSecret, findingCache,
 		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans,
 		cfg.SSOEnabled && ssoProvider != nil, ssoProvider)
@@ -308,6 +326,7 @@ func main() {
 		r.Post("/api/knowledge/ai-remediate", h.AIRemediate)
 		r.Post("/api/findings/{id}/analyze", appmw.RequireOwnership(store.Apps, "finding")(h.AnalyzeFinding))
 		r.Get("/api/findings/{id}/analysis", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingAnalysis))
+		r.With(auth.RequireRole("admin")).Get("/api/ai/openrouter/status", h.GetOpenRouterStatus)
 
 		// ── Free: Knowledge (read) ──
 		r.Get("/api/knowledge", h.ListArticles)

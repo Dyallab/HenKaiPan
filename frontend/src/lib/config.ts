@@ -36,5 +36,9 @@ export function applyConfigGuards(root: ParentNode = document) {
 }
 
 function resolvePath(obj: any, path: string): boolean {
-    return path.split(".").reduce((o, k) => o?.[k], obj) === true;
+    const value = path.split(".").reduce((o, k) => o?.[k], obj);
+    if (value && typeof value === "object" && "enabled" in value) {
+        return value.enabled === true;
+    }
+    return value === true;
 }

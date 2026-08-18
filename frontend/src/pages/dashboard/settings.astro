@@ -88,6 +88,10 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         <span class="material-symbols-outlined text-base align-middle mr-1.5">open_in_new</span>
                         Jira
                     </button>
+                    <button data-tab-trigger="ai" class="tab-trigger px-4 py-2 rounded-xl text-sm font-semibold text-slate-500 hover:text-slate-200 transition-colors">
+                        <span class="material-symbols-outlined text-base align-middle mr-1.5">smart_toy</span>
+                        AI
+                    </button>
                 </div>
 
                 <!-- Panel: Scanners -->
@@ -305,6 +309,76 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                                 >Save Jira Integration</button
                             >
                             <p id="jira-msg" class="text-xs hidden"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel: AI -->
+                <div data-tab-panel="ai" class="tab-panel hidden space-y-4">
+                    <div
+                        class="bg-surface-container border border-outline-variant/20 rounded-xl p-6 space-y-5"
+                    >
+                        <div>
+                            <h4
+                                class="font-bold text-on-background flex items-center gap-2"
+                            >
+                                <span
+                                    class="material-symbols-outlined text-cyan-400 text-xl"
+                                    >smart_toy</span
+                                >
+                                AI Providers
+                            </h4>
+                            <p class="text-sm text-slate-400 mt-1">
+                                Which provider and model each AI feature uses.
+                            </p>
+                        </div>
+
+                        <div
+                            id="ai-provider-tasks"
+                            class="grid grid-cols-1 md:grid-cols-3 gap-3"
+                        >
+                            <span class="text-sm text-slate-400 animate-pulse"
+                                >Loading AI providers...</span
+                            >
+                        </div>
+
+                        <div class="border-t border-slate-800 pt-5">
+                            <div class="flex items-center justify-between mb-4">
+                                <div>
+                                    <h4
+                                        class="font-bold text-on-background flex items-center gap-2"
+                                    >
+                                        <span
+                                            class="material-symbols-outlined text-cyan-400 text-lg"
+                                            >account_balance_wallet</span
+                                        >
+                                        OpenRouter Credits
+                                    </h4>
+                                    <p class="text-xs text-slate-500 mt-1">
+                                        Credit usage and remaining budget for
+                                        the configured key.
+                                    </p>
+                                </div>
+                                <button
+                                    id="openrouter-refresh"
+                                    class="flex items-center gap-2 px-3 py-2 bg-surface-container-high border border-outline-variant/20 text-on-surface rounded-lg text-xs font-bold hover:bg-slate-800 transition-all"
+                                >
+                                    <span
+                                        class="material-symbols-outlined text-base"
+                                        >refresh</span
+                                    >
+                                    Refresh
+                                </button>
+                            </div>
+
+                            <div
+                                id="openrouter-status"
+                                class="rounded-xl border border-outline-variant/20 bg-slate-950/40 p-4 text-sm text-slate-400"
+                            >
+                                <span class="animate-pulse"
+                                    >Loading OpenRouter usage...</span
+                                >
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1349,6 +1423,7 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
 <script>
     import { toast } from "@lib/toast";
     import { api } from "@lib/api";
+    import type { AITaskConfig } from "@lib/api";
     import { requireRole } from "@lib/auth";
     import { applyConfigGuards } from "@lib/config";
 
@@ -2588,6 +2663,8 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
     loadJiraIntegration();
     loadTokens();
     loadProjectsForToken();
+    loadAIProviders();
+    loadOpenRouterStatus();
 
     // --- Token modal handlers ---
     document
@@ -2770,6 +2847,158 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
             container.innerHTML = `<div class="text-center py-8 text-rose-400 text-sm">Failed to load tokens: ${e.message}</div>`;
         }
     }
+
+    // ---------- AI providers & OpenRouter usage ----------
+    const PROVIDER_LABEL: Record<string, string> = {
+        openrouter: "OpenRouter",
+        cloudflare: "Cloudflare",
+        ollama: "Ollama (local)",
+    };
+
+    function providerLabel(provider: string): string {
+        return PROVIDER_LABEL[provider] ?? provider;
+    }
+
+    function providerBadge(provider: string): string {
+        const cls =
+            provider === "ollama"
+                ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
+                : provider === "cloudflare"
+                  ? "text-orange-400 bg-orange-500/10 border-orange-500/20"
+                  : "text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+        return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${cls}">${providerLabel(provider)}</span>`;
+    }
+
+    function taskCard(label: string, icon: string, cfg: AITaskConfig) {
+        const state = cfg.enabled
+            ? `<span class="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">● active</span>`
+            : `<span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">○ inactive</span>`;
+        return `
+            <div class="bg-slate-950/40 border border-outline-variant/20 rounded-xl p-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-slate-400 text-base">${icon}</span>
+                        <p class="text-sm font-semibold text-on-background">${label}</p>
+                    </div>
+                    ${state}
+                </div>
+                <div class="flex flex-wrap gap-2 items-center">
+                    ${providerBadge(cfg.provider)}
+                    <span class="text-xs font-mono text-slate-400 truncate">${cfg.model || "—"}</span>
+                </div>
+            </div>`;
+    }
+
+    async function loadAIProviders() {
+        const el = document.getElementById("ai-provider-tasks")!;
+        try {
+            const config = await api.getConfigStatus();
+            el.innerHTML = [
+                taskCard("Remediation", "build", config.ai.remediation),
+                taskCard("Summary", "summarize", config.ai.summary),
+                taskCard("Validation", "fact_check", config.ai.validation),
+            ].join("");
+        } catch (e: any) {
+            el.innerHTML = `
+                <div class="col-span-full flex items-start gap-3 text-rose-400 text-sm">
+                    <span class="material-symbols-outlined">error</span>
+                    <span>Failed to load AI providers: ${e.message ?? "unknown error"}</span>
+                </div>`;
+        }
+    }
+
+    function formatCredits(v: number | null | undefined): string {
+        if (v === null || v === undefined) return "Unlimited";
+        return `$${v.toFixed(2)}`;
+    }
+
+    async function loadOpenRouterStatus() {
+        const el = document.getElementById("openrouter-status")!;
+        el.innerHTML =
+            '<span class="animate-pulse">Loading OpenRouter usage...</span>';
+        try {
+            const status = await api.getOpenRouterStatus();
+            if (!status.configured || !status.usage) {
+                el.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <span class="material-symbols-outlined text-amber-400">info</span>
+                        <div>
+                            <p class="font-semibold text-on-background">No OpenRouter credit data</p>
+                            <p class="text-xs text-slate-500 mt-1">Set <code class="font-mono">OPENROUTER_API_KEY</code> to see key usage and remaining credits. Local providers like Ollama have no credit limit.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const u = status.usage;
+            const remaining = u.limit_remaining;
+            const limit = u.limit;
+            const used = remaining !== null && limit ? Math.max(0, limit - remaining) : u.usage;
+            const pct =
+                limit && limit > 0
+                    ? Math.max(0, Math.min(100, Math.round((used / limit) * 100)))
+                    : null;
+
+            el.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Remaining</p>
+                            <p class="text-xl font-black text-cyan-400 mt-1">${formatCredits(remaining)}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Credit Limit</p>
+                            <p class="text-xl font-black text-on-background mt-1">${formatCredits(limit)}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Used (all time)</p>
+                            <p class="text-xl font-black text-amber-400 mt-1">${formatCredits(u.usage)}</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Used (month)</p>
+                            <p class="text-xl font-black text-slate-400 mt-1">${formatCredits(u.usage_monthly)}</p>
+                        </div>
+                    </div>
+                    ${
+                        pct !== null
+                            ? `
+                    <div>
+                        <div class="flex items-center justify-between text-xs mb-1.5">
+                            <span class="text-slate-500">Budget used</span>
+                            <span class="font-mono text-slate-300">${pct}%</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-slate-800 overflow-hidden">
+                            <div class="h-full rounded-full ${pct >= 90 ? "bg-rose-500" : pct >= 70 ? "bg-amber-500" : "bg-cyan-500"}" style="width:${pct}%"></div>
+                        </div>
+                    </div>`
+                            : ""
+                    }
+                    <div class="flex flex-wrap gap-2 text-[11px]">
+                        <span class="px-2 py-1 rounded border bg-slate-900 border-slate-800 text-slate-300">Key: ${u.label || "default"}</span>
+                        <span class="px-2 py-1 rounded border bg-slate-900 border-slate-800 text-slate-300">Daily: ${formatCredits(u.usage_daily)}</span>
+                        <span class="px-2 py-1 rounded border bg-slate-900 border-slate-800 text-slate-300">Weekly: ${formatCredits(u.usage_weekly)}</span>
+                        ${
+                            u.is_free_tier
+                                ? '<span class="px-2 py-1 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400">Free tier</span>'
+                                : ""
+                        }
+                    </div>
+                </div>`;
+        } catch (e: any) {
+            el.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <span class="material-symbols-outlined text-rose-400">error</span>
+                    <div>
+                        <p class="font-semibold text-on-background">Failed to load OpenRouter usage</p>
+                        <p class="text-xs text-slate-500 mt-1">${e.message ?? "Unknown error"}</p>
+                    </div>
+                </div>`;
+        }
+    }
+
+    document
+        .getElementById("openrouter-refresh")!
+        .addEventListener("click", loadOpenRouterStatus);
 
     // Load webhooks after DOM is ready
     if (document.readyState === "loading") {

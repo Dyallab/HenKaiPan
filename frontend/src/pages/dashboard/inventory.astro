@@ -149,16 +149,18 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     const filterEngine = (document.getElementById('filter-engine') as HTMLSelectElement).value;
 
     try {
-      const [apps, teams, metrics, summaries] = await Promise.all([
+      const [apps, teams, metrics, summaries, projects] = await Promise.all([
         api.getApps(),
         api.getTeams(),
         api.getTeamMetrics(),
         api.getVulnerabilityEngineSummary(),
+        api.getProjects(),
       ]);
 
       allApps = apps;
       allTeams = teams;
       vulnSummaries = summaries;
+      const standaloneProjects = (projects || []).filter((p: any) => !p.app_id);
 
       // Build vuln lookup by project_id
       const vulnByProject = new Map<string, ProjectEngineSummary>();
@@ -178,6 +180,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
         filteredApps = apps.filter(a => a.team_id === filterTeam);
       }
 
+      // Standalone projects have no team; only include them when no team filter is active.
+      const standalone = filterTeam ? [] : standaloneProjects;
+
       // Build flat inventory list
       const inventory: any[] = [];
 
@@ -185,7 +190,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       if (!filterType || filterType === 'app') {
         filteredApps.forEach(app => {
           const projectCount = app.projects?.length || 0;
-          const repoCount = app.projects?.filter((p: any) => p.repo_id).length || 0;
+          const repoCount = app.projects?.filter((p: any) => p.repo_url).length || 0;
 
           // Aggregate vuln counts for app (sum of all projects)
           const appEngines: Record<string, number> = {};
@@ -233,12 +238,29 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
               app: app.name,
               app_id: app.id,
               repo_url: p.repo_url,
-              repo_id: p.repo_id,
               createdAt: p.created_at,
               byEngine: vs?.by_engine || {},
               totalVulns: vs?.total_vulns || 0,
               totalOpen: vs?.total_open || 0,
             });
+          });
+        });
+
+        standalone.forEach((p: any) => {
+          const vs = vulnByProject.get(p.id);
+          inventory.push({
+            type: 'project',
+            id: p.id,
+            name: p.name,
+            description: p.description || 'No description',
+            team: 'Unassigned',
+            app: null,
+            app_id: null,
+            repo_url: p.repo_url,
+            createdAt: p.created_at,
+            byEngine: vs?.by_engine || {},
+            totalVulns: vs?.total_vulns || 0,
+            totalOpen: vs?.total_open || 0,
           });
         });
       }
@@ -256,9 +278,10 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
       // Calculate summary
       const totalApps = filteredApps.length;
-      const totalProjects = filteredApps.reduce((acc, app) => acc + (app.projects?.length || 0), 0);
+      const totalProjects = filteredApps.reduce((acc, app) => acc + (app.projects?.length || 0), 0) + standalone.length;
       const totalScans = metrics.reduce((acc: number, m: any) => acc + m.app_count + m.project_count, 0);
-      const projectsWithRepo = filteredApps.reduce((acc, app) => acc + (app.projects?.filter((p: any) => p.repo_id).length || 0), 0);
+      const projectsWithRepo = filteredApps.reduce((acc, app) => acc + (app.projects?.filter((p: any) => p.repo_url).length || 0), 0)
+        + standalone.filter((p: any) => p.repo_url).length;
       const coveragePct = totalProjects > 0 ? Math.round((projectsWithRepo / totalProjects) * 100) : 0;
       const totalOpenVulns = summaries.reduce((acc, s) => acc + s.total_open, 0);
 
@@ -340,7 +363,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                         <div>
                           <p class="font-bold text-on-background">${project.name}</p>
                           <p class="text-xs text-slate-500 mt-0.5">${project.description || 'No description'}</p>
-                          ${project.repo_url ? `<a href="${project.repo_url}" target="_blank" class="text-[10px] text-cyan-400 hover:underline mt-1 block truncate max-w-xs">${project.repo_name || project.repo_url}</a>` : '<p class="text-[10px] text-amber-400 mt-1 italic">No repo connected</p>'}
+                          ${project.repo_url ? `<a href="${project.repo_url}" target="_blank" class="text-[10px] text-cyan-400 hover:underline mt-1 block truncate max-w-xs">${project.repo_url}</a>` : '<p class="text-[10px] text-amber-400 mt-1 italic">No repo connected</p>'}
                         </div>
                       </td>
                       <td class="px-6 py-4">
@@ -353,7 +376,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                         ${pvs && pvs.total_open > 0 ? `<p class="text-[10px] text-vivid-crimson mt-1">${pvs.total_open} open</p>` : ''}
                       </td>
                       <td class="px-6 py-4">
-                        ${project.repo_id ? '<span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Connected</span>' : '<span class="text-[10px] text-slate-500 bg-slate-700 px-2 py-0.5 rounded">No repo</span>'}
+                        ${project.repo_url ? '<span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Connected</span>' : '<span class="text-[10px] text-slate-500 bg-slate-700 px-2 py-0.5 rounded">No repo</span>'}
                       </td>
                       <td class="px-6 py-4">
                         <span class="text-xs text-slate-400">Parent: ${item.name}</span>
@@ -374,7 +397,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                       <div>
                         <p class="font-bold text-on-background">${item.name}</p>
                         <p class="text-xs text-slate-500 mt-0.5">${item.description}</p>
-                        <p class="text-[10px] text-slate-600 mt-1">App: ${item.app}</p>
+                        ${item.repo_url ? `<a href="${item.repo_url}" target="_blank" class="text-[10px] text-cyan-400 hover:underline mt-1 block truncate max-w-xs">${item.repo_url}</a>` : '<p class="text-[10px] text-amber-400 mt-1 italic">No repo connected</p>'}
                       </div>
                     </td>
                     <td class="px-6 py-4">
@@ -387,7 +410,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
                       ${item.totalOpen > 0 ? `<p class="text-[10px] text-vivid-crimson mt-1">${item.totalOpen} open</p>` : ''}
                     </td>
                     <td class="px-6 py-4">
-                      <span class="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">No repo</span>
+                      ${item.repo_url ? '<span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Connected</span>' : '<span class="text-[10px] text-slate-500 bg-slate-700 px-2 py-0.5 rounded">No repo</span>'}
                     </td>
                     <td class="px-6 py-4">
                       <span class="text-xs text-slate-400">Standalone</span>
