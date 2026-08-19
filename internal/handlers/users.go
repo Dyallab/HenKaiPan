@@ -78,6 +78,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		Role            *string `json:"role"`
 		Password        *string `json:"password"`
 		CurrentPassword *string `json:"current_password"`
+		IsActive        *bool   `json:"is_active"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, r, http.StatusBadRequest, "invalid body")
@@ -94,6 +95,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	passwordChanging := body.Password != nil && *body.Password != ""
 	roleChanging := body.Role != nil
 	emailChanging := body.Email != nil && *body.Email != ""
+	activeChanging := body.IsActive != nil
 
 	// For sensitive changes (password, role, or email), require current_password verification
 	if passwordChanging || roleChanging || emailChanging {
@@ -135,7 +137,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	oldUser, _ := h.store.Users.GetByID(r.Context(), id)
 
 	u, err := h.store.Users.Update(r.Context(), id, repository.UserUpdate{
-		Email: body.Email, Role: body.Role, PasswordHash: hashPtr,
+		Email: body.Email, Role: body.Role, PasswordHash: hashPtr, IsActive: body.IsActive,
 	})
 	if err != nil {
 		writeError(w, r, http.StatusNotFound, "user not found")
@@ -143,7 +145,7 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Bump token_version on sensitive changes to invalidate existing sessions
-	if passwordChanging || roleChanging || emailChanging {
+	if passwordChanging || roleChanging || emailChanging || activeChanging {
 		if err := h.store.Users.BumpTokenVersion(r.Context(), id); err != nil {
 			slog.ErrorContext(r.Context(), "failed to bump token version", "user_id", id, "err", err)
 		}
@@ -178,6 +180,35 @@ func (h *Handler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		h.notifySecurityEvent(r.Context(), u, "role_changed",
 			"Your role has been changed",
 			fmt.Sprintf("Your role has been changed from '%s' to '%s'.", oldUser.Role, *body.Role))
+	}
+
+	if activeChanging && oldUser != nil && *body.IsActive != oldUser.IsActive {
+		if !*body.IsActive {
+			h.notifySecurityEvent(r.Context(), u, "account_disabled",
+				"Your account has been disabled",
+				"Your HenKaiPan account has been disabled by an administrator. You will no longer be able to log in. Contact your administrator if you believe this was done in error.")
+
+			if h.emailEnabled && oldUser.Email != "" {
+				payload, err := tasks.MarshalEmailSendPayload(tasks.EmailSendPayload{
+					Subject: "[HenKaiPan] Your account has been disabled",
+					Body:    "Your HenKaiPan account has been disabled by an administrator. You will no longer be able to log in. Contact your administrator if you believe this was done in error.",
+					To:      []string{oldUser.Email},
+				})
+				if err != nil {
+					slog.ErrorContext(r.Context(), "marshal account disabled email failed", "err", err)
+				} else if _, err := h.queue.EnqueueContext(r.Context(),
+					asynq.NewTask(tasks.TypeEmailSend, payload),
+					asynq.MaxRetry(5),
+					asynq.Timeout(30*time.Second),
+				); err != nil {
+					slog.ErrorContext(r.Context(), "enqueue account disabled email failed", "err", err)
+				}
+			}
+		} else {
+			h.notifySecurityEvent(r.Context(), u, "account_enabled",
+				"Your account has been re-enabled",
+				"Your HenKaiPan account has been re-enabled by an administrator. You can now log in again.")
+		}
 	}
 
 	writeJSON(w, http.StatusOK, u)

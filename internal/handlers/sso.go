@@ -112,6 +112,12 @@ func (h *Handler) SSOCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !user.IsActive {
+		slog.WarnContext(r.Context(), "sso login blocked: account disabled", "user_id", user.ID, "email", claims.Email)
+		http.Redirect(w, r, "/login?error=account_disabled", http.StatusFound)
+		return
+	}
+
 	if err := h.store.Users.UpdateLastLogin(r.Context(), user.ID); err != nil {
 		slog.ErrorContext(r.Context(), "sso: update last_login failed", "user_id", user.ID, "error", err)
 	}

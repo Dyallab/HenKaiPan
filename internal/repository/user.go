@@ -13,7 +13,7 @@ type userRepo struct{ db *pgxpool.Pool }
 
 func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 	rows, err := r.db.Query(ctx,
-		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users ORDER BY created_at`)
+		`SELECT id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject FROM users ORDER BY created_at`)
 	if err != nil {
 		return nil, fmt.Errorf("users list: %w", err)
 	}
@@ -22,7 +22,7 @@ func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.IsActive, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject); err != nil {
 			continue
 		}
 		users = append(users, u)
@@ -33,8 +33,8 @@ func (r *userRepo) List(ctx context.Context) ([]models.User, error) {
 func (r *userRepo) GetByID(ctx context.Context, id string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(ctx,
-		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users WHERE id = $1`, id,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+		`SELECT id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject FROM users WHERE id = $1`, id,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.IsActive, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
 	if err != nil {
 		return nil, err
 	}
@@ -44,8 +44,8 @@ func (r *userRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 func (r *userRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(ctx,
-		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users WHERE email = $1`, email,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+		`SELECT id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject FROM users WHERE email = $1`, email,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.IsActive, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +57,9 @@ func (r *userRepo) Create(ctx context.Context, u UserCreate) (*models.User, erro
 	err := r.db.QueryRow(ctx,
 		`INSERT INTO users (username, email, password_hash, role)
 		 VALUES ($1, $2, $3, $4)
-		 RETURNING id, username, email, role, created_at, last_login, sso_provider, sso_subject`,
+		 RETURNING id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject`,
 		u.Username, u.Email, u.PasswordHash, u.Role,
-	).Scan(&out.ID, &out.Username, &out.Email, &out.Role, &out.CreatedAt, &out.LastLogin, &out.SSOProvider, &out.SSOSubject)
+	).Scan(&out.ID, &out.Username, &out.Email, &out.Role, &out.IsActive, &out.CreatedAt, &out.LastLogin, &out.SSOProvider, &out.SSOSubject)
 	if err != nil {
 		return nil, fmt.Errorf("create user: %w", err)
 	}
@@ -71,9 +71,10 @@ func (r *userRepo) Update(ctx context.Context, id string, upd UserUpdate) (*mode
 		UPDATE users SET
 			email         = COALESCE($2, email),
 			role          = COALESCE($3, role),
-			password_hash = COALESCE($4, password_hash)
+			password_hash = COALESCE($4, password_hash),
+			is_active     = COALESCE($5, is_active)
 		WHERE id = $1`,
-		id, upd.Email, upd.Role, upd.PasswordHash)
+		id, upd.Email, upd.Role, upd.PasswordHash, upd.IsActive)
 	if err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}
@@ -93,8 +94,8 @@ func (r *userRepo) Count(ctx context.Context) (int, error) {
 func (r *userRepo) GetCredentials(ctx context.Context, username string) (*Credentials, error) {
 	var c Credentials
 	err := r.db.QueryRow(ctx,
-		`SELECT id, password_hash, role, token_version FROM users WHERE username = $1`, username,
-	).Scan(&c.ID, &c.PasswordHash, &c.Role, &c.TokenVersion)
+		`SELECT id, password_hash, role, token_version, is_active FROM users WHERE username = $1`, username,
+	).Scan(&c.ID, &c.PasswordHash, &c.Role, &c.TokenVersion, &c.IsActive)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +127,9 @@ func (r *userRepo) GetPasswordHashByID(ctx context.Context, id string) (string, 
 func (r *userRepo) GetUserBySSOIdentity(ctx context.Context, provider, subject string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(ctx,
-		`SELECT id, username, email, role, created_at, last_login, sso_provider, sso_subject FROM users
+		`SELECT id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject FROM users
 		 WHERE sso_provider = $1 AND sso_subject = $2`, provider, subject,
-	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.IsActive, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
 	if err != nil {
 		return nil, err
 	}
@@ -139,4 +140,10 @@ func (r *userRepo) LinkSSOIdentity(ctx context.Context, id, provider, subject st
 	_, err := r.db.Exec(ctx,
 		`UPDATE users SET sso_provider = $2, sso_subject = $3 WHERE id = $1`, id, provider, subject)
 	return err
+}
+
+func (r *userRepo) IsActive(ctx context.Context, id string) (bool, error) {
+	var active bool
+	err := r.db.QueryRow(ctx, `SELECT is_active FROM users WHERE id = $1`, id).Scan(&active)
+	return active, err
 }
