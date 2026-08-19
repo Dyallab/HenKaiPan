@@ -51,7 +51,7 @@
       },
       "results": [
         {
-          "rule_id": "rules-react.security.audit.axios-csrf",
+          "ruleId": "rules-react.security.audit.axios-csrf",
           "message": {
             "text": "axios request without CSRF token"
           },
@@ -74,7 +74,7 @@
           ]
         },
         {
-          "rule_id": "rules-python.flask.security.xss.xss-vulnerability",
+          "ruleId": "rules-python.flask.security.xss.xss-vulnerability",
           "message": {
             "text": "User input rendered directly in template"
           },
@@ -97,7 +97,7 @@
           ]
         },
         {
-          "rule_id": "rules-generic.generic.security.private-key-leak",
+          "ruleId": "rules-generic.generic.security.private-key-leak",
           "message": {
             "text": ""
           },
@@ -120,7 +120,7 @@
           ]
         },
         {
-          "rule_id": "rules-react.security.audit.axios-csrf",
+          "ruleId": "rules-react.security.audit.axios-csrf",
           "message": {
             "text": ""
           },

@@ -221,6 +221,7 @@ type UserUpdate struct {
 	Email        *string
 	Role         *string
 	PasswordHash *string
+	IsActive     *bool
 }
 
 // Credentials holds login-relevant user data including token_version for JWT.
@@ -229,6 +230,7 @@ type Credentials struct {
 	PasswordHash string
 	Role         string
 	TokenVersion int
+	IsActive     bool
 }
 
 type UserRepository interface {
@@ -241,6 +243,7 @@ type UserRepository interface {
 	GetCredentials(ctx context.Context, username string) (*Credentials, error)
 	UpdateLastLogin(ctx context.Context, id string) error
 	Count(ctx context.Context) (int, error)
+	IsActive(ctx context.Context, id string) (bool, error)
 	GetTokenVersion(ctx context.Context, id string) (int, error)
 	BumpTokenVersion(ctx context.Context, id string) error
 	GetPasswordHashByID(ctx context.Context, id string) (string, error)

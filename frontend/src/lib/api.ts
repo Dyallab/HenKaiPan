@@ -297,7 +297,13 @@ export const api = {
 
   updateUser: (
     id: string,
-    updates: { email?: string; role?: string; password?: string },
+    updates: {
+      email?: string;
+      role?: string;
+      password?: string;
+      current_password?: string;
+      is_active?: boolean;
+    },
   ) =>
     req<User>(`/api/users/${id}`, {
       method: "PATCH",
@@ -824,6 +830,7 @@ export interface User {
   username: string;
   email: string;
   role: "admin" | "viewer";
+  is_active: boolean;
   created_at: string;
   last_login?: string;
 }

@@ -37,11 +37,18 @@ func main() {
 
 	store := repository.NewPostgresStores(pool, cfg.RedisAddr)
 
-	if n, err := store.Vulnerabilities.BackfillVulnerabilities(context.Background()); err != nil {
-		slog.Error("vulnerability backfill failed", "err", err)
-	} else if n > 0 {
-		slog.Info("vulnerability backfill completed", "findings_linked", n)
-	}
+	// Run the vulnerability backfill in the background so it doesn't block
+	// the asynq server from starting. Without this, a slow or stuck backfill
+	// would prevent scan tasks from being picked up, leaving scans stuck.
+	go func() {
+		if n, err := store.Vulnerabilities.BackfillVulnerabilities(context.Background()); err != nil {
+			slog.Error("vulnerability backfill failed", "err", err)
+		} else if n > 0 {
+			slog.Info("vulnerability backfill completed", "findings_linked", n)
+		} else {
+			slog.Info("vulnerability backfill completed, no findings to link")
+		}
+	}()
 
 	if n, err := store.Scans.RecoverStuck(context.Background()); err == nil && n > 0 {
 		slog.Info("recovered stuck scans", "count", n)

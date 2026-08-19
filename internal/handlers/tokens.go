@@ -403,6 +403,17 @@ func APIKeyAuth(store repository.Stores, bucket *ratelimit.TokenBucket) func(htt
 				return
 			}
 
+			// Reject tokens whose owning user has been disabled
+			if token.CreatedBy != nil {
+				active, err := store.Users.IsActive(r.Context(), *token.CreatedBy)
+				if err != nil || !active {
+					slog.WarnContext(r.Context(), "api key rejected: owning user inactive",
+						"created_by", *token.CreatedBy, "token_id", token.ID)
+					writeError(w, r, http.StatusUnauthorized, "API key owner account is disabled")
+					return
+				}
+			}
+
 		// Bcrypt comparison of raw token against stored hash
 		if bcrypt.CompareHashAndPassword([]byte(token.Hash), []byte(raw)) != nil {
 			writeError(w, r, http.StatusUnauthorized, "invalid API key")

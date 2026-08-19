@@ -62,6 +62,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !creds.IsActive {
+		slog.WarnContext(r.Context(), "login: account disabled", "username", req.Username)
+		writeError(w, r, http.StatusForbidden, "account is disabled")
+		return
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(creds.PasswordHash), []byte(req.Password)); err != nil {
 		slog.WarnContext(r.Context(), "login: password mismatch", "username", req.Username)
 		h.writeUnauthorized(w, r)
