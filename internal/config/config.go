@@ -76,6 +76,16 @@ type Config struct {
 
 	TelemetryEnabled bool
 
+	// HENKAIPAN_INSTANCE_ID overrides the telemetry instance identifier.
+	// Set by managed Cloud/Enterprise deployments to a deterministic value
+	// (e.g. the tenant slug) so pings cross-reference the client registry.
+	// When unset, a random UUID is generated and persisted to data/instance_id.
+	InstanceID string
+
+	// HENKAIPAN_TIER labels the deployment plan in telemetry pings.
+	// Defaults to "self-hosted". Managed deployments set "cloud"/"enterprise".
+	Tier string
+
 	// SSO / OIDC configuration (optional).
 	// SSO_ENABLED gates whether the SSO login endpoints are registered.
 	SSOEnabled     bool   // SSO_ENABLED (default false)
@@ -143,6 +153,8 @@ func Load() *Config {
 	cfg.MaxAIScans = envInt("HENKAIPAN_MAX_AI_SCANS", -1)
 
 	cfg.TelemetryEnabled = envBool("HENKAIPAN_TELEMETRY_ENABLED", true)
+	cfg.InstanceID = os.Getenv("HENKAIPAN_INSTANCE_ID")
+	cfg.Tier = envOr("HENKAIPAN_TIER", "self-hosted")
 
 	cfg.SSOEnabled = envBool("SSO_ENABLED", false)
 	cfg.SSOIssuerURL = os.Getenv("SSO_ISSUER_URL")
@@ -180,6 +192,8 @@ func Load() *Config {
 		"validation_provider", cfg.ValidationConfig.Name,
 		"validation_model", cfg.ValidationConfig.Model,
 		"cors_allowed_origins", cfg.AllowedOrigins,
+		"telemetry_tier", cfg.Tier,
+		"instance_id_overridden", cfg.InstanceID != "",
 	)
 
 	return cfg
