@@ -129,7 +129,7 @@ func main() {
 		cfg.SSOEnabled && ssoProvider != nil, ssoProvider)
 
 	if cfg.TelemetryEnabled {
-		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, "self-hosted").Start(context.Background())
+		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, cfg.Tier, cfg.InstanceID).Start(context.Background())
 	}
 
 	// Per-token rate limiting constants.

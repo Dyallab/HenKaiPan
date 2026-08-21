@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"aspm/internal/repository"
@@ -34,15 +35,24 @@ type pingPayload struct {
 	Timestamp  string `json:"timestamp"`
 }
 
-func NewClient(store repository.Stores, endpoint, version, tier string) *Client {
+func NewClient(store repository.Stores, endpoint, version, tier, instanceIDOverride string) *Client {
 	return &Client{
-		instanceID: loadOrGenerateInstanceID(),
+		instanceID: resolveInstanceID(instanceIDOverride),
 		endpoint:   endpoint,
 		version:    version,
 		tier:       tier,
 		store:      store,
 		httpClient: &http.Client{Timeout: 10 * time.Second},
 	}
+}
+
+// resolveInstanceID returns the override when set (managed deployments), else
+// falls back to a random UUID persisted to data/instance_id (self-hosted).
+func resolveInstanceID(override string) string {
+	if id := strings.TrimSpace(override); id != "" {
+		return id
+	}
+	return loadOrGenerateInstanceID()
 }
 
 
