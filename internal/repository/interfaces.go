@@ -236,6 +236,7 @@ type Credentials struct {
 type UserRepository interface {
 	List(ctx context.Context) ([]models.User, error)
 	GetByID(ctx context.Context, id string) (*models.User, error)
+	GetByUsername(ctx context.Context, username string) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	Create(ctx context.Context, u UserCreate) (*models.User, error)
 	Update(ctx context.Context, id string, upd UserUpdate) (*models.User, error)

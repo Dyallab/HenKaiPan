@@ -78,6 +78,15 @@ func (m *mockUserRepo) GetByID(_ context.Context, id string) (*models.User, erro
 	return u, nil
 }
 
+func (m *mockUserRepo) GetByUsername(_ context.Context, username string) (*models.User, error) {
+	for _, u := range m.users {
+		if u.Username == username {
+			return u, nil
+		}
+	}
+	return nil, pgx.ErrNoRows
+}
+
 func (m *mockUserRepo) GetUserByEmail(_ context.Context, email string) (*models.User, error) {
 	for _, u := range m.users {
 		if u.Email == email {
