@@ -41,6 +41,17 @@ func (r *userRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	return &u, nil
 }
 
+func (r *userRepo) GetByUsername(ctx context.Context, username string) (*models.User, error) {
+	var u models.User
+	err := r.db.QueryRow(ctx,
+		`SELECT id, username, email, role, is_active, created_at, last_login, sso_provider, sso_subject FROM users WHERE username = $1`, username,
+	).Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.IsActive, &u.CreatedAt, &u.LastLogin, &u.SSOProvider, &u.SSOSubject)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
 func (r *userRepo) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	var u models.User
 	err := r.db.QueryRow(ctx,
