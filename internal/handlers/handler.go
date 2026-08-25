@@ -54,6 +54,13 @@ type Handler struct {
 	maxAIScans     int
 	ssoEnabled     bool
 	ssoProvider    *sso.Provider
+	allowedOrigins []string
+}
+
+// SetAllowedOrigins configures the origin allowlist used by the MCP handler's
+// DNS-rebinding Origin guard. It reuses the same list as the CORS middleware.
+func (h *Handler) SetAllowedOrigins(origins []string) {
+	h.allowedOrigins = origins
 }
 
 func New(store repository.Stores, queue *asynq.Client, frontendURL string, cookieSecure bool, cookieDomain, cookieSameSite string, aiConfig AIConfig, emailEnabled bool, webhookSecret string, findingCache *cache.Cache, maxProjects, maxUsers, maxAIScans int, ssoEnabled bool, ssoProvider *sso.Provider) *Handler {
