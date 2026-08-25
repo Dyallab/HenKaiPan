@@ -2,73 +2,31 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	"fmt"
-	"log/slog"
 	"net/http"
 	"strings"
-	"sync"
-	"time"
 
 	"aspm/internal/datascope"
 	"aspm/internal/repository"
 )
 
-// ── MCP Session Management ────────────────────────────────────────────────
+// ── Stateless MCP (2026-07-28) ───────────────────────────────────────────
+//
+// The server speaks the modern, stateless MCP protocol (revision 2026-07-28):
+// there is no initialize handshake and no server-side session state. Every
+// request is self-contained, authenticated by the X-API-Key token injected by
+// the APIKeyAuth middleware, and carries its protocol version in the
+// MCP-Protocol-Version header plus the request body _meta.
 
-const mcpMaxSessionsPerToken = 10
+const mcpProtocolVersion = "2026-07-28"
 
-// mcpSession represents a single MCP client connection.
-type mcpSession struct {
-	id        string
-	tokenID   string
-	responses chan json.RawMessage
-	ctx       context.Context
-	cancel    context.CancelFunc
-}
+var mcpServerInfo = map[string]string{"name": "henkaipan-mcp", "version": "1.0.0"}
 
-var (
-	mcpSessions   = map[string]*mcpSession{}
-	mcpSessionsMu sync.RWMutex
-)
-
-func registerMCPSession(ctx context.Context, tokenID, id string) *mcpSession {
-	ctx, cancel := context.WithCancel(ctx)
-	s := &mcpSession{
-		id:        id,
-		tokenID:   tokenID,
-		responses: make(chan json.RawMessage, 100),
-		ctx:       ctx,
-		cancel:    cancel,
-	}
-	mcpSessionsMu.Lock()
-	mcpSessions[id] = s
-	mcpSessionsMu.Unlock()
-	return s
-}
-
-func unregisterMCPSession(id string) {
-	mcpSessionsMu.Lock()
-	delete(mcpSessions, id)
-	mcpSessionsMu.Unlock()
-}
-
-func getMCPSession(id string) *mcpSession {
-	mcpSessionsMu.RLock()
-	defer mcpSessionsMu.RUnlock()
-	return mcpSessions[id]
-}
-
-func countMCPSessionsByToken(tokenID string) int {
-	mcpSessionsMu.RLock()
-	defer mcpSessionsMu.RUnlock()
-	count := 0
-	for _, s := range mcpSessions {
-		if s.tokenID == tokenID {
-			count++
-		}
-	}
-	return count
+// mcpResultMeta returns the serverInfo _meta object servers SHOULD attach to
+// each result under io.modelcontextprotocol/serverInfo.
+func mcpResultMeta() map[string]any {
+	return map[string]any{"io.modelcontextprotocol/serverInfo": mcpServerInfo}
 }
 
 // ── JSON-RPC 2.0 Types ────────────────────────────────────────────────────
@@ -90,6 +48,7 @@ type jsonRPCResponse struct {
 type jsonRPCError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 // ── MCP Protocol Types ────────────────────────────────────────────────────
@@ -101,14 +60,23 @@ type mcpTool struct {
 }
 
 type inputSchema struct {
-	Type       string                     `json:"type"`
-	Properties map[string]propertySchema  `json:"properties"`
-	Required   []string                   `json:"required,omitempty"`
+	Type       string                    `json:"type"`
+	Properties map[string]propertySchema `json:"properties"`
+	Required   []string                  `json:"required,omitempty"`
 }
 
 type propertySchema struct {
 	Type        string `json:"type"`
 	Description string `json:"description,omitempty"`
+}
+
+// mcpParams is used to read the _meta protocol version and the tools/call tool
+// name without disturbing each tool implementation's own params decode.
+type mcpParams struct {
+	Name string `json:"name"`
+	Meta *struct {
+		ProtocolVersion string `json:"io.modelcontextprotocol/protocolVersion,omitempty"`
+	} `json:"_meta,omitempty"`
 }
 
 // ── MCP Handler ───────────────────────────────────────────────────────────
@@ -129,110 +97,165 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Origin guard — DNS rebinding protection. Only applies when an Origin
+	// header is present (typical of browser clients); desktop LLM clients
+	// usually omit it and are allowed through.
+	if origin := r.Header.Get("Origin"); origin != "" && !h.originAllowed(origin) {
+		writeMCPError(w, http.StatusForbidden, nil, -32020, "invalid origin", nil)
+		return
+	}
+
 	var req jsonRPCRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, r, http.StatusBadRequest, "invalid JSON-RPC")
+		writeMCPError(w, http.StatusBadRequest, nil, -32700, "Parse error: invalid JSON-RPC", nil)
 		return
 	}
 
-	if req.Method == "initialize" {
-		h.handleMCPInitialize(w, r, token, &req)
-		return
-	}
-
-	sessionID := r.Header.Get("MCP-Session-Id")
-	if sessionID == "" {
-		sessionID = "mcp_implicit_" + token.ID
-		if getMCPSession(sessionID) == nil {
-			registerMCPSession(context.Background(), token.ID, sessionID)
-		}
-	}
-
-	session := getMCPSession(sessionID)
-	if session == nil || session.ctx.Err() != nil {
-		writeError(w, r, http.StatusNotFound, "session not found or expired")
-		return
-	}
-
-	if token.ID != session.tokenID {
-		writeError(w, r, http.StatusForbidden, "this token does not own this session")
-		return
-	}
-
-	response := h.processMCPRequest(session.ctx, &req)
-
+	// Notifications (no id) are acknowledged without per-request header
+	// validation: the 2026-07-28 Streamable HTTP transport defines no
+	// client-to-server notifications, so this is a lenient accept path.
 	if req.ID == nil {
 		w.WriteHeader(http.StatusAccepted)
 		return
 	}
 
-	respJSON, err := json.Marshal(response)
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
+	// Modern-only: the legacy initialize handshake is unsupported. Surface the
+	// supported versions so legacy clients get an actionable diagnostic.
+	if req.Method == "initialize" {
+		writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+			"Unsupported protocol version: initialize handshake is not supported",
+			map[string]any{"supported": []string{mcpProtocolVersion}, "requested": "initialize"},
+		)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
-}
+	// Parse params once for _meta and tools/call name validation.
+	var p mcpParams
+	if len(req.Params) > 0 {
+		_ = json.Unmarshal(req.Params, &p)
+	}
 
-func (h *Handler) handleMCPInitialize(w http.ResponseWriter, r *http.Request, token *repository.Token, req *jsonRPCRequest) {
-	if countMCPSessionsByToken(token.ID) >= mcpMaxSessionsPerToken {
-		writeError(w, r, http.StatusTooManyRequests, "too many MCP sessions for this token")
+	// ── Protocol version negotiation (MCP-Protocol-Version header + _meta) ──
+	pvHeader := r.Header.Get("MCP-Protocol-Version")
+	if pvHeader == "" {
+		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+			"Missing required header: MCP-Protocol-Version", nil)
+		return
+	}
+	pvBody := ""
+	if p.Meta != nil {
+		pvBody = p.Meta.ProtocolVersion
+	}
+	if pvBody != "" && pvBody != pvHeader {
+		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+			"Header mismatch: MCP-Protocol-Version header does not match _meta protocol version", nil)
+		return
+	}
+	if pvHeader != mcpProtocolVersion {
+		writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+			"Unsupported protocol version",
+			map[string]any{"supported": []string{mcpProtocolVersion}, "requested": pvHeader},
+		)
 		return
 	}
 
-	sessionID := fmt.Sprintf("mcp_%s_%d", token.ID, time.Now().UnixNano())
-	session := registerMCPSession(context.Background(), token.ID, sessionID)
-
-	response := h.mcpInitialize(req)
-	respJSON, err := json.Marshal(response)
-	if err != nil {
-		session.cancel()
-		unregisterMCPSession(sessionID)
-		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
+	// ── Standard request headers (Mcp-Method, Mcp-Name) ──
+	mHeader := r.Header.Get("Mcp-Method")
+	if mHeader == "" || mHeader != req.Method {
+		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+			"Header mismatch: Mcp-Method header does not match body method", nil)
 		return
 	}
-
-	w.Header().Set("MCP-Session-Id", sessionID)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
-
-	slog.Debug("MCP session created", "session_id", sessionID, "token_id", token.ID)
-}
-
-// processMCPRequest routes a JSON-RPC request to the appropriate handler.
-func (h *Handler) processMCPRequest(ctx context.Context, req *jsonRPCRequest) *jsonRPCResponse {
-	switch req.Method {
-	case "initialize":
-		return h.mcpInitialize(req)
-	case "tools/list":
-		return h.mcpToolsList(req)
-	case "tools/call":
-		return h.mcpToolsCall(ctx, req)
-	case "notifications/initialized":
-		return nil
-	default:
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error:   &jsonRPCError{Code: -32601, Message: "Method not found: " + req.Method},
+	if req.Method == "tools/call" {
+		nHeader := r.Header.Get("Mcp-Name")
+		decoded, ok := decodeMCPHeader(nHeader)
+		if !ok || nHeader == "" || decoded != p.Name {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Header mismatch: Mcp-Name header does not match params.name", nil)
+			return
 		}
 	}
+
+	// ── Dispatch ──
+	var response *jsonRPCResponse
+	switch req.Method {
+	case "server/discover":
+		response = h.mcpDiscover(&req)
+	case "tools/list":
+		response = h.mcpToolsList(&req)
+	case "tools/call":
+		response = h.mcpToolsCall(r.Context(), &req)
+	default:
+		writeMCPError(w, http.StatusNotFound, req.ID, -32601, "Method not found: "+req.Method, nil)
+		return
+	}
+
+	respJSON, err := json.Marshal(response)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
 }
 
-func (h *Handler) mcpInitialize(req *jsonRPCRequest) *jsonRPCResponse {
+// writeMCPError writes a JSON-RPC 2.0 error response with the given HTTP
+// status. id may be nil for unparseable bodies (the spec permits error
+// responses with no id).
+func writeMCPError(w http.ResponseWriter, status int, id json.RawMessage, code int, message string, data any) {
+	resp := jsonRPCResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Error:   &jsonRPCError{Code: code, Message: message, Data: data},
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(resp)
+}
+
+// decodeMCPHeader decodes the Base64 sentinel encoding used for Mcp-Name (and
+// Mcp-Param-*) header values that are not plain ASCII. The sentinel format is
+// =?base64?<Base64>?=. Returns the decoded value and true on success, or "" /
+// false when a value claims to be encoded but is not valid Base64.
+func decodeMCPHeader(raw string) (string, bool) {
+	const prefix = "=?base64?"
+	const suffix = "?="
+	if strings.HasPrefix(raw, prefix) && strings.HasSuffix(raw, suffix) && len(raw) >= len(prefix)+len(suffix) {
+		enc := raw[len(prefix) : len(raw)-len(suffix)]
+		dec, err := base64.StdEncoding.DecodeString(enc)
+		if err != nil {
+			return "", false
+		}
+		return string(dec), true
+	}
+	return raw, true
+}
+
+// originAllowed reports whether the given Origin is permitted. When no allowed
+// origins are configured (e.g. tests, or a "*" wildcard policy) all origins pass.
+func (h *Handler) originAllowed(origin string) bool {
+	if len(h.allowedOrigins) == 0 {
+		return true
+	}
+	for _, o := range h.allowedOrigins {
+		if o == "*" || o == origin {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *Handler) mcpDiscover(req *jsonRPCRequest) *jsonRPCResponse {
 	result, _ := json.Marshal(map[string]any{
-		"protocolVersion": "2025-03-26",
-		"capabilities": map[string]any{
-			"tools": map[string]any{},
-		},
-		"serverInfo": map[string]string{
-			"name":    "henkaipan-mcp",
-			"version": "1.0.0",
-		},
+		"resultType":       "complete",
+		"supportedVersions": []string{mcpProtocolVersion},
+		"capabilities":     map[string]any{"tools": map[string]any{}},
+		"_meta":            mcpResultMeta(),
+		"instructions":     "HenKaiPan MCP server. Use tools/list to enumerate security tools, then tools/call with the tool name and arguments. Authenticated via X-API-Key.",
+		"ttlMs":            3600000,
+		"cacheScope":       "public",
 	})
 	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
 }
@@ -240,7 +263,7 @@ func (h *Handler) mcpInitialize(req *jsonRPCRequest) *jsonRPCResponse {
 // ── Tools / List ──────────────────────────────────────────────────────────
 //
 // Keep the tool catalog below in sync with the machine-readable spec published at
-// @dyallab/docs/llms/mcp-tools.json (package version 1.15.0+).
+// @dyallab/docs/llms/mcp-tools.json (package version 1.18.0+).
 
 func (h *Handler) mcpToolsList(req *jsonRPCRequest) *jsonRPCResponse {
 	tools := []mcpTool{
@@ -334,7 +357,13 @@ func (h *Handler) mcpToolsList(req *jsonRPCRequest) *jsonRPCResponse {
 		},
 	}
 
-	result, _ := json.Marshal(map[string]any{"tools": tools})
+	result, _ := json.Marshal(map[string]any{
+		"tools":      tools,
+		"resultType": "complete",
+		"ttlMs":      3600000,
+		"cacheScope": "public",
+		"_meta":      mcpResultMeta(),
+	})
 	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
 }
 
@@ -582,15 +611,16 @@ func (h *Handler) mcpDashboardSummary(ctx context.Context, req *jsonRPCRequest, 
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-// mcpToolResult wraps tool call data in MCP-standard content format.
-// The MCP protocol requires tools/call responses to have a "content" array
-// with at least one text entry, rather than bare business data in result.
+// mcpToolResult wraps tool call data in MCP-standard content format and attaches
+// the modern result envelope (resultType + serverInfo _meta). The MCP protocol
+// requires tools/call responses to have a "content" array with at least one
+// text entry, rather than bare business data in result.
 func mcpToolResult(data map[string]any) json.RawMessage {
 	payload, _ := json.Marshal(data)
 	wrapped, _ := json.Marshal(map[string]any{
-		"content": []map[string]any{
-			{"type": "text", "text": string(payload)},
-		},
+		"content":    []map[string]any{{"type": "text", "text": string(payload)}},
+		"resultType": "complete",
+		"_meta":      mcpResultMeta(),
 	})
 	return wrapped
 }

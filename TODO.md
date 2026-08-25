@@ -322,7 +322,7 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
     - [ ] API token management
     - [ ] Knowledge articles
     - [ ] Metrics/stats endpoints
-    - [ ] MCP endpoint
+    - [x] MCP endpoint
   - [ ] `httperrors/`: Expand existing tests — `Wrap`, `New`, all status code helpers
 
 - [ ] **Phase 6 — Task handlers (Asynq workers)**

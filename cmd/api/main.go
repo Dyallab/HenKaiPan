@@ -127,6 +127,7 @@ func main() {
 		cfg.EmailEnabled, cfg.WebhookSecret, findingCache,
 		cfg.MaxProjects, cfg.MaxUsers, cfg.MaxAIScans,
 		cfg.SSOEnabled && ssoProvider != nil, ssoProvider)
+	h.SetAllowedOrigins(cfg.AllowedOrigins)
 
 	if cfg.TelemetryEnabled {
 		go telemetry.NewClient(store, "https://telemetry.dyallab.com.ar/api/ping", handlers.Version, cfg.Tier, cfg.InstanceID).Start(context.Background())
@@ -409,7 +410,7 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Webhook-Signature", "X-Webhook-Timestamp", "X-API-Key"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Webhook-Signature", "X-Webhook-Timestamp", "X-API-Key", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"},
 		AllowCredentials: true,
 	})
 
