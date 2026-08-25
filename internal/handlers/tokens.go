@@ -170,6 +170,53 @@ func (h *Handler) DeleteToken(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "revoked"})
 }
 
+// RotateToken generates a new secret for an existing token, preserving its
+// name and scope. The old secret is revoked (its hash is overwritten).
+// The new raw token is returned exactly once. Only the creator can rotate.
+func (h *Handler) RotateToken(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, r, http.StatusBadRequest, "token id required")
+		return
+	}
+
+	claims := auth.GetClaims(r)
+	if claims == nil {
+		writeError(w, r, http.StatusUnauthorized, "authentication required")
+		return
+	}
+
+	raw, prefix, err := generateToken()
+	if err != nil {
+		h.writeInternal(w, r, err, "failed to generate token")
+		return
+	}
+
+	hashed, err := hashToken(raw)
+	if err != nil {
+		h.writeInternal(w, r, err, "failed to hash token")
+		return
+	}
+
+	t, err := h.store.Tokens.Rotate(r.Context(), id, claims.UserID, hashed, prefix)
+	if err != nil {
+		writeError(w, r, http.StatusNotFound, "token not found")
+		return
+	}
+
+	h.auditLog(r, "api_token.rotate", "api_token", id, nil, map[string]any{
+		"name":       t.Name,
+		"project_id": t.ProjectID,
+	})
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"token":  raw, // shown only once
+		"id":     t.ID,
+		"name":   t.Name,
+		"prefix": t.Prefix,
+	})
+}
+
 // ── External Scan Endpoints ────────────────────────────────────────────────
 
 // CreateExternalScan triggers a scan from an external CI/CD system.
