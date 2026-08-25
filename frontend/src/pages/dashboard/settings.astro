@@ -2851,7 +2851,10 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                             <p class="text-xs text-slate-500 mt-0.5">${projectLabel} · Created ${createdAt} · Last used ${lastUsed}</p>
                         </div>
                     </div>
-                    <button class="revoke-token-btn shrink-0 px-3 py-1.5 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold hover:bg-rose-500/10 transition-all" data-id="${t.id}" data-name="${t.name}">Revoke</button>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button class="rotate-token-btn px-3 py-1.5 border border-amber-500/30 text-amber-400 rounded-lg text-xs font-bold hover:bg-amber-500/10 transition-all" data-id="${t.id}" data-name="${t.name}">Rotate</button>
+                        <button class="revoke-token-btn px-3 py-1.5 border border-rose-500/30 text-rose-400 rounded-lg text-xs font-bold hover:bg-rose-500/10 transition-all" data-id="${t.id}" data-name="${t.name}">Revoke</button>
+                    </div>
                 </div>`;
                 })
                 .join("");
@@ -2871,6 +2874,33 @@ import DashboardLayout from "@layouts/DashboardLayout.astro";
                         await loadTokens();
                     } catch (e: any) {
                         toast(e.message || "Failed to revoke token", "error");
+                    }
+                });
+            });
+            container.querySelectorAll(".rotate-token-btn").forEach((btn) => {
+                btn.addEventListener("click", async () => {
+                    const id = (btn as HTMLElement).dataset.id!;
+                    const name = (btn as HTMLElement).dataset.name!;
+                    if (
+                        !confirm(
+                            `Rotate token "${name}"? The current secret will be revoked and a new one generated.`,
+                        )
+                    )
+                        return;
+                    try {
+                        const res = await api.rotateToken(id);
+                        (
+                            document.getElementById(
+                                "new-token-display",
+                            ) as HTMLElement
+                        ).textContent = res.token;
+                        document
+                            .getElementById("token-created-modal")!
+                            .classList.remove("hidden");
+                        toast("Token rotated — copy the new secret", "success");
+                        await loadTokens();
+                    } catch (e: any) {
+                        toast(e.message || "Failed to rotate token", "error");
                     }
                 });
             });

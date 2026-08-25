@@ -640,6 +640,11 @@ export const api = {
     ),
   deleteToken: (id: string) =>
     req<void>(`/api/v1/tokens/${id}`, { method: "DELETE" }),
+  rotateToken: (id: string) =>
+    req<{ token: string; id: string; name: string; prefix: string }>(
+      `/api/v1/tokens/${id}/rotate`,
+      { method: "POST" },
+    ),
 };
 
 export interface Token {

@@ -626,6 +626,7 @@ type TokenRepository interface {
 	Create(ctx context.Context, tok TokenCreate, hash, prefix string) (*Token, error)
 	List(ctx context.Context, userID string) ([]Token, error)
 	GetByPrefix(ctx context.Context, prefix string) (*Token, error)
+	Rotate(ctx context.Context, id, userID, hash, prefix string) (*Token, error)
 	Delete(ctx context.Context, id, userID string) error
 	UpdateLastUsed(ctx context.Context, id string) error
 }

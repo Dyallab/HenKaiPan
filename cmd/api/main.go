@@ -239,6 +239,7 @@ func main() {
 		r.Route("/api/v1", func(r chi.Router) {
 			r.Get("/tokens", h.ListTokens)
 			r.Post("/tokens", h.CreateToken)
+			r.Post("/tokens/{id}/rotate", h.RotateToken)
 			r.Delete("/tokens/{id}", h.DeleteToken)
 		})
 

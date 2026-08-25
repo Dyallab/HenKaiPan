@@ -116,6 +116,32 @@ func VerifyToken(raw, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(raw)) == nil
 }
 
+// Rotate replaces the hash and prefix of an existing token in place,
+// preserving name, scope (project_id), created_by, and expires_at.
+// The old secret is effectively revoked because the stored hash is overwritten.
+// Returns pgx.ErrNoRows if the token does not exist or is not owned by userID.
+func (r *tokenRepo) Rotate(ctx context.Context, id, userID, hash, prefix string) (*Token, error) {
+	row := r.db.QueryRow(ctx,
+		`UPDATE api_tokens
+		 SET hash = $1, prefix = $2, updated_at = NOW()
+		 WHERE id = $3 AND created_by = $4
+		 RETURNING id, name, prefix, project_id, created_by, last_used_at, expires_at, created_at, updated_at`,
+		hash, prefix, id, userID,
+	)
+
+	t := &Token{}
+	if err := row.Scan(
+		&t.ID, &t.Name, &t.Prefix, &t.ProjectID, &t.CreatedBy,
+		&t.LastUsedAt, &t.ExpiresAt, &t.CreatedAt, &t.UpdatedAt,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, pgx.ErrNoRows
+		}
+		return nil, fmt.Errorf("rotate token: %w", err)
+	}
+	return t, nil
+}
+
 func (r *tokenRepo) Delete(ctx context.Context, id, userID string) error {
 	tag, err := r.db.Exec(ctx,
 		`DELETE FROM api_tokens WHERE id = $1 AND created_by = $2`, id, userID,
