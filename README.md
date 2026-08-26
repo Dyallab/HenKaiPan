@@ -1,6 +1,6 @@
 # HenKaiPan
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: BUSL 1.1](https://img.shields.io/badge/License-BUSL--1.1-orange.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev/)
 [![CI/CD](https://github.com/Dyallab/HenKaiPan/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Dyallab/HenKaiPan/actions/workflows/ci-cd.yml)
 
@@ -294,4 +294,12 @@ If AI providers are not configured, AI remediation, validation, and summary feat
 
 ## License
 
-MIT
+Licensed under the **Business Source License 1.1** — see [LICENSE](LICENSE).
+
+This is **not** an open-source license: it permits non-production use, and
+production use that does not offer the software as a hosted/managed service
+in competition with Dyallab. After the Change Date, each version is released
+under the permissive MIT license.
+
+- **Self-hosted** deployment: free, unrestricted (see [HenKaiPan-self-hosted](https://github.com/Dyallab/HenKaiPan-self-hosted)).
+- **Cloud / Enterprise**: offered as a managed service by Dyallab. Contact henkaipan@dyallab.com.ar.
