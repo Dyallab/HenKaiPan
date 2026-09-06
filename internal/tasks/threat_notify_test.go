@@ -196,6 +196,33 @@ func TestThreatNotify_UnconfirmedEnqueuesRescanOnly(t *testing.T) {
 	}
 }
 
+func TestThreatNotify_MultiUnconfirmedEnqueuesSingleRescan(t *testing.T) {
+	deps, catcher := notifyTestDeps()
+	hits := []repository.ThreatHit{
+		{AdvisoryID: "GHSA-test-1", PkgName: "log4j", PkgVersion: "2.14.0", MatchStatus: "unconfirmed"},
+		{AdvisoryID: "GHSA-test-2", PkgName: "spring-core", PkgVersion: "5.3.0", MatchStatus: "unconfirmed"},
+		{AdvisoryID: "GHSA-test-3", PkgName: "jackson", PkgVersion: "2.12.0", MatchStatus: ""},
+	}
+
+	NotifyForHits(context.Background(), catcher, deps, "proj-1", hits, kevAdvisories())
+
+	counts := catcher.countByType()
+	if counts[TypeScanRun] != 1 {
+		t.Fatalf("scan:run enqueued = %d, want exactly 1 for 3 unconfirmed hits (all=%v)", counts[TypeScanRun], counts)
+	}
+	if counts[TypeWebhookSend] != 0 || counts[TypeEmailSend] != 0 {
+		t.Fatalf("zero notifies expected for unconfirmed, got %v", counts)
+	}
+	if scans, ok := deps.Scans.(*fakeNotifyScans); ok {
+		scans.mu.Lock()
+		n := len(scans.inserted)
+		scans.mu.Unlock()
+		if n != 1 {
+			t.Fatalf("scan inserts = %d, want exactly 1", n)
+		}
+	}
+}
+
 func TestThreatNotify_OptOutSuppressesNotifiesKeepsRescan(t *testing.T) {
 	deps, catcher := notifyTestDeps()
 	deps.NotificationsEnabled = false

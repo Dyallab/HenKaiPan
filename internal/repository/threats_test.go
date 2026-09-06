@@ -104,20 +104,20 @@ func TestThreats_RoundTrip(t *testing.T) {
 			},
 		},
 	}
-	if err := stores.Threats.UpsertAdvisories(ctx, advs); err != nil {
+	if err := stores.Threats.UpsertAdvisories(ctx, advs, nil); err != nil {
 		t.Fatalf("upsert advisories: %v", err)
 	}
 	// Re-upsert with changed severity must update in place, not duplicate.
 	advs[0].Severity = "CRITICAL"
-	if err := stores.Threats.UpsertAdvisories(ctx, advs[:1]); err != nil {
+	if err := stores.Threats.UpsertAdvisories(ctx, advs[:1], nil); err != nil {
 		t.Fatalf("re-upsert advisory: %v", err)
 	}
 	var sev string
 	if err := pool.QueryRow(ctx, `SELECT severity FROM threat_advisories WHERE advisory_id = $1`, "GHSA-TEST-0001").Scan(&sev); err != nil {
 		t.Fatalf("read advisory severity: %v", err)
 	}
-	if sev != "CRITICAL" {
-		t.Fatalf("expected advisory severity updated to CRITICAL, got %q", sev)
+	if sev != "critical" {
+		t.Fatalf("expected advisory severity normalized to critical, got %q", sev)
 	}
 
 	hits := []ThreatHit{
@@ -230,4 +230,123 @@ func TestThreats_RoundTrip(t *testing.T) {
 	if _, _, err := stores.Threats.ListExposures(ctx, ExposureFilter{ProjectID: projectID, Page: 1, Limit: 10, Sort: "'; DROP TABLE projects; --"}); err != nil {
 		t.Fatalf("list with hostile sort must fall back safely, got err: %v", err)
 	}
+}
+
+func TestThreats_NormalizeSeverity(t *testing.T) {
+	cases := []struct {
+		name string
+		sev  string
+		cvss float64
+		want string
+	}{
+		{"cvss critical wins over type string", "CVSS_V3", 9.8, "critical"},
+		{"cvss 9.0 boundary", "", 9.0, "critical"},
+		{"cvss high", "CVSS_V3", 7.5, "high"},
+		{"cvss 7.0 boundary", "", 7.0, "high"},
+		{"cvss medium", "", 5.0, "medium"},
+		{"cvss 4.0 boundary", "", 4.0, "medium"},
+		{"cvss low", "", 2.0, "low"},
+		{"uppercase enum accepted", "HIGH", 0, "high"},
+		{"mixed case enum accepted", "Critical", 0, "critical"},
+		{"osv type string falls back to info", "CVSS_V3", 0, "info"},
+		{"empty falls back to info", "", 0, "info"},
+		{"unknown string falls back to info", "MODERATE", 0, "info"},
+	}
+	for _, tc := range cases {
+		if got := normalizeThreatSeverity(tc.sev, tc.cvss); got != tc.want {
+			t.Errorf("%s: normalizeThreatSeverity(%q, %v) = %q, want %q",
+				tc.name, tc.sev, tc.cvss, got, tc.want)
+		}
+	}
+}
+
+func TestThreats_KEVPersist(t *testing.T) {
+	ctx := context.Background()
+	pool := threatsTestPool(t)
+	threatsTestProject(t, pool)
+	stores := NewPostgresStores(pool, "")
+
+	kevChecker := func(cveID string, aliases []string) bool {
+		if cveID == "CVE-2021-44228" {
+			return true
+		}
+		for _, a := range aliases {
+			if a == "CVE-2021-44228" {
+				return true
+			}
+		}
+		return false
+	}
+
+	advs := []threats.Advisory{
+		{
+			AdvisoryID: "GHSA-TEST-KEV1",
+			Source:     "osv",
+			CVEID:      "CVE-2021-44228",
+			Severity:   "CRITICAL",
+			CVSS:       10.0,
+		},
+		{
+			AdvisoryID: "GHSA-TEST-KEV2",
+			Source:     "osv",
+			CVEID:      "",
+			Aliases:    []string{"CVE-2021-44228"},
+			Severity:   "HIGH",
+		},
+		{
+			AdvisoryID: "GHSA-TEST-NOKEV",
+			Source:     "osv",
+			CVEID:      "CVE-2024-99999",
+			Severity:   "LOW",
+		},
+	}
+	if err := stores.Threats.UpsertAdvisories(ctx, advs, kevChecker); err != nil {
+		t.Fatalf("upsert advisories with kev: %v", err)
+	}
+	checkKEV := func(id string, want bool) {
+		t.Helper()
+		var kev bool
+		if err := pool.QueryRow(ctx, `SELECT kev FROM threat_advisories WHERE advisory_id = $1`, id).Scan(&kev); err != nil {
+			t.Fatalf("read kev flag %s: %v", id, err)
+		}
+		if kev != want {
+			t.Fatalf("kev flag %s = %v, want %v", id, kev, want)
+		}
+	}
+	checkKEV("GHSA-TEST-KEV1", true)
+	checkKEV("GHSA-TEST-KEV2", true)
+	checkKEV("GHSA-TEST-NOKEV", false)
+
+	// KEV is ingest-owned: a later sync with an empty catalog must clear it.
+	if err := stores.Threats.UpsertAdvisories(ctx, advs[:1], nil); err != nil {
+		t.Fatalf("re-upsert without kev checker: %v", err)
+	}
+	checkKEV("GHSA-TEST-KEV1", false)
+}
+
+func TestThreats_SeverityPersist(t *testing.T) {
+	ctx := context.Background()
+	pool := threatsTestPool(t)
+	threatsTestProject(t, pool)
+	stores := NewPostgresStores(pool, "")
+
+	advs := []threats.Advisory{
+		{AdvisoryID: "GHSA-TEST-SEV1", Source: "osv", Severity: "CVSS_V3", CVSS: 9.8},
+		{AdvisoryID: "GHSA-TEST-SEV2", Source: "osv", Severity: "CVSS_V3", CVSS: 0},
+	}
+	if err := stores.Threats.UpsertAdvisories(ctx, advs, nil); err != nil {
+		t.Fatalf("upsert advisories: %v", err)
+	}
+	checkSev := func(id, want string) {
+		t.Helper()
+		var sev string
+		if err := pool.QueryRow(ctx, `SELECT severity FROM threat_advisories WHERE advisory_id = $1`, id).Scan(&sev); err != nil {
+			t.Fatalf("read severity %s: %v", id, err)
+		}
+		if sev != want {
+			t.Fatalf("severity %s = %q, want %q", id, sev, want)
+		}
+	}
+	checkSev("GHSA-TEST-SEV1", "critical")
+	checkSev("GHSA-TEST-SEV2", "info")
 }

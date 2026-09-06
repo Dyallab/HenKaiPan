@@ -17,7 +17,7 @@ import (
 // correlation hits, plus the joined exposure listing.
 type ThreatRepository interface {
 	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
-	UpsertAdvisories(ctx context.Context, advs []threats.Advisory) error
+	UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error
 	InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error
 	ListExposures(ctx context.Context, filter ExposureFilter) (rows []ExposureRow, total int, err error)
 }
@@ -76,8 +76,8 @@ var exposureSorts = map[string]string{
 	"":             "h.created_at DESC",
 	"created_at":   "h.created_at DESC",
 	"published_at": "a.published_at DESC NULLS LAST, h.created_at DESC",
-	"severity": "CASE a.severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 " +
-		"WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END, h.created_at DESC",
+	"severity": "CASE a.severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 " +
+		"WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END, h.created_at DESC",
 	"cve_id": "a.cve_id ASC NULLS LAST, h.created_at DESC",
 }
 
@@ -115,11 +115,41 @@ func (r *threatRepo) UpsertDependencies(ctx context.Context, projectID string, d
 	return nil
 }
 
+// normalizeThreatSeverity maps an advisory to the dashboard enum
+// (critical/high/medium/low/info, lowercase). A CVSS score wins when
+// available (CVSS>=9 critical, >=7 high, >=4 medium, >0 low); otherwise
+// the severity string is accepted only if already a valid enum value
+// (case-insensitive) and anything else (e.g. OSV "CVSS_V3" type strings)
+// falls back to info.
+func normalizeThreatSeverity(sev string, cvss float64) string {
+	if cvss >= 9 {
+		return "critical"
+	}
+	if cvss >= 7 {
+		return "high"
+	}
+	if cvss >= 4 {
+		return "medium"
+	}
+	if cvss > 0 {
+		return "low"
+	}
+	switch strings.ToLower(strings.TrimSpace(sev)) {
+	case "critical", "high", "medium", "low", "info":
+		return strings.ToLower(strings.TrimSpace(sev))
+	default:
+		return "info"
+	}
+}
+
 // UpsertAdvisories inserts or refreshes upstream advisories by PK.
 // Ecosystem/pkg_name come from the first affected package; affected_ranges
-// carries the full per-package ranges as JSONB. kev is ingest-track owned
-// (KEV overlay) and intentionally never overwritten here.
-func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Advisory) error {
+// carries the full per-package ranges as JSONB. kev is ingest-owned: the
+// isKEV checker (nil-safe, caller passes threats.IsKEV bound to the KEV
+// catalog) decides the flag and it is overwritten on every sync. Severity
+// is normalized to the dashboard enum (see normalizeThreatSeverity) so OSV
+// type strings like CVSS_V3 never reach the column.
+func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error {
 	for _, a := range advs {
 		if strings.TrimSpace(a.AdvisoryID) == "" {
 			continue
@@ -147,10 +177,15 @@ func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Adviso
 		if !a.Published.IsZero() {
 			publishedAt = &a.Published
 		}
+		kev := false
+		if isKEV != nil {
+			kev = isKEV(a.CVEID, a.Aliases)
+		}
+		severity := normalizeThreatSeverity(a.Severity, a.CVSS)
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO threat_advisories
-				(advisory_id, source, cve_id, ecosystem, pkg_name, affected_ranges, severity, published_at, raw)
-			VALUES ($1, $2, NULLIF($3, ''), $4, $5, $6, NULLIF($7, ''), $8, $9)
+				(advisory_id, source, cve_id, ecosystem, pkg_name, affected_ranges, severity, kev, published_at, raw)
+			VALUES ($1, $2, NULLIF($3, ''), $4, $5, $6, NULLIF($7, ''), $8, $9, $10)
 			ON CONFLICT (advisory_id) DO UPDATE SET
 				source          = EXCLUDED.source,
 				cve_id          = EXCLUDED.cve_id,
@@ -158,10 +193,11 @@ func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Adviso
 				pkg_name        = EXCLUDED.pkg_name,
 				affected_ranges = EXCLUDED.affected_ranges,
 				severity        = EXCLUDED.severity,
+				kev             = EXCLUDED.kev,
 				published_at    = EXCLUDED.published_at,
 				raw             = EXCLUDED.raw`,
 			a.AdvisoryID, a.Source, a.CVEID, ecosystem, pkgName,
-			affectedRanges, a.Severity, publishedAt, raw); err != nil {
+			affectedRanges, severity, kev, publishedAt, raw); err != nil {
 			return fmt.Errorf("upsert advisory %s: %w", a.AdvisoryID, err)
 		}
 	}

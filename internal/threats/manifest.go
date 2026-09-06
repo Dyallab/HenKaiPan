@@ -23,9 +23,15 @@ type Dependency struct {
 // content into dependency rows. sourceFile selects the parser by base name.
 // It returns an error on malformed input and never panics.
 //
-// Version ranges that cannot be resolved to a single installed version
-// (npm semver ranges, unpinned pip specifiers, go indirect requirements)
-// are skipped rather than guessed at.
+// Version specs that cannot be resolved to a single installed version
+// are skipped rather than guessed at. For npm this means exact-only:
+// only bare pins ("4.17.21"), "=" pins ("=4.17.21"), and "v"-prefixed
+// pins ("v4.17.21") proceed; every range (^, ~, >=, >, <, *, latest,
+// URLs, aliases, "||" unions, hyphen ranges) is skipped because without
+// a lockfile the declared range cannot be resolved to the installed
+// version, and coercing it to its lower bound produces false
+// positive/negative OSV matches. Unpinned pip specifiers and go
+// indirect requirements are likewise skipped.
 func ParseManifest(sourceFile string, data []byte) ([]Dependency, error) {
 	if len(bytes.TrimSpace(data)) == 0 {
 		return nil, fmt.Errorf("threats: empty manifest %q", sourceFile)
@@ -68,9 +74,8 @@ func parsePackageJSON(sourceFile string, data []byte) ([]Dependency, error) {
 	var deps []Dependency
 	for _, scope := range []map[string]string{pkg.Dependencies, pkg.DevDependencies} {
 		for name, spec := range scope {
-			// devDependencies entries are resolved to their installed
-			// version, not the declared range: only the base version is
-			// kept, complex ranges are skipped (see resolveNPMVersion).
+			// Only exact pins carry a single installed version; every
+			// range is skipped (see resolveNPMVersion).
 			version, ok := resolveNPMVersion(spec)
 			if !ok {
 				continue
@@ -86,10 +91,13 @@ func parsePackageJSON(sourceFile string, data []byte) ([]Dependency, error) {
 	return deps, nil
 }
 
-// resolveNPMVersion strips a leading ^, ~, =, or v prefix to recover the
-// installed version from a declared range. Multi-part ranges ("a b",
-// "a,b", "a||b") and open-ended comparators (>, <, *, latest, URLs,
-// aliases) cannot be resolved to one version and are skipped.
+// resolveNPMVersion accepts only exact pinned versions ("4.17.21",
+// "=4.17.21", "v4.17.21"). Every range operator (^, ~, >, <, *, the
+// "latest" dist-tag, URLs, aliases, "||" unions, hyphen ranges, and
+// multi-part specs containing spaces, commas, or pipes) is skipped:
+// without a lockfile the declared range cannot be resolved to the
+// installed version, and coercing it to its lower bound produces false
+// positive/negative OSV matches. Lockfile parsing is out of scope.
 func resolveNPMVersion(spec string) (string, bool) {
 	s := strings.TrimSpace(spec)
 	if s == "" || s == "*" || s == "latest" {
@@ -98,7 +106,10 @@ func resolveNPMVersion(spec string) (string, bool) {
 	if strings.ContainsAny(s, " ,|") {
 		return "", false
 	}
-	s = strings.TrimLeft(s, "^~=")
+	if strings.HasPrefix(s, "^") || strings.HasPrefix(s, "~") {
+		return "", false
+	}
+	s = strings.TrimPrefix(s, "=")
 	s = strings.TrimPrefix(s, "v")
 	if s == "" {
 		return "", false

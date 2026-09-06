@@ -72,16 +72,16 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
     <select id="filter-match" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[150px]">
       <option value="">All Matches</option>
-      <option value="confirmed">Confirmed</option>
-      <option value="matched">Matched</option>
-      <option value="candidate">Candidate</option>
+      <option value="unconfirmed">Unconfirmed</option>
+      <option value="active_threat">Active Threat</option>
+      <option value="dismissed">Dismissed</option>
     </select>
 
     <select id="filter-track" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[150px]">
       <option value="">All Inventory</option>
-      <option value="tracked">Tracked</option>
-      <option value="untracked">Untracked</option>
-      <option value="unknown">Unknown</option>
+      <option value="declared">Declared</option>
+      <option value="detected">Detected</option>
+      <option value="corroborated">Corroborated</option>
     </select>
 
     <label class="flex items-center gap-2 px-3 py-2 bg-surface-container border border-outline-variant/30 rounded-lg cursor-pointer">
@@ -140,6 +140,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     tracked:   'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
     untracked: 'bg-slate-800 border-slate-700 text-slate-400',
     unknown:   'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    declared:     'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+    detected:     'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
+    corroborated: 'bg-teal-500/10 border-teal-500/20 text-teal-400',
   };
 
   const RUNTIME_COLOR: Record<string, string> = {
@@ -154,6 +157,9 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     confirmed: 'bg-red-500/10 border-red-500/20 text-red-400',
     matched:   'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
     candidate: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    unconfirmed:  'bg-amber-500/10 border-amber-500/20 text-amber-400',
+    active_threat:'bg-red-500/10 border-red-500/20 text-red-400',
+    dismissed:    'bg-slate-800 border-slate-700 text-slate-400',
   };
 
   function escapeHTML(value: unknown): string {

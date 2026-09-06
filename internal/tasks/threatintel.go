@@ -48,7 +48,7 @@ type ProjectLister interface {
 // ThreatStore persists threat-intel data (subset of repository.ThreatRepository).
 type ThreatStore interface {
 	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
-	UpsertAdvisories(ctx context.Context, advs []threats.Advisory) error
+	UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error
 	InsertHits(ctx context.Context, projectID string, hits []repository.ThreatHit) error
 }
 
@@ -205,7 +205,9 @@ func syncProject(ctx context.Context, deps ThreatSyncDeps, project models.Projec
 	}
 	log.Info("threat sync osv resolved", "advisories", len(advisories))
 
-	if err := deps.Threats.UpsertAdvisories(ctx, advisories); err != nil {
+	if err := deps.Threats.UpsertAdvisories(ctx, advisories, func(cveID string, aliases []string) bool {
+		return threats.IsKEV(cveID, aliases, kev)
+	}); err != nil {
 		return fmt.Errorf("upsert advisories: %w", err)
 	}
 

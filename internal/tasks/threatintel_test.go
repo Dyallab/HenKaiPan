@@ -43,7 +43,7 @@ func (f *fakeThreatStore) UpsertDependencies(_ context.Context, projectID string
 	return nil
 }
 
-func (f *fakeThreatStore) UpsertAdvisories(_ context.Context, advs []threats.Advisory) error {
+func (f *fakeThreatStore) UpsertAdvisories(_ context.Context, advs []threats.Advisory, _ func(cveID string, aliases []string) bool) error {
 	f.advs = advs
 	return nil
 }

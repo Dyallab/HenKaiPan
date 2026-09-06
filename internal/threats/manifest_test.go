@@ -36,12 +36,43 @@ func TestParseManifest(t *testing.T) {
 		wantErr    bool
 	}{
 		{
-			name:       "package.json deps and devDeps pinned to installed versions",
+			name:       "package.json keeps exact pins, skips ranges",
 			sourceFile: "package.json",
 			fixture:    "package.json",
 			want: []Dependency{
 				{Ecosystem: "npm", Name: "express", Version: "4.18.2", SourceFile: "package.json"},
-				{Ecosystem: "npm", Name: "jest", Version: "29.7.0", SourceFile: "package.json"},
+			},
+		},
+		{
+			name:       "package.json caret range skipped",
+			sourceFile: "package.json",
+			inline:     []byte(`{"dependencies": {"lodash": "^4.17.21"}}`),
+			want:       nil,
+		},
+		{
+			name:       "package.json tilde range skipped",
+			sourceFile: "package.json",
+			inline:     []byte(`{"dependencies": {"lodash": "~4.17.21"}}`),
+			want:       nil,
+		},
+		{
+			name:       "package.json gte complex range skipped",
+			sourceFile: "package.json",
+			inline:     []byte(`{"dependencies": {"ts": ">=1.0.0 <2.0.0"}}`),
+			want:       nil,
+		},
+		{
+			name:       "package.json comparator, star, dist-tag, URL and union ranges skipped",
+			sourceFile: "package.json",
+			inline:     []byte(`{"dependencies": {"a": ">1.0.0", "b": "<2.0.0", "c": "*", "d": "latest", "e": "https://example.com/a.tgz", "f": "1.0.0 || 2.0.0", "g": "1.2.3 - 2.3.4"}}`),
+			want:       nil,
+		},
+		{
+			name:       "package.json exact and = pins kept",
+			sourceFile: "package.json",
+			inline:     []byte(`{"dependencies": {"lodash": "4.17.21", "express": "=4.18.2"}}`),
+			want: []Dependency{
+				{Ecosystem: "npm", Name: "express", Version: "4.18.2", SourceFile: "package.json"},
 				{Ecosystem: "npm", Name: "lodash", Version: "4.17.21", SourceFile: "package.json"},
 			},
 		},

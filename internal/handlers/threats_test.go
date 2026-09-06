@@ -30,7 +30,7 @@ func (m *mockThreatRepo) UpsertDependencies(_ context.Context, _ string, _ []thr
 	return nil
 }
 
-func (m *mockThreatRepo) UpsertAdvisories(_ context.Context, _ []threats.Advisory) error {
+func (m *mockThreatRepo) UpsertAdvisories(_ context.Context, _ []threats.Advisory, _ func(cveID string, aliases []string) bool) error {
 	return nil
 }
 

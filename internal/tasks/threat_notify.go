@@ -92,6 +92,8 @@ func NotifyForHits(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyD
 	if strings.TrimSpace(scanner) == "" {
 		scanner = defaultThreatRescanScanner
 	}
+	// Dedupe: one project-wide rescan per call, not one per hit.
+	rescanScheduled := false
 	for _, h := range hits {
 		meta := advisories[h.AdvisoryID]
 		switch h.MatchStatus {
@@ -101,7 +103,11 @@ func NotifyForHits(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyD
 			}
 			notifyKEVHit(ctx, queue, deps, projectID, h, meta)
 		case threats.MatchUnconfirmed, "":
+			if rescanScheduled {
+				continue
+			}
 			rescanUnconfirmed(ctx, queue, deps, projectID, scanner)
+			rescanScheduled = true
 		}
 	}
 }
