@@ -160,6 +160,7 @@ func (c *Client) QueryBatchWithDeps(ctx context.Context, deps []Dependency) ([]Q
 	return out, nil
 }
 
+// flattenIDs concatenates per-query vuln ID slices into one flat list.
 func flattenIDs(perQuery [][]string) []string {
 	var out []string
 	for _, ids := range perQuery {
@@ -168,6 +169,7 @@ func flattenIDs(perQuery [][]string) []string {
 	return out
 }
 
+// chunkDeps splits deps into chunks of at most size for batched OSV queries.
 func chunkDeps(deps []Dependency, size int) [][]Dependency {
 	var chunks [][]Dependency
 	for i := 0; i < len(deps); i += size {
@@ -180,6 +182,7 @@ func chunkDeps(deps []Dependency, size int) [][]Dependency {
 	return chunks
 }
 
+// dedupe removes duplicate and empty vuln IDs while preserving order.
 func dedupe(ids []string) []string {
 	seen := make(map[string]struct{}, len(ids))
 	out := make([]string, 0, len(ids))
@@ -196,16 +199,19 @@ func dedupe(ids []string) []string {
 	return out
 }
 
+// osvPackage is the OSV query package selector (name + ecosystem).
 type osvPackage struct {
 	Name      string `json:"name"`
 	Ecosystem string `json:"ecosystem"`
 }
 
+// osvQuery is one OSV querybatch entry pairing a package with its version.
 type osvQuery struct {
 	Package osvPackage `json:"package"`
 	Version string     `json:"version"`
 }
 
+// osvBatchResponse is the decoded POST /v1/querybatch response envelope.
 type osvBatchResponse struct {
 	Results []struct {
 		Vulns []struct {
@@ -256,6 +262,7 @@ func (c *Client) queryBatchIndexed(ctx context.Context, chunk []Dependency) ([][
 	return perQuery, nil
 }
 
+// osvVuln is the decoded GET /v1/vulns/{id} record used to build an Advisory.
 type osvVuln struct {
 	ID       string   `json:"id"`
 	Aliases  []string `json:"aliases"`
@@ -307,6 +314,7 @@ func (c *Client) hydrate(ctx context.Context, ids []string) []Advisory {
 	return out
 }
 
+// hydrateOne fetches and normalizes a single vuln ID into an Advisory.
 func (c *Client) hydrateOne(ctx context.Context, id string) (Advisory, error) {
 	body, err := c.doJSON(ctx, http.MethodGet, c.BaseURL+"/v1/vulns/"+id, nil)
 	if err != nil {
@@ -398,6 +406,7 @@ func cvssScore(score string) float64 {
 	return 0
 }
 
+// cvssV3Base derives the CVSS v3.x base score from a vector string.
 func cvssV3Base(vector string) (float64, bool) {
 	m := map[string]string{}
 	for _, part := range strings.Split(vector, "/") {
@@ -455,6 +464,7 @@ func cvssV3Base(vector string) (float64, bool) {
 	return roundUp1(base), true
 }
 
+// pow15 raises x to the 15th power, returning 0 for non-positive inputs.
 func pow15(x float64) float64 {
 	if x <= 0 {
 		return 0
@@ -466,6 +476,7 @@ func pow15(x float64) float64 {
 	return p
 }
 
+// roundUp1 rounds x up to one decimal place per the CVSS specification.
 func roundUp1(x float64) float64 {
 	n := int(x * 10)
 	if float64(n)/10 < x {
@@ -474,6 +485,7 @@ func roundUp1(x float64) float64 {
 	return float64(n) / 10
 }
 
+// minFloat returns the smaller of a and b.
 func minFloat(a, b float64) float64 {
 	if a < b {
 		return a
@@ -481,6 +493,7 @@ func minFloat(a, b float64) float64 {
 	return b
 }
 
+// parseFloat parses a plain numeric score string, returning an error otherwise.
 func parseFloat(s string) (float64, error) {
 	var f float64
 	_, err := fmt.Sscanf(strings.TrimSpace(s), "%g", &f)

@@ -207,6 +207,7 @@ func compareVersions(a, b string) int {
 	return 0
 }
 
+// splitVersion normalizes a version string into comparable segments.
 func splitVersion(v string) []string {
 	v = strings.TrimSpace(v)
 	v = strings.TrimPrefix(v, "v")

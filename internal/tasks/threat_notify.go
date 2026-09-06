@@ -21,10 +21,13 @@ import (
 // silent corroboration rescan. All enqueue paths mirror scan_run.go and
 // scan_scheduler.go (same task types, same MaxRetry/Timeout options).
 
+// ThreatKEVEvent is the webhook event type emitted for KEV active_threat hits.
 const ThreatKEVEvent = "threat.kev"
 
+// defaultThreatRescanScanner is the scanner used for silent corroboration rescans of unconfirmed hits.
 const defaultThreatRescanScanner = "osv-scanner"
 
+// AdvisoryMeta carries the per-advisory display fields used by notify fan-out.
 type AdvisoryMeta struct {
 	AdvisoryID  string
 	CVEID       string
@@ -33,6 +36,7 @@ type AdvisoryMeta struct {
 	AdvisoryURL string
 }
 
+// ThreatKEVNotificationPayload is the webhook/email payload for one KEV-confirmed hit.
 type ThreatKEVNotificationPayload struct {
 	ProjectID   string `json:"project_id"`
 	AdvisoryID  string `json:"advisory_id"`
@@ -43,18 +47,22 @@ type ThreatKEVNotificationPayload struct {
 	AdvisoryURL string `json:"advisory_url"`
 }
 
+// ThreatWebhookLister lists enabled webhooks subscribed to threat events.
 type ThreatWebhookLister interface {
 	ListEnabled(ctx context.Context) ([]models.Webhook, error)
 }
 
+// ThreatSettingsReader loads notification settings for email fan-out.
 type ThreatSettingsReader interface {
 	GetNotificationSettings(ctx context.Context) (*models.NotificationSettings, error)
 }
 
+// ThreatScanCreator persists a corroboration rescan and returns its scan ID.
 type ThreatScanCreator interface {
 	Insert(ctx context.Context, target, scanner, batchID string, projectID *string) (string, error)
 }
 
+// ThreatNotifyDeps wires notify fan-out: webhooks, settings, scans, and rescan config.
 type ThreatNotifyDeps struct {
 	Webhooks             ThreatWebhookLister
 	Settings             ThreatSettingsReader
@@ -65,6 +73,7 @@ type ThreatNotifyDeps struct {
 	ProjectTarget        func(ctx context.Context, projectID string) (target string, ok bool)
 }
 
+// DefaultThreatNotifyDeps builds production notify deps from the repository bundle and email config.
 func DefaultThreatNotifyDeps(store repository.Stores, email EmailConfig) *ThreatNotifyDeps {
 	return &ThreatNotifyDeps{
 		Webhooks:             store.Webhooks,
@@ -83,10 +92,12 @@ func DefaultThreatNotifyDeps(store repository.Stores, email EmailConfig) *Threat
 	}
 }
 
+// ThreatAdvisoryURL returns the osv.dev URL for an advisory ID.
 func ThreatAdvisoryURL(advisoryID string) string {
 	return "https://osv.dev/vulnerability/" + advisoryID
 }
 
+// NotifyForHits fans out new-or-changed hits: KEV active_threat via webhook/email, unconfirmed via one rescan.
 func NotifyForHits(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyDeps, projectID string, hits []repository.ThreatHit, advisories map[string]AdvisoryMeta) {
 	scanner := deps.RescanScanner
 	if strings.TrimSpace(scanner) == "" {
@@ -112,6 +123,7 @@ func NotifyForHits(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyD
 	}
 }
 
+// notifyKEVHit enqueues webhook and email notifications for one KEV-confirmed hit.
 func notifyKEVHit(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyDeps, projectID string, h repository.ThreatHit, meta AdvisoryMeta) {
 	if deps.Webhooks == nil && deps.Settings == nil {
 		return
@@ -140,6 +152,7 @@ func notifyKEVHit(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyDe
 		threatKEVEmailSubject(payload), buildThreatKEVEmailBody(payload))
 }
 
+// rescanUnconfirmed creates and enqueues one silent corroboration scan; missing scans/targets are skipped.
 func rescanUnconfirmed(ctx context.Context, queue ThreatEnqueuer, deps ThreatNotifyDeps, projectID, scanner string) {
 	if deps.Scans == nil || deps.ProjectTarget == nil {
 		return
@@ -172,6 +185,7 @@ func rescanUnconfirmed(ctx context.Context, queue ThreatEnqueuer, deps ThreatNot
 	}
 }
 
+// enqueueThreatWebhook enqueues a webhook:send task per subscribed webhook and returns the count.
 func enqueueThreatWebhook(ctx context.Context, webhooks ThreatWebhookLister, queue ThreatEnqueuer, eventType string, payload any) int {
 	webhookList, err := webhooks.ListEnabled(ctx)
 	if err != nil {
@@ -213,6 +227,7 @@ func enqueueThreatWebhook(ctx context.Context, webhooks ThreatWebhookLister, que
 	return enqueued
 }
 
+// enqueueThreatEmail enqueues an email:send task for the recipients, returning false when disabled or skipped.
 func enqueueThreatEmail(ctx context.Context, queue ThreatEnqueuer, cfg EmailConfig, recipients []string, subject, body string) bool {
 	if !cfg.Enabled || len(recipients) == 0 {
 		return false
@@ -229,6 +244,7 @@ func enqueueThreatEmail(ctx context.Context, queue ThreatEnqueuer, cfg EmailConf
 	return true
 }
 
+// threatKEVEmailSubject builds the email subject for a KEV notification, falling back to the advisory ID.
 func threatKEVEmailSubject(p ThreatKEVNotificationPayload) string {
 	ref := p.CVEID
 	if strings.TrimSpace(ref) == "" {
@@ -237,6 +253,7 @@ func threatKEVEmailSubject(p ThreatKEVNotificationPayload) string {
 	return "KEV threat confirmed: " + ref + " in " + p.PkgName
 }
 
+// buildThreatKEVEmailBody renders the plain-text email body for a KEV notification payload.
 func buildThreatKEVEmailBody(p ThreatKEVNotificationPayload) string {
 	lines := []string{
 		"HenKaiPan threat-intel notification",

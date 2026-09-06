@@ -16,13 +16,19 @@ import (
 // declared dependency inventory, upstream advisories, and their
 // correlation hits, plus the joined exposure listing.
 type ThreatRepository interface {
+	// UpsertDependencies replaces the project's declared inventory snapshot (DELETE + INSERT in one transaction).
 	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
+	// UpsertAdvisories inserts or refreshes upstream advisories by advisory_id; isKEV may be nil and decides the kev flag.
 	UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error
+	// InsertHits persists correlation rows for a project, delegating to ReconcileHits and discarding the notify subset.
 	InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error
+	// ReconcileHits upserts correlation rows idempotently and returns only new-or-changed notify candidates.
 	ReconcileHits(ctx context.Context, projectID string, hits []ThreatHit) ([]ThreatHit, error)
+	// ListExposures returns hits joined with advisories with $N-parameterized pagination plus the total count.
 	ListExposures(ctx context.Context, filter ExposureFilter) (rows []ExposureRow, total int, err error)
 }
 
+// threatRepo implements ThreatRepository on a pgx connection pool.
 type threatRepo struct{ db *pgxpool.Pool }
 
 // ThreatHit is one inventory↔advisory correlation row to persist.

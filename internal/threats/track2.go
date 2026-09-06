@@ -21,6 +21,7 @@ func DefaultRuntimeStatus() RuntimeStatus {
 	return RuntimeStatusL0
 }
 
+// runtimeRank maps a RuntimeStatus to its L0-L4 rank for ordering checks.
 func runtimeRank(s RuntimeStatus) (int, bool) {
 	switch s {
 	case RuntimeStatusL0:

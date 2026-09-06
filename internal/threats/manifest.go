@@ -63,6 +63,7 @@ func ParseManifest(sourceFile string, data []byte) ([]Dependency, error) {
 	return deps, nil
 }
 
+// parsePackageJSON parses package.json dependencies into npm Dependency rows.
 func parsePackageJSON(sourceFile string, data []byte) ([]Dependency, error) {
 	var pkg struct {
 		Dependencies    map[string]string `json:"dependencies"`
@@ -122,6 +123,7 @@ func resolveNPMVersion(spec string) (string, bool) {
 	return s, true
 }
 
+// parseGoMod parses go.mod direct requirements into go Dependency rows.
 func parseGoMod(sourceFile string, data []byte) ([]Dependency, error) {
 	var deps []Dependency
 	inRequire := false
@@ -197,6 +199,7 @@ func parseGoMod(sourceFile string, data []byte) ([]Dependency, error) {
 	return deps, nil
 }
 
+// parseRequirementsTxt parses pinned requirements.txt entries into pip Dependency rows.
 func parseRequirementsTxt(sourceFile string, data []byte) ([]Dependency, error) {
 	var deps []Dependency
 	sc := bufio.NewScanner(bytes.NewReader(data))
@@ -250,6 +253,7 @@ func parseRequirementsTxt(sourceFile string, data []byte) ([]Dependency, error) 
 	return deps, nil
 }
 
+// parseCargoLock parses Cargo.lock [[package]] entries into cargo Dependency rows.
 func parseCargoLock(sourceFile string, data []byte) ([]Dependency, error) {
 	var deps []Dependency
 	inPackage := false
@@ -319,6 +323,7 @@ func parseCargoLock(sourceFile string, data []byte) ([]Dependency, error) {
 	return deps, nil
 }
 
+// unquoteTOML strips matching single or double quotes from a TOML value.
 func unquoteTOML(value string) (string, bool) {
 	if len(value) >= 2 && strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
 		return value[1 : len(value)-1], true

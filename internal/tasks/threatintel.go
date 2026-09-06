@@ -26,6 +26,7 @@ import (
 // store.Threats.ReconcileHits. Only new or status-changed hits fan out to
 // NotifyForHits — repeat syncs with identical hits enqueue nothing.
 
+// TypeThreatSync is the asynq task type for the periodic threat-intel sync.
 const TypeThreatSync = "threat:sync"
 
 // ThreatSyncPayload selects the sync scope. Empty ProjectID syncs all projects.
@@ -33,10 +34,12 @@ type ThreatSyncPayload struct {
 	ProjectID string `json:"project_id,omitempty"`
 }
 
+// MarshalThreatSyncPayload encodes a ThreatSyncPayload to JSON for enqueueing.
 func MarshalThreatSyncPayload(p ThreatSyncPayload) ([]byte, error) {
 	return json.Marshal(p)
 }
 
+// UnmarshalThreatSyncPayload decodes a threat:sync task payload, returning an error on malformed input.
 func UnmarshalThreatSyncPayload(data []byte) (ThreatSyncPayload, error) {
 	var p ThreatSyncPayload
 	return p, json.Unmarshal(data, &p)
@@ -121,6 +124,7 @@ func StartThreatIntelMonitor(ctx context.Context, _ repository.Stores, queue Thr
 	}()
 }
 
+// enqueueThreatSync enqueues one threat:sync task; failures are logged, never returned.
 func enqueueThreatSync(ctx context.Context, queue ThreatEnqueuer) {
 	payload, err := MarshalThreatSyncPayload(ThreatSyncPayload{})
 	if err != nil {
@@ -188,6 +192,7 @@ func SyncThreatIntel(ctx context.Context, deps ThreatSyncDeps, projectID string)
 	return nil
 }
 
+// syncProject syncs a single project: manifest parse, OSV resolve, KEV overlay, match, and reconcile.
 func syncProject(ctx context.Context, deps ThreatSyncDeps, project models.Project, kev map[string]threats.KEVEntry) error {
 	log := slog.With("project_id", project.ID)
 
@@ -253,6 +258,7 @@ func dedupeQueryAdvisories(queryHits []threats.QueryHit) []threats.Advisory {
 	return out
 }
 
+// threatAdvisoryMeta indexes advisories by ID with KEV flags and OSV URLs for notify fan-out.
 func threatAdvisoryMeta(advisories []threats.Advisory, kev map[string]threats.KEVEntry) map[string]AdvisoryMeta {
 	out := make(map[string]AdvisoryMeta, len(advisories))
 	for _, a := range advisories {
