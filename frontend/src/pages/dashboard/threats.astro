@@ -156,8 +156,17 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     candidate: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
   };
 
+  function escapeHTML(value: unknown): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function sevChip(s: string) {
-    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${SEV_COLOR[s] ?? SEV_COLOR.info}">${s}</span>`;
+    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${SEV_COLOR[s] ?? SEV_COLOR.info}">${escapeHTML(s)}</span>`;
   }
 
   function kevChip(kev: boolean) {
@@ -167,7 +176,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
   function statusBadge(value: string | null | undefined, colorMap: Record<string, string>) {
     const v = value ?? 'unknown';
-    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${colorMap[v] ?? 'bg-slate-800 text-slate-400 border-slate-700'}">${v}</span>`;
+    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${colorMap[v] ?? 'bg-slate-800 text-slate-400 border-slate-700'}">${escapeHTML(v)}</span>`;
   }
 
   let currentPage = 1;
@@ -184,7 +193,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       const projects = await api.getProjects();
       const select = document.getElementById('filter-project') as HTMLSelectElement;
       select.innerHTML = '<option value="">All Projects</option>' +
-        projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        projects.map(p => `<option value="${escapeHTML(p.id)}">${escapeHTML(p.name)}</option>`).join('');
     } catch { /* projects unavailable */ }
   }
 
@@ -242,7 +251,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
       updatePagination();
     } catch (e: any) {
-      tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-error text-sm">${e.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-error text-sm">${escapeHTML(e.message)}</td></tr>`;
       toast(e.message ?? 'Failed to load exposures', 'error');
     }
   }
@@ -254,15 +263,15 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   function buildRow(e: ThreatExposure) {
     const key = rowKey(e);
     const cveLink = e.cve_id
-      ? `<a href="https://nvd.nist.gov/vuln/detail/${e.cve_id}" target="_blank" rel="noopener"
-            class="font-mono text-xs text-red-400 hover:underline" onclick="event.stopPropagation()">${e.cve_id}</a>`
+      ? `<a href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(e.cve_id)}" target="_blank" rel="noopener"
+            class="font-mono text-xs text-red-400 hover:underline" onclick="event.stopPropagation()">${escapeHTML(e.cve_id)}</a>`
       : `<span class="font-mono text-xs text-slate-400">—</span>`;
 
     const isExpanded = expandedRows.has(key);
 
     return `
       <tr class="threat-row border-b border-outline-variant/10 hover:bg-slate-900/30 transition-colors cursor-pointer select-none"
-          data-hit-id="${key}">
+          data-hit-id="${escapeHTML(key)}">
         <td class="px-3 py-2.5">
           <span class="material-symbols-outlined text-sm text-slate-500 expand-icon transition-transform ${isExpanded ? 'rotate-90' : ''}">chevron_right</span>
         </td>
@@ -272,7 +281,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
             ${cveLink}
             ${kevChip(e.kev)}
           </div>
-          ${e.project_name ? `<p class="text-xs text-slate-300 mt-0.5 truncate max-w-xs">${e.project_name}</p>` : ''}
+          ${e.project_name ? `<p class="text-xs text-slate-300 mt-0.5 truncate max-w-xs">${escapeHTML(e.project_name)}</p>` : ''}
         </td>
         <td class="px-3 py-2.5 text-center">${statusBadge(e.inventory_status, INVENTORY_COLOR)}</td>
         <td class="px-3 py-2.5 text-center">${statusBadge(e.runtime_status, RUNTIME_COLOR)}</td>
@@ -305,7 +314,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     if (evidence == null) return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
     if (typeof evidence === 'string') {
       return evidence
-        ? `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${evidence}</pre>`
+        ? `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${escapeHTML(evidence)}</pre>`
         : `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
     }
     try {
@@ -313,7 +322,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
       if (!json || json === '{}' || json === '[]' || json === 'null') {
         return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
       }
-      return `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${json}</pre>`;
+      return `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${escapeHTML(json)}</pre>`;
     } catch {
       return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
     }
@@ -335,7 +344,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     placeholder.innerHTML = `
       <td colspan="6" class="px-6 pb-4 pt-2 bg-slate-950/60">
         <div class="space-y-2">
-          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Exposure Detail${cveId ? ` — ${cveId}` : ''}</p>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Exposure Detail${cveId ? ` — ${escapeHTML(cveId)}` : ''}</p>
           <div class="flex items-center gap-2 flex-wrap">
             ${statusBadge(matchStatus, MATCH_COLOR)}
             ${statusBadge(inventoryStatus, INVENTORY_COLOR)}
@@ -393,6 +402,4 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     currentPage = 1;
     load();
   });
-  document.getElementById('prev-btn')!.addEventListener('click', () => { currentPage--; load(); });
-  document.getElementById('next-btn')!.addEventListener('click', () => { currentPage++; load(); });
 </script>

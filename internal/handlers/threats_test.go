@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,6 +14,8 @@ import (
 	"aspm/internal/repository"
 	"aspm/internal/threats"
 )
+
+var errExposuresOwnership = errors.New("ownership check boom")
 
 // ── Mock ThreatRepository ───────────────────────────────────────────────────
 
@@ -43,12 +46,33 @@ func (m *mockThreatRepo) ListExposures(_ context.Context, f repository.ExposureF
 	return m.rows, m.total, nil
 }
 
+// ── Mock AppRepository (ownership only; embeds interface for the rest) ───────
+
+type mockAppsRepo struct {
+	repository.AppRepository
+	owned map[string]bool
+	err   error
+}
+
+func (m *mockAppsRepo) CheckProjectOwnership(_ context.Context, _, projectID string) (bool, error) {
+	if m.err != nil {
+		return false, m.err
+	}
+	return m.owned[projectID], nil
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 func newExposuresTestHandler(threatsRepo *mockThreatRepo) *Handler {
+	// Default: owns proj-1 so pre-existing non-admin tests keep passing.
+	return newExposuresTestHandlerWithApps(threatsRepo, &mockAppsRepo{owned: map[string]bool{"proj-1": true}})
+}
+
+func newExposuresTestHandlerWithApps(threatsRepo *mockThreatRepo, apps repository.AppRepository) *Handler {
 	return &Handler{
 		store: repository.Stores{
 			Threats: threatsRepo,
+			Apps:    apps,
 		},
 	}
 }
@@ -210,4 +234,48 @@ func TestExposures_NonAdminScopedToProject(t *testing.T) {
 		t.Fatalf("decode envelope: %v", err)
 	}
 	assert.Equal(t, resp.Total, 1)
+}
+
+// ── Non-admin project ownership (IDOR, PR #73) ──────────────────────────────
+// Non-admin callers must only read projects they own; admins bypass the check.
+
+func TestExposures_NonAdminUnownedProjectForbidden(t *testing.T) {
+	repo := &mockThreatRepo{rows: []repository.ExposureRow{seedExposureRow()}, total: 1}
+	apps := &mockAppsRepo{owned: map[string]bool{"proj-other": true}}
+	h := newExposuresTestHandlerWithApps(repo, apps)
+
+	rec := serveExposures(h, exposuresReq(t, "/api/threats/exposures?project_id=proj-1", "usr-bob", "bob", "viewer"))
+
+	assert.Equal(t, rec.Code, http.StatusForbidden)
+}
+
+func TestExposures_NonAdminOwnedProjectAllowed(t *testing.T) {
+	repo := &mockThreatRepo{rows: []repository.ExposureRow{seedExposureRow()}, total: 1}
+	apps := &mockAppsRepo{owned: map[string]bool{"proj-1": true}}
+	h := newExposuresTestHandlerWithApps(repo, apps)
+
+	rec := serveExposures(h, exposuresReq(t, "/api/threats/exposures?project_id=proj-1", "usr-bob", "bob", "viewer"))
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.Equal(t, repo.lastFilter.ProjectID, "proj-1")
+}
+
+func TestExposures_AdminBypassesOwnership(t *testing.T) {
+	repo := &mockThreatRepo{rows: []repository.ExposureRow{seedExposureRow()}, total: 1}
+	apps := &mockAppsRepo{owned: map[string]bool{}}
+	h := newExposuresTestHandlerWithApps(repo, apps)
+
+	rec := serveExposures(h, exposuresReq(t, "/api/threats/exposures?project_id=proj-1", "usr-admin", "alice", "admin"))
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+}
+
+func TestExposures_OwnershipCheckErrorIs500(t *testing.T) {
+	repo := &mockThreatRepo{rows: []repository.ExposureRow{seedExposureRow()}, total: 1}
+	apps := &mockAppsRepo{owned: map[string]bool{"proj-1": true}, err: errExposuresOwnership}
+	h := newExposuresTestHandlerWithApps(repo, apps)
+
+	rec := serveExposures(h, exposuresReq(t, "/api/threats/exposures?project_id=proj-1", "usr-bob", "bob", "viewer"))
+
+	assert.Equal(t, rec.Code, http.StatusInternalServerError)
 }

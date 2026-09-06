@@ -32,9 +32,21 @@ func (h *Handler) ListThreatExposures(w http.ResponseWriter, r *http.Request) {
 	p := pagination.FromQueryWithDefaults(q, 100, 200)
 
 	projectID := q.Get("project_id")
-	if claims.Role != "admin" && projectID == "" {
-		writeError(w, r, http.StatusForbidden, "project_id is required for non-admin users")
-		return
+	if claims.Role != "admin" {
+		if projectID == "" {
+			writeError(w, r, http.StatusForbidden, "project_id is required for non-admin users")
+			return
+		}
+		owned, err := h.store.Apps.CheckProjectOwnership(r.Context(), claims.UserID, projectID)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "failed to check project ownership", "error", err)
+			writeError(w, r, http.StatusInternalServerError, "failed to check project ownership")
+			return
+		}
+		if !owned {
+			writeError(w, r, http.StatusForbidden, "access denied to project")
+			return
+		}
 	}
 
 	kevParam := q.Get("kev")
