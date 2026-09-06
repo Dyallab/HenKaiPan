@@ -428,6 +428,59 @@ func TestMCP_InitializeCurrentVersion(t *testing.T) {
 	assert.Equal(t, resultMap(t, decodeResp(t, rec).Result)["protocolVersion"], "2026-07-28")
 }
 
+func TestMCP_InitializeBareFallsBack(t *testing.T) {
+	h := newMCPHandler()
+	// No candidate anywhere: only this case falls back to latest.
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.Equal(t, resultMap(t, decodeResp(t, rec).Result)["protocolVersion"], "2026-07-28")
+}
+
+func TestMCP_InitializeUnknownVersionRejected(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"1999-01-01","capabilities":{}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32022)
+}
+
+func TestMCP_InitializeHeaderBodyConflictRejected(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2025-11-25",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32020)
+}
+
+func TestMCP_InitializeMetaMismatchRejected(t *testing.T) {
+	h := newMCPHandler()
+	b := mcpReqBuilder{method: "initialize", id: 1, hasID: true, metaPV: "2026-07-28"}
+	rec := doMCP(t, h, b.body(), map[string]string{
+		"MCP-Protocol-Version": "2025-11-25",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32020)
+}
+
+func TestMCP_InitializeMetaUnsupportedRejected(t *testing.T) {
+	h := newMCPHandler()
+	b := mcpReqBuilder{method: "initialize", id: 1, hasID: true, metaPV: "2025-03-26"}
+	rec := doMCP(t, h, b.body(), map[string]string{
+		"MCP-Protocol-Version": "2025-03-26",
+		"Mcp-Method":           "initialize",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32022)
+}
+
 func TestMCP_ToolsListStandard(t *testing.T) {
 	h := newMCPHandler()
 	// Standard client after handshake: version via header, no Mcp-* headers.

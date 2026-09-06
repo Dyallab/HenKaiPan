@@ -191,10 +191,48 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 
 	// ── initialize (stateless) ──
 	// Standard clients (OpenCode, Claude, Cursor) open with `initialize`.
-	// Answered without creating any session: negotiate the version from
-	// params.protocolVersion (standard), _meta or header, newest supported
-	// wins, and return capabilities + serverInfo.
+	// Answered without creating any session: the client's spec version is
+	// echoed back when known (see mcpKnownVersions) so real clients accept
+	// it. Supplied candidates are validated exactly like request versions —
+	// only a bare initialize with no candidate falls back to latest.
 	if req.Method == "initialize" {
+		pvHeaderInit := r.Header.Get("MCP-Protocol-Version")
+		if customClient {
+			if pvHeaderInit == "" {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+					"Missing required header: MCP-Protocol-Version", nil)
+				return
+			}
+			if pvMeta != "" && pvMeta != pvHeaderInit {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+					"Header mismatch: MCP-Protocol-Version header does not match _meta protocol version", nil)
+				return
+			}
+			if !mcpVersionSupported(pvHeaderInit) {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+					"Unsupported protocol version",
+					map[string]any{"supported": mcpSupportedVersions, "requested": pvHeaderInit},
+				)
+				return
+			}
+		} else {
+			if pvHeaderInit != "" && p.ProtocolVersion != "" && pvHeaderInit != p.ProtocolVersion {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+					"Header mismatch: MCP-Protocol-Version header does not match params protocol version", nil)
+				return
+			}
+			negotiatedInit := pvHeaderInit
+			if negotiatedInit == "" {
+				negotiatedInit = p.ProtocolVersion
+			}
+			if negotiatedInit != "" && !mcpVersionKnown(negotiatedInit) {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+					"Unsupported protocol version",
+					map[string]any{"supported": mcpKnownVersions, "requested": negotiatedInit},
+				)
+				return
+			}
+		}
 		writeMCPResult(w, h.mcpInitialize(&req, r.Header.Get("MCP-Protocol-Version"), pvMeta, p.ProtocolVersion))
 		return
 	}
