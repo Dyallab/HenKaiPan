@@ -200,3 +200,33 @@ func TestOSVPartialFailure(t *testing.T) {
 		t.Fatalf("expected 1 advisory (failed hydration skipped), got %d", len(advisories))
 	}
 }
+
+func TestQueryBatchWithDepsKeepsAssociation(t *testing.T) {
+	var batchCalls atomic.Int64
+	var batchSizes []int
+	srv := mockOSV(t, &batchCalls, &batchSizes, "")
+	defer srv.Close()
+
+	c := NewClient(srv.URL, "test")
+	deps := []Dependency{
+		{Ecosystem: "npm", Name: "lodash", Version: "4.17.20", SourceFile: "package.json"},
+		{Ecosystem: "npm", Name: "lodash", Version: "4.17.21", SourceFile: "package.json"},
+	}
+	hits, err := c.QueryBatchWithDeps(t.Context(), deps)
+	if err != nil {
+		t.Fatalf("QueryBatchWithDeps: %v", err)
+	}
+	if len(hits) != 2 {
+		t.Fatalf("expected 2 query hits (one per dep), got %d", len(hits))
+	}
+	seen := map[string]string{}
+	for _, h := range hits {
+		if h.Advisory.AdvisoryID == "" {
+			t.Errorf("query hit for dep %v has empty advisory", h.Dependency)
+		}
+		seen[h.Dependency.Version] = h.Advisory.AdvisoryID
+	}
+	if len(seen) != 2 {
+		t.Fatalf("query hits lost the dep association, versions seen: %v", seen)
+	}
+}

@@ -6,15 +6,15 @@ import (
 
 // wantHit describes the expected shape of a single Hit.
 type wantHit struct {
-	AdvisoryID       string
-	CVEID            string
-	PkgName          string
-	PkgVersion       string
-	InventoryStatus  string
-	KEV              bool
-	MatchStatus      string
-	EvidenceKeys     []string
-	MissingEvidence  []string
+	AdvisoryID      string
+	CVEID           string
+	PkgName         string
+	PkgVersion      string
+	InventoryStatus string
+	KEV             bool
+	MatchStatus     string
+	EvidenceKeys    []string
+	MissingEvidence []string
 }
 
 func TestMatcher(t *testing.T) {
@@ -351,5 +351,65 @@ func TestMatcher(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMatchQueryHitsVersionRanges(t *testing.T) {
+	lodashAdvisory := Advisory{
+		AdvisoryID: "GHSA-4xc9-xhrj-v574",
+		CVEID:      "CVE-2020-8203",
+		Aliases:    []string{"CVE-2020-8203"},
+		Severity:   "MODERATE",
+		AffectedPackages: []AffectedPackage{
+			{
+				Ecosystem: "npm",
+				Name:      "lodash",
+				Ranges: []AffectedRange{
+					{
+						Type: "SEMVER",
+						Events: []RangeEvent{
+							{Introduced: "0"},
+							{Fixed: "4.17.21"},
+						},
+					},
+				},
+			},
+		},
+	}
+	affected := Dependency{Ecosystem: "npm", Name: "lodash", Version: "4.17.20", SourceFile: "package.json"}
+	fixed := Dependency{Ecosystem: "npm", Name: "lodash", Version: "4.17.21", SourceFile: "package.json"}
+	hits := []QueryHit{
+		{Dependency: affected, Advisory: lodashAdvisory},
+		{Dependency: fixed, Advisory: lodashAdvisory},
+	}
+
+	got := MatchQueryHits(hits, nil, nil)
+	if len(got) != 1 {
+		t.Fatalf("MatchQueryHits() returned %d hits, want exactly 1 (%v)", len(got), got)
+	}
+	if got[0].PkgVersion != "4.17.20" {
+		t.Errorf("hit PkgVersion = %q, want %q (only the affected version)", got[0].PkgVersion, "4.17.20")
+	}
+	if got[0].AdvisoryID != "GHSA-4xc9-xhrj-v574" {
+		t.Errorf("hit AdvisoryID = %q, want %q", got[0].AdvisoryID, "GHSA-4xc9-xhrj-v574")
+	}
+}
+
+func TestMatchQueryHitsNoRangesTrustsOSV(t *testing.T) {
+	advisory := Advisory{
+		AdvisoryID: "GHSA-rangeless-1",
+		CVEID:      "CVE-2024-99999",
+		AffectedPackages: []AffectedPackage{
+			{Ecosystem: "npm", Name: "left-pad"},
+		},
+	}
+	hits := []QueryHit{
+		{Dependency: Dependency{Ecosystem: "npm", Name: "left-pad", Version: "1.0.0"}, Advisory: advisory},
+		{Dependency: Dependency{Ecosystem: "npm", Name: "left-pad", Version: "2.0.0"}, Advisory: advisory},
+	}
+
+	got := MatchQueryHits(hits, nil, nil)
+	if len(got) != 2 {
+		t.Fatalf("MatchQueryHits() without ranges returned %d hits, want 2 (trust OSV) (%v)", len(got), got)
 	}
 }

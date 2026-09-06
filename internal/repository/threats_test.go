@@ -26,11 +26,11 @@ func threatsTestPool(t *testing.T) *pgxpool.Pool {
 	defer cancel()
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		t.Fatalf("connect test db: %v", err)
+		t.Skipf("test db unavailable, skipping: %v", err)
 	}
 	t.Cleanup(pool.Close)
 	if err := pool.Ping(ctx); err != nil {
-		t.Fatalf("ping test db: %v", err)
+		t.Skipf("ping test db: %v", err)
 	}
 	return pool
 }
@@ -229,6 +229,128 @@ func TestThreats_RoundTrip(t *testing.T) {
 	}
 	if _, _, err := stores.Threats.ListExposures(ctx, ExposureFilter{ProjectID: projectID, Page: 1, Limit: 10, Sort: "'; DROP TABLE projects; --"}); err != nil {
 		t.Fatalf("list with hostile sort must fall back safely, got err: %v", err)
+	}
+}
+
+func TestThreats_ReconcileHitsIdempotent(t *testing.T) {
+	ctx := context.Background()
+	pool := threatsTestPool(t)
+	projectID := threatsTestProject(t, pool)
+	stores := NewPostgresStores(pool, "")
+
+	advs := []threats.Advisory{{
+		AdvisoryID: "GHSA-TEST-RECON-1",
+		Source:     "osv",
+		CVEID:      "CVE-2024-0001",
+		Severity:   "HIGH",
+		AffectedPackages: []threats.AffectedPackage{
+			{Ecosystem: "npm", Name: "lodash"},
+		},
+	}}
+	if err := stores.Threats.UpsertAdvisories(ctx, advs, nil); err != nil {
+		t.Fatalf("upsert advisories: %v", err)
+	}
+
+	hit := ThreatHit{
+		AdvisoryID: "GHSA-TEST-RECON-1", PkgName: "lodash", PkgVersion: "4.17.20",
+		InventoryStatus: "declared", MatchStatus: "unconfirmed",
+		Evidence:        json.RawMessage(`{"declared":{"name":"lodash"}}`),
+	}
+
+	// First sync inserts and reports the hit as new.
+	fresh, err := stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit})
+	if err != nil {
+		t.Fatalf("reconcile hits: %v", err)
+	}
+	if len(fresh) != 1 {
+		t.Fatalf("first reconcile newOrChanged = %d, want 1", len(fresh))
+	}
+
+	// Second identical sync must not duplicate the row nor re-notify.
+	fresh, err = stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit})
+	if err != nil {
+		t.Fatalf("re-reconcile hits: %v", err)
+	}
+	if len(fresh) != 0 {
+		t.Fatalf("second reconcile newOrChanged = %d, want 0 (no repeat notify)", len(fresh))
+	}
+	var count int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM project_inventory_hits WHERE project_id = $1`, projectID).Scan(&count); err != nil {
+		t.Fatalf("count hits: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("hit rows = %d, want 1 after double sync", count)
+	}
+}
+
+func TestThreats_ReconcileHitsNotifySemantics(t *testing.T) {
+	ctx := context.Background()
+	pool := threatsTestPool(t)
+	projectID := threatsTestProject(t, pool)
+	stores := NewPostgresStores(pool, "")
+
+	advs := []threats.Advisory{{
+		AdvisoryID: "GHSA-TEST-RECON-2",
+		Source:     "osv",
+		CVEID:      "CVE-2024-0002",
+		Severity:   "HIGH",
+		AffectedPackages: []threats.AffectedPackage{
+			{Ecosystem: "npm", Name: "lodash"},
+		},
+	}}
+	if err := stores.Threats.UpsertAdvisories(ctx, advs, nil); err != nil {
+		t.Fatalf("upsert advisories: %v", err)
+	}
+
+	hit := ThreatHit{
+		AdvisoryID: "GHSA-TEST-RECON-2", PkgName: "lodash", PkgVersion: "4.17.20",
+		InventoryStatus: "declared", MatchStatus: "unconfirmed",
+	}
+	if _, err := stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit}); err != nil {
+		t.Fatalf("seed reconcile: %v", err)
+	}
+
+	// Promoted match_status must surface as a notify candidate.
+	hit.MatchStatus = "active_threat"
+	fresh, err := stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit})
+	if err != nil {
+		t.Fatalf("reconcile promoted match: %v", err)
+	}
+	if len(fresh) != 1 {
+		t.Fatalf("promoted match newOrChanged = %d, want 1", len(fresh))
+	}
+
+	// Runtime-only promotion is persisted but must NOT notify.
+	hit.RuntimeStatus = "L2"
+	fresh, err = stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit})
+	if err != nil {
+		t.Fatalf("reconcile runtime promotion: %v", err)
+	}
+	if len(fresh) != 0 {
+		t.Fatalf("runtime-only change newOrChanged = %d, want 0", len(fresh))
+	}
+	var runtime string
+	if err := pool.QueryRow(ctx,
+		`SELECT runtime_status FROM project_inventory_hits WHERE project_id = $1 AND advisory_id = $2`,
+		projectID, "GHSA-TEST-RECON-2").Scan(&runtime); err != nil {
+		t.Fatalf("read runtime: %v", err)
+	}
+	if runtime != "L2" {
+		t.Fatalf("runtime_status = %q, want promoted L2", runtime)
+	}
+
+	// Runtime downgrade attempts keep the highest level.
+	hit.RuntimeStatus = "L0"
+	if _, err := stores.Threats.ReconcileHits(ctx, projectID, []ThreatHit{hit}); err != nil {
+		t.Fatalf("reconcile runtime downgrade: %v", err)
+	}
+	if err := pool.QueryRow(ctx,
+		`SELECT runtime_status FROM project_inventory_hits WHERE project_id = $1 AND advisory_id = $2`,
+		projectID, "GHSA-TEST-RECON-2").Scan(&runtime); err != nil {
+		t.Fatalf("read runtime after downgrade: %v", err)
+	}
+	if runtime != "L2" {
+		t.Fatalf("runtime_status = %q after downgrade attempt, want kept L2", runtime)
 	}
 }
 

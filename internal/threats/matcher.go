@@ -6,6 +6,7 @@
 package threats
 
 import (
+	"strconv"
 	"strings"
 )
 
@@ -74,6 +75,148 @@ func Match(inventory []Dependency, advisories []Advisory, kev map[string]KEVEntr
 		}
 	}
 	return out
+}
+
+// MatchQueryHits joins per-dependency OSV query hits (see QueryBatchWithDeps)
+// against KEV and findings. Unlike Match — which joins advisories to
+// inventory by package name only — each hit already knows the exact queried
+// dependency version, so the advisory's affected ranges are verified before
+// emitting: when the entries matching the dep carry introduced/fixed events,
+// a dep outside every range yields no hit; when they carry no usable events,
+// the OSV server match is trusted and the hit is kept.
+func MatchQueryHits(hits []QueryHit, kev map[string]KEVEntry, findings []FindingRef) []Hit {
+	out := make([]Hit, 0, len(hits))
+	for _, h := range hits {
+		if !depMatchesAdvisory(h.Dependency, h.Advisory.AffectedPackages) {
+			continue
+		}
+		if !depInAffectedRanges(h.Dependency, h.Advisory.AffectedPackages) {
+			continue
+		}
+		kevHit := IsKEV(h.Advisory.CVEID, h.Advisory.Aliases, kev)
+		finding, detected := matchFinding(h.Dependency, h.Advisory, findings)
+		out = append(out, buildHit(h.Advisory, h.Dependency.Name, h.Dependency.Version, kevHit, true, detected, finding, h.Dependency))
+	}
+	return out
+}
+
+// depInAffectedRanges reports whether dep.Version falls inside any affected
+// range of the advisory entries matching the dep (normalized ecosystem plus
+// lowercase name). Entries for other packages are ignored. When no matching
+// entry carries usable introduced/fixed events, it returns true — the OSV
+// server already matched this version and there is nothing local to check.
+func depInAffectedRanges(dep Dependency, affected []AffectedPackage) bool {
+	eco := OSVEcosystem(dep.Ecosystem)
+	name := strings.ToLower(dep.Name)
+	matched := false
+	for _, ap := range affected {
+		if !strings.EqualFold(ap.Ecosystem, eco) || strings.ToLower(ap.Name) != name {
+			continue
+		}
+		matched = true
+		for _, r := range ap.Ranges {
+			if versionInEvents(dep.Version, r.Events) {
+				return true
+			}
+		}
+	}
+	if !matched {
+		return false
+	}
+	for _, ap := range affected {
+		if !strings.EqualFold(ap.Ecosystem, eco) || strings.ToLower(ap.Name) != name {
+			continue
+		}
+		for _, r := range ap.Ranges {
+			if len(r.Events) > 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// versionInEvents walks OSV introduced/fixed events in order: introduced arms
+// the range when the version reaches it, fixed disarms it once the version
+// reaches the fix. A fixed-only event implies the range was armed from the
+// start. An event list with no usable bounds returns true (trust OSV).
+func versionInEvents(version string, events []RangeEvent) bool {
+	affected := false
+	bounded := false
+	for _, e := range events {
+		if e.Introduced != "" {
+			bounded = true
+			affected = compareVersions(version, e.Introduced) >= 0
+		}
+		if e.Fixed != "" {
+			if !bounded {
+				bounded = true
+				affected = true
+			}
+			if affected && compareVersions(version, e.Fixed) >= 0 {
+				affected = false
+			}
+		}
+	}
+	if !bounded {
+		return true
+	}
+	return affected
+}
+
+// compareVersions orders versions by numeric segments, falling back to
+// lexical order for non-numeric segments. It strips a leading "v" and build
+// metadata ("+..."), splits on "."/"-"/"_", and treats missing trailing
+// segments as zero, so "1.3" equals "1.3.0". This is an approximation for
+// exact/prefix range checks, not full semver (no prerelease precedence,
+// no ecosystem-specific schemes).
+func compareVersions(a, b string) int {
+	sa := splitVersion(a)
+	sb := splitVersion(b)
+	n := max(len(sa), len(sb))
+	for i := 0; i < n; i++ {
+		var x, y string
+		if i < len(sa) {
+			x = sa[i]
+		} else {
+			x = "0"
+		}
+		if i < len(sb) {
+			y = sb[i]
+		} else {
+			y = "0"
+		}
+		xi, xerr := strconv.Atoi(x)
+		yi, yerr := strconv.Atoi(y)
+		switch {
+		case xerr == nil && yerr == nil:
+			if xi != yi {
+				if xi < yi {
+					return -1
+				}
+				return 1
+			}
+		case x == y:
+		default:
+			if x < y {
+				return -1
+			}
+			return 1
+		}
+	}
+	return 0
+}
+
+func splitVersion(v string) []string {
+	v = strings.TrimSpace(v)
+	v = strings.TrimPrefix(v, "v")
+	v = strings.TrimPrefix(v, "V")
+	if i := strings.Index(v, "+"); i >= 0 {
+		v = v[:i]
+	}
+	return strings.FieldsFunc(v, func(r rune) bool {
+		return r == '.' || r == '-' || r == '_'
+	})
 }
 
 // depMatchesAdvisory reports whether dep hits any affected package entry on

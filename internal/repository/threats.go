@@ -19,6 +19,7 @@ type ThreatRepository interface {
 	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
 	UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error
 	InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error
+	ReconcileHits(ctx context.Context, projectID string, hits []ThreatHit) ([]ThreatHit, error)
 	ListExposures(ctx context.Context, filter ExposureFilter) (rows []ExposureRow, total int, err error)
 }
 
@@ -204,9 +205,48 @@ func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Adviso
 	return nil
 }
 
-// InsertHits appends correlation rows for a project. Empty status fields
-// fall back to the DB defaults (runtime L0, match unconfirmed).
+// InsertHits persists correlation rows for a project. It delegates to
+// ReconcileHits and discards the new-or-changed subset (compat shim for
+// callers that persist without notifying).
 func (r *threatRepo) InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error {
+	_, err := r.ReconcileHits(ctx, projectID, hits)
+	return err
+}
+
+// ReconcileHits upserts correlation rows idempotently on the uq_threat_hit
+// key (project_id, advisory_id, pkg_name, pkg_version) and returns only the
+// inserted rows plus rows whose match_status or inventory_status changed —
+// the notify candidates. Evidence, inventory and match verdicts are
+// overwritten on conflict; runtime_status keeps the highest level ever seen
+// (threats.PromoteRuntime refuses downgrades, in which case the stored level
+// is kept). Runtime-only changes are persisted but never notify.
+func (r *threatRepo) ReconcileHits(ctx context.Context, projectID string, hits []ThreatHit) ([]ThreatHit, error) {
+	type priorRow struct {
+		inventory string
+		runtime   string
+		match     string
+	}
+	prior := map[string]priorRow{}
+	rows, err := r.db.Query(ctx, `
+		SELECT advisory_id, COALESCE(pkg_name, ''), COALESCE(pkg_version, ''),
+			inventory_status, runtime_status, match_status
+		FROM project_inventory_hits WHERE project_id = $1`, projectID)
+	if err != nil {
+		return nil, fmt.Errorf("reconcile hits load prior: %w", err)
+	}
+	for rows.Next() {
+		var advisoryID, pkgName, pkgVersion, inv, run, match string
+		if err := rows.Scan(&advisoryID, &pkgName, &pkgVersion, &inv, &run, &match); err != nil {
+			continue
+		}
+		prior[reconcileKey(advisoryID, pkgName, pkgVersion)] = priorRow{inv, run, match}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("reconcile hits scan prior: %w", err)
+	}
+
+	var fresh []ThreatHit
 	for _, h := range hits {
 		if strings.TrimSpace(h.AdvisoryID) == "" {
 			continue
@@ -223,6 +263,18 @@ func (r *threatRepo) InsertHits(ctx context.Context, projectID string, hits []Th
 		if matchStatus == "" {
 			matchStatus = "unconfirmed"
 		}
+		key := reconcileKey(h.AdvisoryID, h.PkgName, h.PkgVersion)
+		prev, existed := prior[key]
+		finalRuntime := runtimeStatus
+		if existed {
+			if promoted, err := threats.PromoteRuntime(
+				threats.RuntimeStatus(prev.runtime),
+				threats.RuntimeStatus(runtimeStatus)); err == nil {
+				finalRuntime = string(promoted)
+			} else {
+				finalRuntime = prev.runtime
+			}
+		}
 		var evidence any
 		if len(h.Evidence) > 0 {
 			evidence = h.Evidence
@@ -230,13 +282,37 @@ func (r *threatRepo) InsertHits(ctx context.Context, projectID string, hits []Th
 		if _, err := r.db.Exec(ctx, `
 			INSERT INTO project_inventory_hits
 				(project_id, advisory_id, pkg_name, pkg_version, inventory_status, runtime_status, match_status, evidence)
-			VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8)`,
+			VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8)
+			ON CONFLICT (project_id, advisory_id, pkg_name, pkg_version) DO UPDATE SET
+				inventory_status = EXCLUDED.inventory_status,
+				runtime_status   = EXCLUDED.runtime_status,
+				match_status     = EXCLUDED.match_status,
+				evidence         = COALESCE(EXCLUDED.evidence, project_inventory_hits.evidence)`,
 			projectID, h.AdvisoryID, h.PkgName, h.PkgVersion,
-			inventoryStatus, runtimeStatus, matchStatus, evidence); err != nil {
-			return fmt.Errorf("insert inventory hit %s: %w", h.AdvisoryID, err)
+			inventoryStatus, finalRuntime, matchStatus, evidence); err != nil {
+			return nil, fmt.Errorf("reconcile inventory hit %s: %w", h.AdvisoryID, err)
+		}
+		prior[key] = priorRow{inventoryStatus, finalRuntime, matchStatus}
+		if !existed || prev.inventory != inventoryStatus || prev.match != matchStatus {
+			fresh = append(fresh, ThreatHit{
+				AdvisoryID:      h.AdvisoryID,
+				PkgName:         h.PkgName,
+				PkgVersion:      h.PkgVersion,
+				InventoryStatus: inventoryStatus,
+				RuntimeStatus:   finalRuntime,
+				MatchStatus:     matchStatus,
+				Evidence:        h.Evidence,
+			})
 		}
 	}
-	return nil
+	return fresh, nil
+}
+
+// reconcileKey mirrors the uq_threat_hit columns with NULL-normalized pkg
+// fields (COALESCE in the prior-state query), so map lookups agree with the
+// stored rows regardless of NULL vs empty-string representation.
+func reconcileKey(advisoryID, pkgName, pkgVersion string) string {
+	return advisoryID + "\x00" + pkgName + "\x00" + pkgVersion
 }
 
 // ListExposures returns hits joined with advisories, with filters and

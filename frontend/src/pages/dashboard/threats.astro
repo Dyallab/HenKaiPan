@@ -203,7 +203,7 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
     } catch { /* projects unavailable */ }
   }
 
-  async function load() {
+  async function load(opts: { retried?: boolean } = {}) {
     const severities = selectedSeverities();
     const q        = (document.getElementById('filter-q')       as HTMLInputElement).value.trim();
     const kevOnly  = (document.getElementById('filter-kev')     as HTMLInputElement).checked;
@@ -257,6 +257,20 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
 
       updatePagination();
     } catch (e: any) {
+      // Non-admin users get 403 when querying without a project scope
+      // ("All Projects"). Retry once scoped to the first available project.
+      // req<T> surfaces HTTP errors as thrown Errors with `.status`.
+      if ((e as any)?.status === 403 && !opts.retried) {
+        const select = document.getElementById('filter-project') as HTMLSelectElement;
+        const first = Array.from(select.options).find((o) => o.value !== '');
+        if (first) {
+          select.value = first.value;
+          currentPage = 1;
+          await load({ retried: true });
+          return;
+        }
+        // No projects available — fall through to the empty/error state, no loop.
+      }
       tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-error text-sm">${escapeHTML(e.message)}</td></tr>`;
       toast(e.message ?? 'Failed to load exposures', 'error');
     }
@@ -387,8 +401,8 @@ import DashboardLayout from '@layouts/DashboardLayout.astro';
   document.getElementById('prev-btn')!.addEventListener('click', () => { currentPage--; load(); });
   document.getElementById('next-btn')!.addEventListener('click', () => { currentPage++; load(); });
 
-  loadProjects();
-  load();
+  await loadProjects();
+  await load();
   document.getElementById('filter-btn')!.addEventListener('click', () => { currentPage = 1; load(); });
   document.getElementById('filter-kev')!.addEventListener('change', () => { currentPage = 1; load(); });
   document.getElementById('filter-match')!.addEventListener('change', () => { currentPage = 1; load(); });

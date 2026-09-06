@@ -20,9 +20,11 @@ import (
 //
 // Every interval the monitor enqueues one threat:sync task; the handler
 // lists projects, parses each project's manifest inventory, resolves it
-// against OSV, overlays the CISA KEV catalog, correlates with
-// threats.Match (findings empty for MVP), and persists via store.Threats.
-// No notification pipeline here — that is a later issue's job.
+// against OSV via QueryBatchWithDeps, overlays the CISA KEV catalog,
+// correlates with threats.MatchQueryHits (version-aware: patched versions
+// outside every affected range yield no hit), and persists via
+// store.Threats.ReconcileHits. Only new or status-changed hits fan out to
+// NotifyForHits — repeat syncs with identical hits enqueue nothing.
 
 const TypeThreatSync = "threat:sync"
 
@@ -50,6 +52,7 @@ type ThreatStore interface {
 	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
 	UpsertAdvisories(ctx context.Context, advs []threats.Advisory, isKEV func(cveID string, aliases []string) bool) error
 	InsertHits(ctx context.Context, projectID string, hits []repository.ThreatHit) error
+	ReconcileHits(ctx context.Context, projectID string, hits []repository.ThreatHit) ([]repository.ThreatHit, error)
 }
 
 // ThreatEnqueuer abstracts asynq.Client so the scheduler is unit-testable.
@@ -59,14 +62,17 @@ type ThreatEnqueuer interface {
 
 // ThreatSyncDeps wires the sync flow. FetchManifest / QueryOSV / FetchKEV are
 // func fields so tests inject fakes and never hit the network.
+// QueryOSV returns per-dependency query hits (QueryBatchWithDeps shape) so
+// the version-aware MatchQueryHits path can verify affected ranges.
 // Queue + Notify are optional: when both are set, syncProject fans out
-// NotifyForHits after InsertHits (KEV notifies + silent rescans, no new
-// pipeline). Nil Queue/Notify disables fan-out (unit-test default).
+// NotifyForHits on the ReconcileHits new-or-changed subset only (repeat
+// syncs with identical hits enqueue nothing). Nil Queue/Notify disables
+// fan-out (unit-test default).
 type ThreatSyncDeps struct {
 	Projects      ProjectLister
 	Threats       ThreatStore
 	FetchManifest func(ctx context.Context, project models.Project) (sourceFile string, data []byte, err error)
-	QueryOSV      func(ctx context.Context, deps []threats.Dependency) ([]threats.Advisory, error)
+	QueryOSV      func(ctx context.Context, deps []threats.Dependency) ([]threats.QueryHit, error)
 	FetchKEV      func(ctx context.Context) (map[string]threats.KEVEntry, error)
 	Queue         ThreatEnqueuer
 	Notify        *ThreatNotifyDeps
@@ -83,10 +89,10 @@ func DefaultThreatSyncDeps(store repository.Stores) ThreatSyncDeps {
 	return ThreatSyncDeps{
 		Projects: store.Apps,
 		Threats:  store.Threats,
-		FetchManifest: func(_ context.Context, _ models.Project) (string, []byte, error) {
-			return "", nil, ErrNoManifestSource
+		FetchManifest: func(ctx context.Context, p models.Project) (string, []byte, error) {
+			return FetchManifestForProject(ctx, store.Apps, p)
 		},
-		QueryOSV: osvClient.Query,
+		QueryOSV: osvClient.QueryBatchWithDeps,
 		FetchKEV: func(ctx context.Context) (map[string]threats.KEVEntry, error) {
 			return threats.FetchKEV(ctx, nil, "")
 		},
@@ -199,12 +205,13 @@ func syncProject(ctx context.Context, deps ThreatSyncDeps, project models.Projec
 		return fmt.Errorf("upsert dependencies: %w", err)
 	}
 
-	advisories, err := deps.QueryOSV(ctx, inventory)
+	queryHits, err := deps.QueryOSV(ctx, inventory)
 	if err != nil {
 		return fmt.Errorf("osv query: %w", err)
 	}
-	log.Info("threat sync osv resolved", "advisories", len(advisories))
+	log.Info("threat sync osv resolved", "query_hits", len(queryHits))
 
+	advisories := dedupeQueryAdvisories(queryHits)
 	if err := deps.Threats.UpsertAdvisories(ctx, advisories, func(cveID string, aliases []string) bool {
 		return threats.IsKEV(cveID, aliases, kev)
 	}); err != nil {
@@ -212,19 +219,38 @@ func syncProject(ctx context.Context, deps ThreatSyncDeps, project models.Projec
 	}
 
 	// MVP: findings empty — scanner corroboration lands with runtime inventory.
-	hits := threats.Match(inventory, advisories, kev, nil)
+	hits := threats.MatchQueryHits(queryHits, kev, nil)
 	threatHits := make([]repository.ThreatHit, 0, len(hits))
 	for _, h := range hits {
 		threatHits = append(threatHits, threatHitFromMatch(h))
 	}
-	if err := deps.Threats.InsertHits(ctx, project.ID, threatHits); err != nil {
-		return fmt.Errorf("insert hits: %w", err)
+	newOrChanged, err := deps.Threats.ReconcileHits(ctx, project.ID, threatHits)
+	if err != nil {
+		return fmt.Errorf("reconcile hits: %w", err)
 	}
 	if deps.Queue != nil && deps.Notify != nil {
-		NotifyForHits(ctx, deps.Queue, *deps.Notify, project.ID, threatHits, threatAdvisoryMeta(advisories, kev))
+		NotifyForHits(ctx, deps.Queue, *deps.Notify, project.ID, newOrChanged, threatAdvisoryMeta(advisories, kev))
 	}
-	log.Info("threat sync project done", "hits", len(threatHits))
+	log.Info("threat sync project done", "hits", len(threatHits), "new_or_changed", len(newOrChanged))
 	return nil
+}
+
+// dedupeQueryAdvisories collapses per-dependency query hits back to the
+// distinct advisory set for UpsertAdvisories and notify metadata.
+func dedupeQueryAdvisories(queryHits []threats.QueryHit) []threats.Advisory {
+	seen := make(map[string]struct{}, len(queryHits))
+	out := make([]threats.Advisory, 0, len(queryHits))
+	for _, h := range queryHits {
+		if h.Advisory.AdvisoryID == "" {
+			continue
+		}
+		if _, ok := seen[h.Advisory.AdvisoryID]; ok {
+			continue
+		}
+		seen[h.Advisory.AdvisoryID] = struct{}{}
+		out = append(out, h.Advisory)
+	}
+	return out
 }
 
 func threatAdvisoryMeta(advisories []threats.Advisory, kev map[string]threats.KEVEntry) map[string]AdvisoryMeta {

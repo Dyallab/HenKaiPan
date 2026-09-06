@@ -38,6 +38,10 @@ func (m *mockThreatRepo) InsertHits(_ context.Context, _ string, _ []repository.
 	return nil
 }
 
+func (m *mockThreatRepo) ReconcileHits(_ context.Context, _ string, _ []repository.ThreatHit) ([]repository.ThreatHit, error) {
+	return nil, nil
+}
+
 func (m *mockThreatRepo) ListExposures(_ context.Context, f repository.ExposureFilter) ([]repository.ExposureRow, int, error) {
 	m.lastFilter = f
 	if m.err != nil {

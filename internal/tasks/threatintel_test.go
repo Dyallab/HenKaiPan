@@ -29,13 +29,19 @@ type fakeThreatStore struct {
 	deps map[string][]threats.Dependency
 	advs []threats.Advisory
 	hits map[string][]repository.ThreatHit
+	seen map[string]repository.ThreatHit
 }
 
 func newFakeThreatStore() *fakeThreatStore {
 	return &fakeThreatStore{
 		deps: map[string][]threats.Dependency{},
 		hits: map[string][]repository.ThreatHit{},
+		seen: map[string]repository.ThreatHit{},
 	}
+}
+
+func threatHitKey(projectID string, h repository.ThreatHit) string {
+	return projectID + "\x00" + h.AdvisoryID + "\x00" + h.PkgName + "\x00" + h.PkgVersion
 }
 
 func (f *fakeThreatStore) UpsertDependencies(_ context.Context, projectID string, deps []threats.Dependency) error {
@@ -51,6 +57,20 @@ func (f *fakeThreatStore) UpsertAdvisories(_ context.Context, advs []threats.Adv
 func (f *fakeThreatStore) InsertHits(_ context.Context, projectID string, hits []repository.ThreatHit) error {
 	f.hits[projectID] = hits
 	return nil
+}
+
+func (f *fakeThreatStore) ReconcileHits(_ context.Context, projectID string, hits []repository.ThreatHit) ([]repository.ThreatHit, error) {
+	var fresh []repository.ThreatHit
+	for _, h := range hits {
+		key := threatHitKey(projectID, h)
+		prev, ok := f.seen[key]
+		f.seen[key] = h
+		if !ok || prev.MatchStatus != h.MatchStatus || prev.InventoryStatus != h.InventoryStatus {
+			fresh = append(fresh, h)
+		}
+	}
+	f.hits[projectID] = append(f.hits[projectID], hits...)
+	return fresh, nil
 }
 
 type fakeEnqueuer struct {
@@ -124,14 +144,18 @@ func threatSyncTestDeps(store *fakeThreatStore, queried *[]threats.Dependency) T
 		FetchManifest: func(_ context.Context, _ models.Project) (string, []byte, error) {
 			return "package.json", []byte(`{"dependencies":{"lodash":"4.17.21"}}`), nil
 		},
-		QueryOSV: func(_ context.Context, deps []threats.Dependency) ([]threats.Advisory, error) {
+		QueryOSV: func(_ context.Context, deps []threats.Dependency) ([]threats.QueryHit, error) {
 			*queried = deps
-			return []threats.Advisory{{
-				AdvisoryID: "GHSA-test-1",
-				Source:     "osv",
-				CVEID:      "CVE-2021-44228",
-				AffectedPackages: []threats.AffectedPackage{
-					{Ecosystem: "npm", Name: "lodash"},
+			dep := threats.Dependency{Ecosystem: "npm", Name: "lodash", Version: "4.17.21", SourceFile: "package.json"}
+			return []threats.QueryHit{{
+				Dependency: dep,
+				Advisory: threats.Advisory{
+					AdvisoryID: "GHSA-test-1",
+					Source:     "osv",
+					CVEID:      "CVE-2021-44228",
+					AffectedPackages: []threats.AffectedPackage{
+						{Ecosystem: "npm", Name: "lodash"},
+					},
 				},
 			}}, nil
 		},
@@ -177,6 +201,72 @@ func TestThreatIntelSync(t *testing.T) {
 	var ev map[string]any
 	if err := json.Unmarshal(h.Evidence, &ev); err != nil {
 		t.Fatalf("evidence is not JSON: %v", err)
+	}
+}
+
+func TestThreatIntelSyncVersionAwareSkipsPatched(t *testing.T) {
+	store := newFakeThreatStore()
+	deps := threatSyncTestDeps(store, new([]threats.Dependency))
+	deps.QueryOSV = func(_ context.Context, _ []threats.Dependency) ([]threats.QueryHit, error) {
+		return []threats.QueryHit{{
+			Dependency: threats.Dependency{Ecosystem: "npm", Name: "lodash", Version: "4.17.21"},
+			Advisory: threats.Advisory{
+				AdvisoryID: "GHSA-test-1",
+				Source:     "osv",
+				AffectedPackages: []threats.AffectedPackage{
+					{Ecosystem: "npm", Name: "lodash", Ranges: []threats.AffectedRange{
+						{Type: "SEMVER", Events: []threats.RangeEvent{{Introduced: "0", Fixed: "4.17.21"}}},
+					}},
+				},
+			},
+		}}, nil
+	}
+	handler := HandleThreatSync(deps)
+
+	payload, err := MarshalThreatSyncPayload(ThreatSyncPayload{})
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	if err := handler(context.Background(), asynq.NewTask(TypeThreatSync, payload)); err != nil {
+		t.Fatalf("handler: %v", err)
+	}
+	if got := len(store.hits["proj-1"]); got != 0 {
+		t.Fatalf("hits reconciled = %d, want 0 (4.17.21 >= fixed 4.17.21)", got)
+	}
+}
+
+func TestThreatIntelSyncDoubleSyncNotifiesOnce(t *testing.T) {
+	store := newFakeThreatStore()
+	var queried []threats.Dependency
+	deps := threatSyncTestDeps(store, &queried)
+	scans := &fakeNotifyScans{}
+	deps.Queue = &notifyTaskCatcher{}
+	deps.Notify = &ThreatNotifyDeps{
+		Scans:         scans,
+		RescanScanner: "osv-scanner",
+		ProjectTarget: func(_ context.Context, _ string) (string, bool) {
+			return "https://github.com/example/repo.git", true
+		},
+	}
+
+	run := func() {
+		t.Helper()
+		payload, err := MarshalThreatSyncPayload(ThreatSyncPayload{})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		if err := HandleThreatSync(deps)(context.Background(), asynq.NewTask(TypeThreatSync, payload)); err != nil {
+			t.Fatalf("handler: %v", err)
+		}
+	}
+	run()
+	run()
+
+	scans.mu.Lock()
+	n := len(scans.inserted)
+	scans.mu.Unlock()
+	if n != 1 {
+		t.Fatalf("rescan inserts after double sync = %d, want 1 (no repeat notify)", n)
 	}
 }
 

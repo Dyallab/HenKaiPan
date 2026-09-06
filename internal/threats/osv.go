@@ -81,11 +81,45 @@ func NewClient(baseURL, version string) *Client {
 	}
 }
 
+// QueryHit pairs one queried Dependency with one Advisory the OSV server
+// returned for that exact query, preserving the query→dependency
+// association that a globally deduped []Advisory cannot carry.
+type QueryHit struct {
+	Dependency Dependency
+	Advisory   Advisory
+}
+
 // Query resolves deps to advisories: chunked POST /v1/querybatch for IDs,
 // then bounded hydration of each ID via GET /v1/vulns/{id}.
 // Server-side version matching is trusted — no range comparison here.
 // Hydration failures are tolerated (skipped), never fatal.
 func (c *Client) Query(ctx context.Context, deps []Dependency) ([]Advisory, error) {
+	hits, err := c.QueryBatchWithDeps(ctx, deps)
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]struct{}, len(hits))
+	out := make([]Advisory, 0, len(hits))
+	for _, h := range hits {
+		if h.Advisory.AdvisoryID == "" {
+			continue
+		}
+		if _, ok := seen[h.Advisory.AdvisoryID]; ok {
+			continue
+		}
+		seen[h.Advisory.AdvisoryID] = struct{}{}
+		out = append(out, h.Advisory)
+	}
+	return out, nil
+}
+
+// QueryBatchWithDeps resolves deps to per-dependency query hits, retaining
+// which advisory was returned for which dependency version. Two versions of
+// the same package that match the same advisory yield two hits sharing that
+// advisory; callers (e.g. MatchQueryHits) decide per-dep applicability from
+// the advisory's affected ranges. Query is implemented in terms of this
+// method and keeps its global-dedup contract.
+func (c *Client) QueryBatchWithDeps(ctx context.Context, deps []Dependency) ([]QueryHit, error) {
 	queryable := make([]Dependency, 0, len(deps))
 	for _, d := range deps {
 		if strings.TrimSpace(d.Name) == "" || strings.TrimSpace(d.Version) == "" {
@@ -97,17 +131,41 @@ func (c *Client) Query(ctx context.Context, deps []Dependency) ([]Advisory, erro
 		queryable = append(queryable, d)
 	}
 
-	var ids []string
+	perQuery := make([][]string, 0, len(queryable))
 	for _, chunk := range chunkDeps(queryable, osvMaxBatchSize) {
-		chunkIDs, err := c.queryBatch(ctx, chunk)
+		chunkIDs, err := c.queryBatchIndexed(ctx, chunk)
 		if err != nil {
 			return nil, err
 		}
-		ids = append(ids, chunkIDs...)
+		perQuery = append(perQuery, chunkIDs...)
 	}
-	ids = dedupe(ids)
 
-	return c.hydrate(ctx, ids), nil
+	unique := dedupe(flattenIDs(perQuery))
+	hydrated := c.hydrate(ctx, unique)
+	byID := make(map[string]Advisory, len(hydrated))
+	for _, a := range hydrated {
+		byID[a.AdvisoryID] = a
+	}
+
+	var out []QueryHit
+	for i, dep := range queryable {
+		for _, id := range perQuery[i] {
+			a, ok := byID[id]
+			if !ok {
+				continue
+			}
+			out = append(out, QueryHit{Dependency: dep, Advisory: a})
+		}
+	}
+	return out, nil
+}
+
+func flattenIDs(perQuery [][]string) []string {
+	var out []string
+	for _, ids := range perQuery {
+		out = append(out, ids...)
+	}
+	return out
 }
 
 func chunkDeps(deps []Dependency, size int) [][]Dependency {
@@ -159,6 +217,17 @@ type osvBatchResponse struct {
 
 // queryBatch POSTs one chunk (≤1000 queries) and returns the matched vuln IDs.
 func (c *Client) queryBatch(ctx context.Context, chunk []Dependency) ([]string, error) {
+	perQuery, err := c.queryBatchIndexed(ctx, chunk)
+	if err != nil {
+		return nil, err
+	}
+	return flattenIDs(perQuery), nil
+}
+
+// queryBatchIndexed POSTs one chunk and returns matched vuln IDs aligned
+// 1:1 with the chunk order, so callers can tell which IDs belong to which
+// queried dependency. Short server results are padded with empty sets.
+func (c *Client) queryBatchIndexed(ctx context.Context, chunk []Dependency) ([][]string, error) {
 	queries := make([]osvQuery, 0, len(chunk))
 	for _, d := range chunk {
 		queries = append(queries, osvQuery{
@@ -175,13 +244,16 @@ func (c *Client) queryBatch(ctx context.Context, chunk []Dependency) ([]string, 
 	if err := json.Unmarshal(body, &resp); err != nil {
 		return nil, fmt.Errorf("osv: decode querybatch: %w", err)
 	}
-	var ids []string
-	for _, r := range resp.Results {
-		for _, v := range r.Vulns {
-			ids = append(ids, v.ID)
+	perQuery := make([][]string, len(chunk))
+	for i := range resp.Results {
+		if i >= len(chunk) {
+			break
+		}
+		for _, v := range resp.Results[i].Vulns {
+			perQuery[i] = append(perQuery[i], v.ID)
 		}
 	}
-	return ids, nil
+	return perQuery, nil
 }
 
 type osvVuln struct {
