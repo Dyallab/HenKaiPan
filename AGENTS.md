@@ -27,11 +27,14 @@
 | Tests (internal/) | `nix run .#test` |
 | Tests (all packages) | `make test-race` |
 | Tests (integration tag) | `make test-integration` |
+| Smoke suite (live API :8080) | `make test-smoke` |
 | Test coverage | `nix run .#test-coverage` |
 | Go mod tidy | `nix run .#tidy` |
 | Run migration | `nix run .#migrate -- migrations/xxx.sql` |
 | Sync migration dirs | `nix run .#sync-migrations` |
 | Seed demo workspace | `docker compose exec -T postgres psql -U aspm -d aspm < scripts/seed-demo.sql` |
+| Seed full workspace (idempotent) | `make seed-full` |
+| Verify seed integrity | `make verify-seed` |
 
 ## Architecture
 

@@ -277,6 +277,9 @@ func main() {
 		r.Get("/api/vulnerabilities/engine-summary", h.GetVulnerabilityEngineSummary)
 		r.With(auth.RequireRole("admin")).Patch("/api/vulnerabilities/{vulnID}/status", h.UpdateVulnerabilityStatus)
 
+		// ── Threat Intel MVP (#64): inventory↔advisory exposures ──
+		r.Get("/api/threats/exposures", h.ListThreatExposures)
+
 		// ── Comments ──
 		r.Get("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.GetFindingComments))
 		r.With(auth.RequireRole("admin")).Post("/api/findings/{id}/comments", appmw.RequireOwnership(store.Apps, "finding")(h.CreateFindingComment))

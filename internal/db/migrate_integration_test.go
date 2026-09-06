@@ -13,9 +13,15 @@ import (
 )
 
 func TestApplyNonTransactionalConcurrently(t *testing.T) {
-	dsn := os.Getenv("DATABASE_URL")
+	// TEST_DATABASE_URL takes precedence so host-side runs can target the
+	// published postgres port; .env's DATABASE_URL uses the compose
+	// service name, which only resolves inside containers.
+	dsn := os.Getenv("TEST_DATABASE_URL")
 	if dsn == "" {
-		t.Skip("DATABASE_URL not set; skipping integration test")
+		dsn = os.Getenv("DATABASE_URL")
+	}
+	if dsn == "" {
+		t.Skip("TEST_DATABASE_URL/DATABASE_URL not set; skipping integration test")
 	}
 
 	ctx := context.Background()

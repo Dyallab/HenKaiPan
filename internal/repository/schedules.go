@@ -16,7 +16,7 @@ type scheduleRepo struct {
 	db *pgxpool.Pool
 }
 
-const scheduleCols = "id, project_id, app_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at"
+const scheduleCols = "id, COALESCE(project_id::text, '') AS project_id, app_id, scanner, scanner_type, cron_expr, enabled, last_run, next_run, created_at"
 
 func scanSchedule(s *models.ScanSchedule, row interface{ Scan(...interface{}) error }) error {
 	return row.Scan(&s.ID, &s.ProjectID, &s.AppID, &s.Scanner, &s.ScannerType, &s.CronExpr, &s.Enabled, &s.LastRun, &s.NextRun, &s.CreatedAt)
