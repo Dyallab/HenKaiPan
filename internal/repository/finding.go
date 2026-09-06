@@ -136,7 +136,7 @@ rows, err := r.db.Query(ctx, `
 
 	var total int
 	r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM findings
+		SELECT COUNT(*) FROM findings f
 		WHERE (@severities::text[] IS NULL OR severity = ANY(@severities)) AND (@scanner='' OR scanner=@scanner)
 		  AND (@status='' OR status=@status)
 		  AND (@overdue = FALSE OR (sla_deadline < NOW() AND status NOT IN ('fixed','verified','accepted_risk')))
