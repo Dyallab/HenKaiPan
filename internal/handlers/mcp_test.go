@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"aspm/internal/assert"
 	"aspm/internal/datascope"
@@ -131,6 +132,44 @@ func TestMCP_Discover(t *testing.T) {
 	assert.NotNil(t, res["_meta"])
 	assert.Equal(t, res["cacheScope"], "public")
 	assertMapKey[float64](t, res, "ttlMs", float64(3600000))
+}
+
+// ── Standalone SSE stream (GET) ────────────────────────────────────────────
+
+func TestMCP_GetStream(t *testing.T) {
+	h := newMCPHandler()
+	ctx, cancel := context.WithCancel(context.Background())
+	req := httptest.NewRequest(http.MethodGet, "/v1/mcp", nil)
+	req = req.WithContext(context.WithValue(ctx, tokenCtxKey, &repository.Token{ID: "tok-1"}))
+	rec := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() { defer close(done); h.HandleMCP(rec, req) }()
+	// Give the handler a moment to write headers, then disconnect. No
+	// recorder reads happen until the handler has returned (see below),
+	// so this stays race-free under -race.
+	select {
+	case <-done:
+		t.Fatal("stream handler returned before disconnect")
+	case <-time.After(500 * time.Millisecond):
+	}
+	cancel()
+	<-done
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.Equal(t, rec.Header().Get("Content-Type"), "text/event-stream")
+	if !strings.HasPrefix(rec.Body.String(), ": connected") {
+		t.Fatalf("expected SSE greeting, got %q", rec.Body.String())
+	}
+}
+
+func TestMCP_MethodNotAllowed(t *testing.T) {
+	h := newMCPHandler()
+	req := httptest.NewRequest(http.MethodDelete, "/v1/mcp", nil)
+	rec := httptest.NewRecorder()
+	h.HandleMCP(rec, req)
+
+	assert.Equal(t, rec.Code, http.StatusMethodNotAllowed)
+	assert.Equal(t, rec.Header().Get("Allow"), "GET, POST")
 }
 
 // ── Protocol version negotiation ───────────────────────────────────────────
@@ -347,18 +386,152 @@ func TestMCP_NotificationAccepted(t *testing.T) {
 	assert.Equal(t, rec.Body.Len(), 0)
 }
 
-// ── Legacy initialize → friendly reject ────────────────────────────────────
+// ── initialize (stateless, standard clients) ─────────────────────────────────
 
 func TestMCP_LegacyInitializeRejected(t *testing.T) {
 	h := newMCPHandler()
-	// Legacy clients send initialize without modern headers/_meta.
+	// Bare initialize without params: answered statelessly on 2026-07-28.
 	body := `{"jsonrpc":"2.0","id":1,"method":"initialize"}`
 	rec := doMCP(t, h, body, nil)
 
-	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, rec.Code, http.StatusOK)
 	resp := decodeResp(t, rec)
-	assert.Equal(t, resp.Error.Code, -32022) // UnsupportedProtocolVersionError
-	data, ok := resp.Error.Data.(map[string]any)
+	res := resultMap(t, resp.Result)
+	assert.Equal(t, res["protocolVersion"], "2026-07-28")
+	assert.NotNil(t, res["capabilities"])
+	assert.NotNil(t, res["serverInfo"])
+}
+
+func TestMCP_InitializeStandard(t *testing.T) {
+	h := newMCPHandler()
+	// OpenCode-style handshake: standard params, no custom headers.
+	// The client's spec version is echoed back so real clients accept it.
+	body := `{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"opencode","version":"1.0.0"}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	resp := decodeResp(t, rec)
+	res := resultMap(t, resp.Result)
+	assert.Equal(t, res["protocolVersion"], "2025-03-26")
+	assert.NotNil(t, res["capabilities"])
+	assert.NotNil(t, res["serverInfo"])
+	// Stateless: no session id is ever minted.
+	assert.Equal(t, rec.Header().Get("MCP-Session-Id"), "")
+}
+
+func TestMCP_InitializeCurrentVersion(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2026-07-28","capabilities":{},"clientInfo":{"name":"test-client","version":"1.0.0"}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.Equal(t, resultMap(t, decodeResp(t, rec).Result)["protocolVersion"], "2026-07-28")
+}
+
+func TestMCP_InitializeBareFallsBack(t *testing.T) {
+	h := newMCPHandler()
+	// No candidate anywhere: only this case falls back to latest.
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.Equal(t, resultMap(t, decodeResp(t, rec).Result)["protocolVersion"], "2026-07-28")
+}
+
+func TestMCP_InitializeUnknownVersionRejected(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"1999-01-01","capabilities":{}}}`
+	rec := doMCP(t, h, body, nil)
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32022)
+}
+
+func TestMCP_InitializeHeaderBodyConflictRejected(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2025-11-25",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32020)
+}
+
+func TestMCP_InitializeMetaMismatchRejected(t *testing.T) {
+	h := newMCPHandler()
+	b := mcpReqBuilder{method: "initialize", id: 1, hasID: true, metaPV: "2026-07-28"}
+	rec := doMCP(t, h, b.body(), map[string]string{
+		"MCP-Protocol-Version": "2025-11-25",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32020)
+}
+
+func TestMCP_InitializeMetaUnsupportedRejected(t *testing.T) {
+	h := newMCPHandler()
+	b := mcpReqBuilder{method: "initialize", id: 1, hasID: true, metaPV: "2025-03-26"}
+	rec := doMCP(t, h, b.body(), map[string]string{
+		"MCP-Protocol-Version": "2025-03-26",
+		"Mcp-Method":           "initialize",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32022)
+}
+
+func TestMCP_ToolsListStandard(t *testing.T) {
+	h := newMCPHandler()
+	// Standard client after handshake: version via header, no Mcp-* headers.
+	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"protocolVersion":"2026-07-28"}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2026-07-28",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	res := resultMap(t, decodeResp(t, rec).Result)
+	tools, ok := res["tools"].([]any)
 	assert.True(t, ok)
-	assertMapKey[[]any](t, data, "supported", []any{"2026-07-28"})
+	assert.Equal(t, len(tools), 7)
+}
+
+func TestMCP_ToolsListKnownOldVersionAccepted(t *testing.T) {
+	h := newMCPHandler()
+	// Standard client on a spec version: interoperable, accepted.
+	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"protocolVersion":"2025-03-26"}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2025-03-26",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	res := resultMap(t, decodeResp(t, rec).Result)
+	tools, ok := res["tools"].([]any)
+	assert.True(t, ok)
+	assert.Equal(t, len(tools), 7)
+}
+
+func TestMCP_ToolsListUnknownVersionRejected(t *testing.T) {
+	h := newMCPHandler()
+	// 2024-11-05 is a real spec version but requires the legacy HTTP+SSE
+	// transport (session setup, endpoint event, /messages), which this
+	// Streamable-HTTP-only server does not implement — still rejected.
+	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"protocolVersion":"2024-11-05"}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2024-11-05",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusBadRequest)
+	assert.Equal(t, decodeResp(t, rec).Error.Code, -32022)
+}
+
+func TestMCP_Ping(t *testing.T) {
+	h := newMCPHandler()
+	body := `{"jsonrpc":"2.0","id":3,"method":"ping","params":{"protocolVersion":"2026-07-28"}}`
+	rec := doMCP(t, h, body, map[string]string{
+		"MCP-Protocol-Version": "2026-07-28",
+	})
+
+	assert.Equal(t, rec.Code, http.StatusOK)
+	assert.NotNil(t, decodeResp(t, rec).Result)
 }
