@@ -662,4 +662,5 @@ type Stores struct {
 	Tokens         TokenRepository
 	Health         HealthRepository
 	Usage          UsageRepository
+	Threats        ThreatRepository
 }

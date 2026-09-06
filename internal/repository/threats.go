@@ -1,0 +1,299 @@
+package repository
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
+	"aspm/internal/threats"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// ThreatRepository persists threat-intel MVP data (issue #64):
+// declared dependency inventory, upstream advisories, and their
+// correlation hits, plus the joined exposure listing.
+type ThreatRepository interface {
+	UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error
+	UpsertAdvisories(ctx context.Context, advs []threats.Advisory) error
+	InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error
+	ListExposures(ctx context.Context, filter ExposureFilter) (rows []ExposureRow, total int, err error)
+}
+
+type threatRepo struct{ db *pgxpool.Pool }
+
+// ThreatHit is one inventory↔advisory correlation row to persist.
+// NOTE: mirrors the future threats.Hit contract owned by the matcher task;
+// kept repository-local so this package never depends on unlanded types.
+type ThreatHit struct {
+	AdvisoryID      string
+	PkgName         string
+	PkgVersion      string
+	InventoryStatus string // declared | detected | corroborated
+	RuntimeStatus   string // L0..L4 (empty = DB default L0)
+	MatchStatus     string // unconfirmed | active_threat | dismissed (empty = default)
+	Evidence        json.RawMessage
+}
+
+// ExposureFilter scopes the exposure listing. Page/Limit default like other
+// List methods; Sort must be a whitelisted key (see exposureSorts).
+type ExposureFilter struct {
+	ProjectID       string
+	KEVOnly         bool
+	MatchStatus     string
+	InventoryStatus string
+	Q               string
+	Page            int
+	Limit           int
+	Sort            string
+}
+
+// ExposureRow is one hit joined with its advisory columns.
+type ExposureRow struct {
+	HitID           string     `json:"hit_id"`
+	ProjectID       string     `json:"project_id"`
+	AdvisoryID      string     `json:"advisory_id"`
+	Source          string     `json:"source"`
+	CVEID           string     `json:"cve_id"`
+	Ecosystem       string     `json:"ecosystem"`
+	PkgName         string     `json:"pkg_name"`
+	PkgVersion      string     `json:"pkg_version"`
+	Severity        string     `json:"severity"`
+	KEV             bool       `json:"kev"`
+	InventoryStatus string          `json:"inventory_status"`
+	RuntimeStatus   string          `json:"runtime_status"`
+	MatchStatus     string          `json:"match_status"`
+	Evidence        json.RawMessage `json:"evidence,omitempty"`
+	PublishedAt     *time.Time      `json:"published_at,omitempty"`
+	CreatedAt       time.Time       `json:"created_at"`
+}
+
+// exposureSorts whitelists Sort keys to ORDER BY fragments (helpers.go
+// DeleteByID whitelist style — never interpolate raw user input).
+var exposureSorts = map[string]string{
+	"":             "h.created_at DESC",
+	"created_at":   "h.created_at DESC",
+	"published_at": "a.published_at DESC NULLS LAST, h.created_at DESC",
+	"severity": "CASE a.severity WHEN 'CRITICAL' THEN 1 WHEN 'HIGH' THEN 2 " +
+		"WHEN 'MEDIUM' THEN 3 WHEN 'LOW' THEN 4 ELSE 5 END, h.created_at DESC",
+	"cve_id": "a.cve_id ASC NULLS LAST, h.created_at DESC",
+}
+
+// UpsertDependencies replaces the project's declared inventory snapshot.
+// The table has no unique constraint, so snapshot replace (DELETE + INSERT
+// in one transaction) is the idempotent upsert semantic.
+func (r *threatRepo) UpsertDependencies(ctx context.Context, projectID string, deps []threats.Dependency) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("upsert dependencies begin: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx, `DELETE FROM project_dependencies WHERE project_id = $1`, projectID); err != nil {
+		return fmt.Errorf("upsert dependencies clear: %w", err)
+	}
+	for _, d := range deps {
+		if strings.TrimSpace(d.Name) == "" || strings.TrimSpace(d.Version) == "" {
+			continue
+		}
+		var sourceFile *string
+		if strings.TrimSpace(d.SourceFile) != "" {
+			sourceFile = &d.SourceFile
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO project_dependencies (project_id, ecosystem, pkg_name, pkg_version, source_file)
+			VALUES ($1, $2, $3, $4, $5)`,
+			projectID, d.Ecosystem, d.Name, d.Version, sourceFile); err != nil {
+			return fmt.Errorf("upsert dependencies insert: %w", err)
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("upsert dependencies commit: %w", err)
+	}
+	return nil
+}
+
+// UpsertAdvisories inserts or refreshes upstream advisories by PK.
+// Ecosystem/pkg_name come from the first affected package; affected_ranges
+// carries the full per-package ranges as JSONB. kev is ingest-track owned
+// (KEV overlay) and intentionally never overwritten here.
+func (r *threatRepo) UpsertAdvisories(ctx context.Context, advs []threats.Advisory) error {
+	for _, a := range advs {
+		if strings.TrimSpace(a.AdvisoryID) == "" {
+			continue
+		}
+		var ecosystem, pkgName *string
+		if len(a.AffectedPackages) > 0 {
+			if v := strings.TrimSpace(a.AffectedPackages[0].Ecosystem); v != "" {
+				ecosystem = &v
+			}
+			if v := strings.TrimSpace(a.AffectedPackages[0].Name); v != "" {
+				pkgName = &v
+			}
+		}
+		var affectedRanges any
+		if len(a.AffectedPackages) > 0 {
+			if raw, err := json.Marshal(a.AffectedPackages); err == nil {
+				affectedRanges = raw
+			}
+		}
+		var raw any
+		if len(a.Raw) > 0 {
+			raw = a.Raw
+		}
+		var publishedAt *time.Time
+		if !a.Published.IsZero() {
+			publishedAt = &a.Published
+		}
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO threat_advisories
+				(advisory_id, source, cve_id, ecosystem, pkg_name, affected_ranges, severity, published_at, raw)
+			VALUES ($1, $2, NULLIF($3, ''), $4, $5, $6, NULLIF($7, ''), $8, $9)
+			ON CONFLICT (advisory_id) DO UPDATE SET
+				source          = EXCLUDED.source,
+				cve_id          = EXCLUDED.cve_id,
+				ecosystem       = EXCLUDED.ecosystem,
+				pkg_name        = EXCLUDED.pkg_name,
+				affected_ranges = EXCLUDED.affected_ranges,
+				severity        = EXCLUDED.severity,
+				published_at    = EXCLUDED.published_at,
+				raw             = EXCLUDED.raw`,
+			a.AdvisoryID, a.Source, a.CVEID, ecosystem, pkgName,
+			affectedRanges, a.Severity, publishedAt, raw); err != nil {
+			return fmt.Errorf("upsert advisory %s: %w", a.AdvisoryID, err)
+		}
+	}
+	return nil
+}
+
+// InsertHits appends correlation rows for a project. Empty status fields
+// fall back to the DB defaults (runtime L0, match unconfirmed).
+func (r *threatRepo) InsertHits(ctx context.Context, projectID string, hits []ThreatHit) error {
+	for _, h := range hits {
+		if strings.TrimSpace(h.AdvisoryID) == "" {
+			continue
+		}
+		inventoryStatus := h.InventoryStatus
+		if inventoryStatus == "" {
+			inventoryStatus = "declared"
+		}
+		runtimeStatus := h.RuntimeStatus
+		if runtimeStatus == "" {
+			runtimeStatus = "L0"
+		}
+		matchStatus := h.MatchStatus
+		if matchStatus == "" {
+			matchStatus = "unconfirmed"
+		}
+		var evidence any
+		if len(h.Evidence) > 0 {
+			evidence = h.Evidence
+		}
+		if _, err := r.db.Exec(ctx, `
+			INSERT INTO project_inventory_hits
+				(project_id, advisory_id, pkg_name, pkg_version, inventory_status, runtime_status, match_status, evidence)
+			VALUES ($1, $2, NULLIF($3, ''), NULLIF($4, ''), $5, $6, $7, $8)`,
+			projectID, h.AdvisoryID, h.PkgName, h.PkgVersion,
+			inventoryStatus, runtimeStatus, matchStatus, evidence); err != nil {
+			return fmt.Errorf("insert inventory hit %s: %w", h.AdvisoryID, err)
+		}
+	}
+	return nil
+}
+
+// ListExposures returns hits joined with advisories, with filters and
+// $N-parameterized LIMIT/OFFSET pagination plus the total count.
+func (r *threatRepo) ListExposures(ctx context.Context, f ExposureFilter) ([]ExposureRow, int, error) {
+	if f.Page < 1 {
+		f.Page = 1
+	}
+	if f.Limit < 1 || f.Limit > 200 {
+		f.Limit = 100
+	}
+	offset := (f.Page - 1) * f.Limit
+
+	where := []string{}
+	args := []any{}
+	argIdx := 1
+
+	if f.ProjectID != "" {
+		where = append(where, fmt.Sprintf("h.project_id = $%d", argIdx))
+		args = append(args, f.ProjectID)
+		argIdx++
+	}
+
+	if f.KEVOnly {
+		where = append(where, "a.kev = TRUE")
+	}
+	if f.MatchStatus != "" {
+		where = append(where, fmt.Sprintf("h.match_status = $%d", argIdx))
+		args = append(args, f.MatchStatus)
+		argIdx++
+	}
+	if f.InventoryStatus != "" {
+		where = append(where, fmt.Sprintf("h.inventory_status = $%d", argIdx))
+		args = append(args, f.InventoryStatus)
+		argIdx++
+	}
+	if f.Q != "" {
+		where = append(where, fmt.Sprintf(
+			"(h.pkg_name ILIKE $%d OR a.cve_id ILIKE $%d OR a.advisory_id ILIKE $%d)",
+			argIdx, argIdx, argIdx))
+		args = append(args, "%"+f.Q+"%")
+		argIdx++
+	}
+	whereClause := "TRUE"
+	if len(where) > 0 {
+		whereClause = strings.Join(where, " AND ")
+	}
+
+	var total int
+	countSQL := `SELECT COUNT(*) FROM project_inventory_hits h
+		JOIN threat_advisories a ON a.advisory_id = h.advisory_id WHERE ` + whereClause
+	if err := r.db.QueryRow(ctx, countSQL, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count exposures: %w", err)
+	}
+
+	sortBy := exposureSorts[f.Sort]
+	if sortBy == "" {
+		sortBy = exposureSorts[""]
+	}
+	querySQL := fmt.Sprintf(`
+		SELECT h.id, h.project_id, h.advisory_id, a.source,
+			COALESCE(a.cve_id, ''), COALESCE(a.ecosystem, ''),
+			COALESCE(h.pkg_name, ''), COALESCE(h.pkg_version, ''),
+			COALESCE(a.severity, ''), a.kev,
+			h.inventory_status, h.runtime_status, h.match_status,
+			h.evidence, a.published_at, h.created_at
+		FROM project_inventory_hits h
+		JOIN threat_advisories a ON a.advisory_id = h.advisory_id
+		WHERE %s
+		ORDER BY %s
+		LIMIT $%d OFFSET $%d`, whereClause, sortBy, argIdx, argIdx+1)
+	args = append(args, f.Limit, offset)
+
+	rows, err := r.db.Query(ctx, querySQL, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list exposures: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ExposureRow
+	for rows.Next() {
+		var e ExposureRow
+		var evidence []byte
+		if err := rows.Scan(&e.HitID, &e.ProjectID, &e.AdvisoryID, &e.Source,
+			&e.CVEID, &e.Ecosystem, &e.PkgName, &e.PkgVersion, &e.Severity, &e.KEV,
+			&e.InventoryStatus, &e.RuntimeStatus, &e.MatchStatus,
+			&evidence, &e.PublishedAt, &e.CreatedAt); err != nil {
+			continue
+		}
+		if len(evidence) > 0 {
+			e.Evidence = json.RawMessage(evidence)
+		}
+		out = append(out, e)
+	}
+	return EnsureSlice(out), total, rows.Err()
+}

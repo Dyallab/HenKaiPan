@@ -282,6 +282,30 @@ export const api = {
       { method: "PATCH", body: JSON.stringify({ status }) },
     ),
 
+  getThreatExposures: (
+    projectId = "",
+    kev?: boolean,
+    matchStatus = "",
+    inventoryStatus = "",
+    q = "",
+    page = 1,
+    limit = 100,
+    sort = "",
+  ) => {
+    const params = new URLSearchParams();
+    if (projectId) params.set("project_id", projectId);
+    if (kev !== undefined) params.set("kev", String(kev));
+    if (matchStatus) params.set("match_status", matchStatus);
+    if (inventoryStatus) params.set("inventory_status", inventoryStatus);
+    if (q) params.set("q", q);
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (sort) params.set("sort", sort);
+    return req<{ exposures: ThreatExposure[]; total: number }>(
+      `/api/threats/exposures?${params.toString()}`,
+    );
+  },
+
   getUsers: () => req<User[]>("/api/users"),
 
   createUser: (
@@ -931,6 +955,20 @@ export interface ProjectEngineSummary {
   by_engine: Record<string, number>;
   total_vulns: number;
   total_open: number;
+}
+
+export interface ThreatExposure {
+  hit_id?: string;
+  advisory_id?: string;
+  project_id: string;
+  project_name?: string;
+  cve_id: string;
+  severity: "critical" | "high" | "medium" | "low" | "info";
+  kev: boolean;
+  inventory_status: string;
+  runtime_status: string;
+  match_status: string;
+  evidence?: unknown;
 }
 
 export interface OpenRouterKeyUsage {

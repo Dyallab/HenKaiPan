@@ -24,5 +24,6 @@ func NewPostgresStores(db *pgxpool.Pool, redisAddr string) Stores {
 		Tokens:         NewTokenRepository(db),
 		Health:         NewHealthRepo(db, redisAddr),
 		Usage:          &usageRepo{db},
+		Threats:        &threatRepo{db},
 	}
 }

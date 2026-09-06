@@ -84,10 +84,15 @@ func main() {
 	mux.HandleFunc(tasks.TypeEmailSend, tasks.HandleEmailSend(emailSender))
 	mux.HandleFunc(tasks.TypeDigestSend, tasks.HandleDigestSend(store, emailSender, cfg.FrontendURL))
 	mux.HandleFunc(tasks.TypeReportSend, tasks.HandleReportSend(store, emailSender, cfg.FrontendURL))
+	threatSyncDeps := tasks.DefaultThreatSyncDeps(store)
+	threatSyncDeps.Queue = queueClient
+	threatSyncDeps.Notify = tasks.DefaultThreatNotifyDeps(store, notifications.Email)
+	mux.HandleFunc(tasks.TypeThreatSync, tasks.HandleThreatSync(threatSyncDeps))
 	tasks.StartScanScheduler(context.Background(), store, queueClient, 60*time.Second)
 	tasks.StartWeeklyDigestScheduler(context.Background(), store, queueClient, notifications)
 	tasks.StartReportScheduler(context.Background(), store, queueClient)
 	tasks.StartSLABreachMonitor(context.Background(), store.Settings, store.Findings, store.Webhooks, queueClient, notifications, 15*time.Minute)
+	tasks.StartThreatIntelMonitor(context.Background(), store, queueClient, 6*time.Hour)
 
 	// Register AI agent handlers if configured
 	if cfg.ValidationConfig.IsConfigured {

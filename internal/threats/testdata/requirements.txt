@@ -1,0 +1,7 @@
+# demo requirements
+requests==2.31.0
+flask>=3.0.0
+uvicorn[standard]==0.24.0
+Django==4.2.7 ; python_version >= "3.8"
+
+-r other-requirements.txt

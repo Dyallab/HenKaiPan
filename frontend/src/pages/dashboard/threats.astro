@@ -1,0 +1,398 @@
+---
+import DashboardLayout from '@layouts/DashboardLayout.astro';
+---
+<DashboardLayout title="Threats Affecting Us" active="threats">
+
+  <!-- Breadcrumbs -->
+  <div class="flex items-center gap-2 text-xs text-slate-500 uppercase tracking-[0.22em] font-bold mb-4">
+    <a href="/dashboard" class="hover:text-cyan-300 transition-colors">Dashboard</a>
+    <span>/</span>
+    <span class="text-slate-400">Threats Affecting Us</span>
+  </div>
+
+  <!-- Header -->
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h1 class="text-xl font-black text-on-background tracking-tight">Threats Affecting Us</h1>
+      <p class="text-sm text-slate-400 mt-0.5">Known threats matched against your inventory — see what actually affects you.</p>
+    </div>
+    <div id="threat-summary" class="flex gap-3 text-right">
+      <div>
+        <div id="sum-total" class="text-2xl font-black text-on-background">—</div>
+        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Exposures</div>
+      </div>
+      <div class="w-px bg-slate-800"></div>
+      <div>
+        <div id="sum-kev" class="text-2xl font-black text-red-500">—</div>
+        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">KEV</div>
+      </div>
+      <div class="w-px bg-slate-800"></div>
+      <div>
+        <div id="sum-critical" class="text-2xl font-black text-vivid-crimson">—</div>
+        <div class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Critical</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="flex flex-wrap gap-3 mb-4">
+    <fieldset class="flex flex-wrap items-center gap-2 rounded-lg border border-outline-variant/30 bg-surface-container px-2.5 py-1.5">
+      <legend class="px-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</legend>
+            <label class="inline-flex items-center gap-2 rounded-full border border-vivid-crimson/20 bg-vivid-crimson/10 px-2.5 py-1 text-xs font-semibold text-vivid-crimson cursor-pointer">
+              <input type="checkbox" value="critical" data-severity-filter class="h-3.5 w-3.5 rounded border-vivid-crimson/40 bg-transparent text-vivid-crimson focus:ring-0" />
+              Critical
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-full border border-goldenrod/20 bg-goldenrod/10 px-2.5 py-1 text-xs font-semibold text-goldenrod cursor-pointer">
+              <input type="checkbox" value="high" data-severity-filter class="h-3.5 w-3.5 rounded border-goldenrod/40 bg-transparent text-goldenrod focus:ring-0" />
+              High
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-full border border-spectrum-flare/20 bg-spectrum-flare/10 px-2.5 py-1 text-xs font-semibold text-spectrum-flare cursor-pointer">
+              <input type="checkbox" value="medium" data-severity-filter class="h-3.5 w-3.5 rounded border-spectrum-flare/40 bg-transparent text-spectrum-flare focus:ring-0" />
+              Medium
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-full border border-emerald-green/20 bg-emerald-green/10 px-2.5 py-1 text-xs font-semibold text-emerald-green cursor-pointer">
+              <input type="checkbox" value="low" data-severity-filter class="h-3.5 w-3.5 rounded border-emerald-green/40 bg-transparent text-emerald-green focus:ring-0" />
+              Low
+            </label>
+            <label class="inline-flex items-center gap-2 rounded-full border border-iron-slate/20 bg-iron-slate/10 px-2.5 py-1 text-xs font-semibold text-iron-slate cursor-pointer">
+              <input type="checkbox" value="info" data-severity-filter class="h-3.5 w-3.5 rounded border-iron-slate/40 bg-transparent text-iron-slate focus:ring-0" />
+              Info
+            </label>
+    </fieldset>
+
+    <div class="relative flex-1 min-w-[180px]">
+      <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-base">search</span>
+      <input id="filter-q" type="text" placeholder="Search CVE or project…"
+        class="w-full bg-surface-container border border-outline-variant/30 text-on-background rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all placeholder:text-slate-600" />
+    </div>
+
+    <select id="filter-project" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[160px]">
+      <option value="">All Projects</option>
+    </select>
+
+    <select id="filter-match" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[150px]">
+      <option value="">All Matches</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="matched">Matched</option>
+      <option value="candidate">Candidate</option>
+    </select>
+
+    <select id="filter-track" class="bg-surface-container border border-outline-variant/30 text-on-background rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-cyan-500 transition-all min-w-[150px]">
+      <option value="">All Inventory</option>
+      <option value="tracked">Tracked</option>
+      <option value="untracked">Untracked</option>
+      <option value="unknown">Unknown</option>
+    </select>
+
+    <label class="flex items-center gap-2 px-3 py-2 bg-surface-container border border-outline-variant/30 rounded-lg cursor-pointer">
+      <input id="filter-kev" type="checkbox" class="rounded border-slate-600 bg-surface-container text-red-500 focus:ring-0 cursor-pointer" />
+      <span class="text-sm text-on-background font-medium">KEV only</span>
+    </label>
+
+    <button id="filter-btn" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-lg text-sm transition-all active:scale-95">
+      Search
+    </button>
+    <button id="clear-btn" class="px-3 py-2 text-slate-500 hover:text-slate-300 text-sm transition-colors">Clear</button>
+  </div>
+
+  <!-- Table -->
+  <div class="bg-surface-container border border-outline-variant/20 rounded-xl overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-outline-variant/20 text-left">
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 w-6"></th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Severity</th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">Exposure</th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Inventory</th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Runtime</th>
+          <th class="px-3 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">Match</th>
+        </tr>
+      </thead>
+      <tbody id="threat-tbody">
+        <tr><td colspan="6" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading exposures…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="pagination" class="flex items-center justify-between mt-3 text-sm text-slate-400 hidden">
+    <span id="page-info"></span>
+    <div class="flex gap-2">
+      <button id="prev-btn" class="px-3 py-1.5 bg-surface-container border border-outline-variant/20 rounded-lg hover:bg-slate-800 transition-all disabled:opacity-40">← Prev</button>
+      <button id="next-btn" class="px-3 py-1.5 bg-surface-container border border-outline-variant/20 rounded-lg hover:bg-slate-800 transition-all disabled:opacity-40">Next →</button>
+    </div>
+  </div>
+
+</DashboardLayout>
+
+<script>
+  import { api, type ThreatExposure } from '@lib/api';
+  import { toast } from '@lib/toast';
+
+  const SEV_COLOR: Record<string, string> = {
+    critical: 'text-vivid-crimson bg-vivid-crimson/10 border-vivid-crimson/20',
+    high:     'text-goldenrod bg-goldenrod/10 border-goldenrod/20',
+    medium:   'text-spectrum-flare bg-spectrum-flare/10 border-spectrum-flare/20',
+    low:      'text-emerald-green bg-emerald-green/10 border-emerald-green/20',
+    info:     'text-iron-slate bg-iron-slate/10 border-iron-slate/20',
+  };
+
+  const INVENTORY_COLOR: Record<string, string> = {
+    tracked:   'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+    untracked: 'bg-slate-800 border-slate-700 text-slate-400',
+    unknown:   'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  };
+
+  const RUNTIME_COLOR: Record<string, string> = {
+    L4: 'bg-red-500/10 border-red-500/30 text-red-400',
+    L3: 'bg-goldenrod/10 border-goldenrod/20 text-goldenrod',
+    L2: 'bg-spectrum-flare/10 border-spectrum-flare/20 text-spectrum-flare',
+    L1: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400',
+    L0: 'bg-slate-800 border-slate-700 text-slate-400',
+  };
+
+  const MATCH_COLOR: Record<string, string> = {
+    confirmed: 'bg-red-500/10 border-red-500/20 text-red-400',
+    matched:   'bg-cyan-500/10 border-cyan-500/20 text-cyan-400',
+    candidate: 'bg-amber-500/10 border-amber-500/20 text-amber-400',
+  };
+
+  function sevChip(s: string) {
+    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${SEV_COLOR[s] ?? SEV_COLOR.info}">${s}</span>`;
+  }
+
+  function kevChip(kev: boolean) {
+    if (!kev) return '';
+    return `<span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded border bg-red-600 text-white border-red-600">KEV</span>`;
+  }
+
+  function statusBadge(value: string | null | undefined, colorMap: Record<string, string>) {
+    const v = value ?? 'unknown';
+    return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${colorMap[v] ?? 'bg-slate-800 text-slate-400 border-slate-700'}">${v}</span>`;
+  }
+
+  let currentPage = 1;
+  let totalExposures = 0;
+  const PAGE_LIMIT = 100;
+  const expandedRows = new Set<string>();
+
+  function selectedSeverities() {
+    return Array.from(document.querySelectorAll<HTMLInputElement>('[data-severity-filter]:checked')).map((input) => input.value);
+  }
+
+  async function loadProjects() {
+    try {
+      const projects = await api.getProjects();
+      const select = document.getElementById('filter-project') as HTMLSelectElement;
+      select.innerHTML = '<option value="">All Projects</option>' +
+        projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    } catch { /* projects unavailable */ }
+  }
+
+  async function load() {
+    const severities = selectedSeverities();
+    const q        = (document.getElementById('filter-q')       as HTMLInputElement).value.trim();
+    const kevOnly  = (document.getElementById('filter-kev')     as HTMLInputElement).checked;
+    const match    = (document.getElementById('filter-match')   as HTMLSelectElement).value;
+    const track    = (document.getElementById('filter-track')   as HTMLSelectElement).value;
+    const projectId = (document.getElementById('filter-project') as HTMLSelectElement).value;
+
+    const tbody = document.getElementById('threat-tbody')!;
+    tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-12 text-center text-slate-500 text-sm animate-pulse">Loading…</td></tr>`;
+
+    try {
+      const { exposures, total } = await api.getThreatExposures(
+        projectId,
+        kevOnly ? true : undefined,
+        match,
+        track,
+        q,
+        currentPage,
+        PAGE_LIMIT,
+      );
+      totalExposures = total;
+      cacheExposures(exposures ?? []);
+
+      // Severity pills filter client-side (API has no severity param)
+      const filtered = severities.length
+        ? exposures.filter(e => severities.includes(e.severity))
+        : exposures;
+
+      document.getElementById('sum-total')!.textContent    = String(total);
+      document.getElementById('sum-kev')!.textContent      = String(exposures.filter(e => e.kev).length);
+      document.getElementById('sum-critical')!.textContent = String(exposures.filter(e => e.severity === 'critical').length);
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-12 text-center text-slate-500 text-sm">No exposures match your filters.</td></tr>`;
+        updatePagination();
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(e => buildRow(e)).join('');
+
+      // Re-attach expand listeners
+      tbody.querySelectorAll<HTMLTableRowElement>('.threat-row').forEach(row => {
+        row.addEventListener('click', () => toggleExpand(row.dataset.hitId!, tbody));
+      });
+
+      // Re-expand previously expanded rows
+      for (const hid of expandedRows) {
+        const row = tbody.querySelector(`[data-hit-id="${CSS.escape(hid)}"]`);
+        if (row) expandRow(hid, filtered.find(e => rowKey(e) === hid), tbody, row as HTMLTableRowElement);
+      }
+
+      updatePagination();
+    } catch (e: any) {
+      tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-error text-sm">${e.message}</td></tr>`;
+      toast(e.message ?? 'Failed to load exposures', 'error');
+    }
+  }
+
+  function rowKey(e: ThreatExposure) {
+    return e.hit_id ?? e.advisory_id ?? `${e.project_id}:${e.cve_id}`;
+  }
+
+  function buildRow(e: ThreatExposure) {
+    const key = rowKey(e);
+    const cveLink = e.cve_id
+      ? `<a href="https://nvd.nist.gov/vuln/detail/${e.cve_id}" target="_blank" rel="noopener"
+            class="font-mono text-xs text-red-400 hover:underline" onclick="event.stopPropagation()">${e.cve_id}</a>`
+      : `<span class="font-mono text-xs text-slate-400">—</span>`;
+
+    const isExpanded = expandedRows.has(key);
+
+    return `
+      <tr class="threat-row border-b border-outline-variant/10 hover:bg-slate-900/30 transition-colors cursor-pointer select-none"
+          data-hit-id="${key}">
+        <td class="px-3 py-2.5">
+          <span class="material-symbols-outlined text-sm text-slate-500 expand-icon transition-transform ${isExpanded ? 'rotate-90' : ''}">chevron_right</span>
+        </td>
+        <td class="px-3 py-2.5">${sevChip(e.severity)}</td>
+        <td class="px-3 py-2.5 max-w-md">
+          <div class="flex items-center gap-2 flex-wrap">
+            ${cveLink}
+            ${kevChip(e.kev)}
+          </div>
+          ${e.project_name ? `<p class="text-xs text-slate-300 mt-0.5 truncate max-w-xs">${e.project_name}</p>` : ''}
+        </td>
+        <td class="px-3 py-2.5 text-center">${statusBadge(e.inventory_status, INVENTORY_COLOR)}</td>
+        <td class="px-3 py-2.5 text-center">${statusBadge(e.runtime_status, RUNTIME_COLOR)}</td>
+        <td class="px-3 py-2.5 text-center">${statusBadge(e.match_status, MATCH_COLOR)}</td>
+      </tr>`;
+  }
+
+  function toggleExpand(hitId: string, tbody: HTMLElement) {
+    const row = tbody.querySelector<HTMLTableRowElement>(`[data-hit-id="${CSS.escape(hitId)}"]`);
+    if (!row) return;
+
+    const existingDetail = tbody.querySelector(`[data-detail-for="${CSS.escape(hitId)}"]`);
+    if (existingDetail) {
+      existingDetail.remove();
+      expandedRows.delete(hitId);
+      row.querySelector('.expand-icon')?.classList.remove('rotate-90');
+      return;
+    }
+
+    expandedRows.add(hitId);
+    row.querySelector('.expand-icon')?.classList.add('rotate-90');
+    // Evidence renders from the already-loaded row — find it via the expanded key
+    const cveEl = row.querySelector('a, span.font-mono');
+    const cveId = cveEl?.textContent?.trim() ?? '';
+    expandRow(hitId, (window as any).__threatCache?.get(hitId), tbody, row, cveId);
+  }
+
+  function renderEvidence(evidence: unknown): string {
+    // Defensive: evidence field may be absent on some rows (sibling backend task adds it)
+    if (evidence == null) return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
+    if (typeof evidence === 'string') {
+      return evidence
+        ? `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${evidence}</pre>`
+        : `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
+    }
+    try {
+      const json = JSON.stringify(evidence, null, 2);
+      if (!json || json === '{}' || json === '[]' || json === 'null') {
+        return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
+      }
+      return `<pre class="text-[11px] font-mono text-slate-300 whitespace-pre-wrap break-words">${json}</pre>`;
+    } catch {
+      return `<p class="text-xs text-slate-500">No evidence recorded.</p>`;
+    }
+  }
+
+  function expandRow(hitId: string, exposure: ThreatExposure | undefined, tbody: HTMLElement, row: HTMLTableRowElement, cveFallback = '') {
+    if (tbody.querySelector(`[data-detail-for="${CSS.escape(hitId)}"]`)) return;
+
+    const placeholder = document.createElement('tr');
+    placeholder.dataset.detailFor = hitId;
+
+    const cached = (window as any).__threatCache?.get(hitId) ?? exposure;
+    const cveId = cached?.cve_id ?? cveFallback;
+    const evidenceHtml = renderEvidence(cached?.evidence);
+    const matchStatus = cached?.match_status ?? 'unknown';
+    const inventoryStatus = cached?.inventory_status ?? 'unknown';
+    const runtimeStatus = cached?.runtime_status ?? 'unknown';
+
+    placeholder.innerHTML = `
+      <td colspan="6" class="px-6 pb-4 pt-2 bg-slate-950/60">
+        <div class="space-y-2">
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Exposure Detail${cveId ? ` — ${cveId}` : ''}</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            ${statusBadge(matchStatus, MATCH_COLOR)}
+            ${statusBadge(inventoryStatus, INVENTORY_COLOR)}
+            ${statusBadge(runtimeStatus, RUNTIME_COLOR)}
+          </div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 pt-1">Evidence</p>
+          <div class="p-2.5 bg-surface-container border border-outline-variant/20 rounded-lg overflow-auto max-h-64">${evidenceHtml}</div>
+        </div>
+      </td>`;
+    row.insertAdjacentElement('afterend', placeholder);
+  }
+
+  function updatePagination() {
+    const pag = document.getElementById('pagination')!;
+    if (totalExposures <= PAGE_LIMIT) {
+      pag.classList.add('hidden');
+      return;
+    }
+    pag.classList.remove('hidden');
+    const totalPages = Math.ceil(totalExposures / PAGE_LIMIT);
+    document.getElementById('page-info')!.textContent = `Page ${currentPage} of ${totalPages} (${totalExposures} total)`;
+    (document.getElementById('prev-btn') as HTMLButtonElement).disabled = currentPage <= 1;
+    (document.getElementById('next-btn') as HTMLButtonElement).disabled = currentPage >= totalPages;
+  }
+
+  // Cache last-loaded exposures by row key so expanded detail survives re-renders
+  function cacheExposures(exposures: ThreatExposure[]) {
+    const cache: Map<string, ThreatExposure> = (window as any).__threatCache ?? new Map();
+    cache.clear();
+    for (const e of exposures) cache.set(rowKey(e), e);
+    (window as any).__threatCache = cache;
+  }
+
+  document.getElementById('prev-btn')!.addEventListener('click', () => { currentPage--; load(); });
+  document.getElementById('next-btn')!.addEventListener('click', () => { currentPage++; load(); });
+
+  loadProjects();
+  load();
+  document.getElementById('filter-btn')!.addEventListener('click', () => { currentPage = 1; load(); });
+  document.getElementById('filter-kev')!.addEventListener('change', () => { currentPage = 1; load(); });
+  document.getElementById('filter-match')!.addEventListener('change', () => { currentPage = 1; load(); });
+  document.getElementById('filter-track')!.addEventListener('change', () => { currentPage = 1; load(); });
+  document.getElementById('filter-q')!.addEventListener('keydown', e => {
+    if ((e as KeyboardEvent).key === 'Enter') { currentPage = 1; load(); }
+  });
+  document.getElementById('clear-btn')!.addEventListener('click', () => {
+    document.querySelectorAll<HTMLInputElement>('[data-severity-filter]').forEach((input) => {
+      input.checked = false;
+    });
+    (document.getElementById('filter-q')        as HTMLInputElement).value  = '';
+    (document.getElementById('filter-kev')      as HTMLInputElement).checked = false;
+    (document.getElementById('filter-match')    as HTMLSelectElement).value = '';
+    (document.getElementById('filter-track')    as HTMLSelectElement).value = '';
+    (document.getElementById('filter-project')  as HTMLSelectElement).value = '';
+    currentPage = 1;
+    load();
+  });
+  document.getElementById('prev-btn')!.addEventListener('click', () => { currentPage--; load(); });
+  document.getElementById('next-btn')!.addEventListener('click', () => { currentPage++; load(); });
+</script>
