@@ -42,7 +42,7 @@ var mcpSupportedVersions = []string{mcpProtocolVersion}
 // path: the real MCP spec versions plus our own. Standard clients only
 // recognize spec versions, so initialize echoes the client's version back —
 // answering with an unknown future version makes real clients abort.
-var mcpKnownVersions = []string{"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", mcpProtocolVersion}
+var mcpKnownVersions = []string{"2025-03-26", "2025-06-18", "2025-11-25", mcpProtocolVersion}
 
 var mcpServerInfo = map[string]string{"name": "henkaipan-mcp", "version": "1.0.0"}
 

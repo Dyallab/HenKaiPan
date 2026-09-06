@@ -460,10 +460,12 @@ func TestMCP_ToolsListKnownOldVersionAccepted(t *testing.T) {
 
 func TestMCP_ToolsListUnknownVersionRejected(t *testing.T) {
 	h := newMCPHandler()
-	// Made-up versions are still rejected.
-	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"protocolVersion":"1999-01-01"}}`
+	// 2024-11-05 is a real spec version but requires the legacy HTTP+SSE
+	// transport (session setup, endpoint event, /messages), which this
+	// Streamable-HTTP-only server does not implement — still rejected.
+	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"protocolVersion":"2024-11-05"}}`
 	rec := doMCP(t, h, body, map[string]string{
-		"MCP-Protocol-Version": "1999-01-01",
+		"MCP-Protocol-Version": "2024-11-05",
 	})
 
 	assert.Equal(t, rec.Code, http.StatusBadRequest)
