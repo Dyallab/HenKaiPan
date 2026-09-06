@@ -4,22 +4,45 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"aspm/internal/datascope"
 	"aspm/internal/repository"
 )
 
-// ── Stateless MCP (2026-07-28) ───────────────────────────────────────────
+// ── Stateless MCP ──────────────────────────────────────────────────────────
 //
-// The server speaks the modern, stateless MCP protocol (revision 2026-07-28):
-// there is no initialize handshake and no server-side session state. Every
-// request is self-contained, authenticated by the X-API-Key token injected by
-// the APIKeyAuth middleware, and carries its protocol version in the
-// MCP-Protocol-Version header plus the request body _meta.
+// The server speaks MCP over Streamable HTTP in stateless mode: every request
+// is self-contained, authenticated by the X-API-Key token injected by the
+// APIKeyAuth middleware, and NO server-side session state is kept (no
+// MCP-Session-Id is ever minted).
+//
+// Two client families are supported:
+//   - modern custom clients: carry the protocol version in the
+//     MCP-Protocol-Version header plus the request body _meta, with
+//     Mcp-Method / Mcp-Name transport headers.
+//   - standard clients (OpenCode, Claude Desktop, Cursor): speak plain
+//     JSON-RPC with params.protocolVersion and require the `initialize`
+//     handshake. Extra transport headers are validated only when present.
+//
+// `initialize` is answered statelessly (no session created) so standard
+// clients can complete their handshake.
 
 const mcpProtocolVersion = "2026-07-28"
+
+// mcpSupportedVersions lists the protocol version spoken on the strict
+// custom-client path (MCP-Protocol-Version header + _meta): only 2026-07-28.
+// Standard clients negotiate separately (see mcpKnownVersions).
+var mcpSupportedVersions = []string{mcpProtocolVersion}
+
+// mcpKnownVersions lists every protocol version accepted on the standard
+// path: the real MCP spec versions plus our own. Standard clients only
+// recognize spec versions, so initialize echoes the client's version back —
+// answering with an unknown future version makes real clients abort.
+var mcpKnownVersions = []string{"2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25", mcpProtocolVersion}
 
 var mcpServerInfo = map[string]string{"name": "henkaipan-mcp", "version": "1.0.0"}
 
@@ -70,10 +93,12 @@ type propertySchema struct {
 	Description string `json:"description,omitempty"`
 }
 
-// mcpParams is used to read the _meta protocol version and the tools/call tool
-// name without disturbing each tool implementation's own params decode.
+// mcpParams reads the tools/call tool name, the custom _meta protocol version,
+// and the standard params.protocolVersion without disturbing each tool
+// implementation's own params decode.
 type mcpParams struct {
-	Name string `json:"name"`
+	Name            string `json:"name"`
+	ProtocolVersion string `json:"protocolVersion"`
 	Meta *struct {
 		ProtocolVersion string `json:"io.modelcontextprotocol/protocolVersion,omitempty"`
 	} `json:"_meta,omitempty"`
@@ -82,12 +107,46 @@ type mcpParams struct {
 // ── MCP Handler ───────────────────────────────────────────────────────────
 
 func (h *Handler) HandleMCP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		h.handleMCPStream(w, r)
+		return
+	}
 	if r.Method != http.MethodPost {
-		w.Header().Set("Allow", "POST")
+		w.Header().Set("Allow", "GET, POST")
 		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	h.handleMCPPost(w, r)
+}
+
+// handleMCPStream serves the standalone SSE stream of the Streamable HTTP
+// transport. Standard clients (OpenCode, Claude, Cursor) open it with GET
+// right after connecting to listen for server-initiated messages. This
+// server is stateless and never pushes, so the stream is held open with
+// periodic heartbeat comments until the client disconnects.
+func (h *Handler) handleMCPStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, ": connected\n\n")
+	flusher.Flush()
+	ticker := time.NewTicker(15 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			fmt.Fprint(w, ": ping\n\n")
+			flusher.Flush()
+		}
+	}
 }
 
 func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
@@ -119,57 +178,96 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Modern-only: the legacy initialize handshake is unsupported. Surface the
-	// supported versions so legacy clients get an actionable diagnostic.
-	if req.Method == "initialize" {
-		writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
-			"Unsupported protocol version: initialize handshake is not supported",
-			map[string]any{"supported": []string{mcpProtocolVersion}, "requested": "initialize"},
-		)
-		return
-	}
-
-	// Parse params once for _meta and tools/call name validation.
+	// Parse params once for _meta, standard protocolVersion and tools/call name.
 	var p mcpParams
 	if len(req.Params) > 0 {
 		_ = json.Unmarshal(req.Params, &p)
 	}
-
-	// ── Protocol version negotiation (MCP-Protocol-Version header + _meta) ──
-	pvHeader := r.Header.Get("MCP-Protocol-Version")
-	if pvHeader == "" {
-		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
-			"Missing required header: MCP-Protocol-Version", nil)
-		return
-	}
-	pvBody := ""
+	pvMeta := ""
 	if p.Meta != nil {
-		pvBody = p.Meta.ProtocolVersion
+		pvMeta = p.Meta.ProtocolVersion
 	}
-	if pvBody != "" && pvBody != pvHeader {
-		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
-			"Header mismatch: MCP-Protocol-Version header does not match _meta protocol version", nil)
-		return
-	}
-	if pvHeader != mcpProtocolVersion {
-		writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
-			"Unsupported protocol version",
-			map[string]any{"supported": []string{mcpProtocolVersion}, "requested": pvHeader},
-		)
+	customClient := pvMeta != ""
+
+	// ── initialize (stateless) ──
+	// Standard clients (OpenCode, Claude, Cursor) open with `initialize`.
+	// Answered without creating any session: negotiate the version from
+	// params.protocolVersion (standard), _meta or header, newest supported
+	// wins, and return capabilities + serverInfo.
+	if req.Method == "initialize" {
+		writeMCPResult(w, h.mcpInitialize(&req, r.Header.Get("MCP-Protocol-Version"), pvMeta, p.ProtocolVersion))
 		return
 	}
 
-	// ── Standard request headers (Mcp-Method, Mcp-Name) ──
-	mHeader := r.Header.Get("Mcp-Method")
-	if mHeader == "" || mHeader != req.Method {
+	// ── Protocol version negotiation ──
+	// Custom clients (_meta present): strict historic path — header required,
+	// must match _meta, must be supported. Standard clients (no _meta):
+	// accept the negotiated version from header or params.protocolVersion.
+	pvHeader := r.Header.Get("MCP-Protocol-Version")
+	if customClient {
+		if pvHeader == "" {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Missing required header: MCP-Protocol-Version", nil)
+			return
+		}
+		if pvMeta != "" && pvMeta != pvHeader {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Header mismatch: MCP-Protocol-Version header does not match _meta protocol version", nil)
+			return
+		}
+		if !mcpVersionSupported(pvHeader) {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+				"Unsupported protocol version",
+				map[string]any{"supported": mcpSupportedVersions, "requested": pvHeader},
+			)
+			return
+		}
+	} else {
+		negotiated := pvHeader
+		if negotiated == "" {
+			negotiated = p.ProtocolVersion
+		}
+		if negotiated == "" {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Missing required header: MCP-Protocol-Version", nil)
+			return
+		}
+		if pvHeader != "" && p.ProtocolVersion != "" && pvHeader != p.ProtocolVersion {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Header mismatch: MCP-Protocol-Version header does not match params protocol version", nil)
+			return
+		}
+		if !mcpVersionKnown(negotiated) {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32022,
+				"Unsupported protocol version",
+				map[string]any{"supported": mcpKnownVersions, "requested": negotiated},
+			)
+			return
+		}
+	}
+
+	// ── Transport headers (Mcp-Method, Mcp-Name) ──
+	// Required for custom clients, optional for standard clients.
+	if mHeader := r.Header.Get("Mcp-Method"); mHeader != "" {
+		if mHeader != req.Method {
+			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+				"Header mismatch: Mcp-Method header does not match body method", nil)
+			return
+		}
+	} else if customClient {
 		writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
 			"Header mismatch: Mcp-Method header does not match body method", nil)
 		return
 	}
 	if req.Method == "tools/call" {
-		nHeader := r.Header.Get("Mcp-Name")
-		decoded, ok := decodeMCPHeader(nHeader)
-		if !ok || nHeader == "" || decoded != p.Name {
+		if nHeader := r.Header.Get("Mcp-Name"); nHeader != "" {
+			decoded, ok := decodeMCPHeader(nHeader)
+			if !ok || decoded != p.Name {
+				writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
+					"Header mismatch: Mcp-Name header does not match params.name", nil)
+				return
+			}
+		} else if customClient {
 			writeMCPError(w, http.StatusBadRequest, req.ID, -32020,
 				"Header mismatch: Mcp-Name header does not match params.name", nil)
 			return
@@ -181,6 +279,8 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 	switch req.Method {
 	case "server/discover":
 		response = h.mcpDiscover(&req)
+	case "ping":
+		response = h.mcpPing(&req)
 	case "tools/list":
 		response = h.mcpToolsList(&req)
 	case "tools/call":
@@ -190,15 +290,7 @@ func (h *Handler) handleMCPPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respJSON, err := json.Marshal(response)
-	if err != nil {
-		writeError(w, r, http.StatusInternalServerError, "failed to marshal response")
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(respJSON)
+	writeMCPResult(w, response)
 }
 
 // writeMCPError writes a JSON-RPC 2.0 error response with the given HTTP
@@ -247,10 +339,72 @@ func (h *Handler) originAllowed(origin string) bool {
 	return false
 }
 
+// mcpVersionSupported reports whether v is a negotiated protocol version.
+func mcpVersionSupported(v string) bool {
+	for _, s := range mcpSupportedVersions {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+// mcpVersionKnown reports whether v is interoperable on the standard path.
+func mcpVersionKnown(v string) bool {
+	for _, s := range mcpKnownVersions {
+		if s == v {
+			return true
+		}
+	}
+	return false
+}
+
+// mcpNegotiateVersion picks the version to answer: first known among
+// header, _meta and standard params candidates; falls back to latest.
+func mcpNegotiateVersion(header, meta, std string) string {
+	for _, c := range []string{std, meta, header} {
+		if c != "" && mcpVersionKnown(c) {
+			return c
+		}
+	}
+	return mcpProtocolVersion
+}
+
+// mcpInitialize answers the standard handshake statelessly: no session is
+// created, capabilities and serverInfo are returned for the negotiated
+// version so OpenCode/Claude/Cursor can proceed to tools/list.
+func (h *Handler) mcpInitialize(req *jsonRPCRequest, header, meta, std string) *jsonRPCResponse {
+	negotiated := mcpNegotiateVersion(header, meta, std)
+	result, _ := json.Marshal(map[string]any{
+		"protocolVersion": negotiated,
+		"capabilities":    map[string]any{"tools": map[string]any{}},
+		"serverInfo":      mcpServerInfo,
+		"_meta":           mcpResultMeta(),
+	})
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+}
+
+func (h *Handler) mcpPing(req *jsonRPCRequest) *jsonRPCResponse {
+	result, _ := json.Marshal(map[string]any{"_meta": mcpResultMeta()})
+	return &jsonRPCResponse{JSONRPC: "2.0", ID: req.ID, Result: result}
+}
+
+// writeMCPResult marshals a JSON-RPC success response as application/json.
+func writeMCPResult(w http.ResponseWriter, response *jsonRPCResponse) {
+	respJSON, err := json.Marshal(response)
+	if err != nil {
+		writeMCPError(w, http.StatusInternalServerError, response.ID, -32603, "failed to marshal response", nil)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respJSON)
+}
+
 func (h *Handler) mcpDiscover(req *jsonRPCRequest) *jsonRPCResponse {
 	result, _ := json.Marshal(map[string]any{
-		"resultType":       "complete",
-		"supportedVersions": []string{mcpProtocolVersion},
+		"resultType":        "complete",
+		"supportedVersions": mcpSupportedVersions,
 		"capabilities":     map[string]any{"tools": map[string]any{}},
 		"_meta":            mcpResultMeta(),
 		"instructions":     "HenKaiPan MCP server. Use tools/list to enumerate security tools, then tools/call with the tool name and arguments. Authenticated via X-API-Key.",
