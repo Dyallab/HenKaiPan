@@ -71,3 +71,8 @@
 - **test**: `go test -race -count=1 ./internal/...` (Go 1.26).
 - **check-migrations**: `diff -rq migrations/ internal/db/migrations/`.
 - **api / worker**: Docker build+push to `ghcr.io/dyallab/henkaipan-{api,worker}` on tag push (v\*). Cached via GitHub Actions cache.
+
+## Language
+
+- Write in English whenever possible: code, comments, docs, commit messages, PR descriptions.
+- Spanish is acceptable only for user-facing copy targeting AR audiences (e.g. outreach emails).

@@ -190,7 +190,7 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
 
 ## Backlog
 
-*Last audit against CHANGELOG: 2026-06-27 · current release: v1.30.2*
+*Last audit against CHANGELOG: 2026-09-07 · current release: v1.30.2 · plans audit: `plans/` + `.omo/plans/` (6 files) consolidated below*
 
 ### UX & Quality of Life
 
@@ -205,6 +205,14 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
 
 - [ ] Define self-hosted product boundary: what is included, what stays cloud-only, and why — *partial: MIT + cloud pricing v1.27.0, license removed v1.26.0*
 - [ ] **Safe-Update Flow** documented end-to-end: DB Backup → Pull → Migrate → Restart — *backup script v1.29.1; missing unified operational guide*
+- [ ] **Self-update sidecar (in-GUI update + rollback)** — *plan: `.omo/plans/self-update-self-hosted.md` (20 todos, no iniciado)*
+  - [ ] Sidecar `cmd/updater` (imagen `ghcr.io/dyallab/henkaipan-updater`): `GET /health`, `GET /status`, `POST /update`, `POST /rollback`; único con `docker.sock`; ejecuta `compose pull && up -d api worker` con tags pineados vía `compose.updater.yaml`; estado en Redis; eventos SSE
+  - [ ] Auto-rollback healthcheck-gated: poll `docker inspect {{.State.Health.Status}}` del `api` (5s/5min); si no llega a `healthy`, re-pull versión previa + `up -d`
+  - [ ] API admin (`UPDATER_URL` opcional): `GET /api/update/status`, `POST /api/update`, `POST /api/update/rollback` (503 si deshabilitado) + 4 eventos SSE (`update_started/progress/completed/failed`) + audit log
+  - [ ] Frontend: card "Software Update" en `system.astro` (versión actual/disponible, Update/Rollback con confirmación, progreso SSE en vivo, "Not available" en 503)
+  - [ ] Self-hosted packaging: servicio `updater` en `docker-compose.yml` (socket + stack dir, sin puertos al host) + `UPDATER_URL` en `.env.example` + docs (AGENTS.md root/app, CHANGELOG)
+  - [ ] CI: job `updater` en `ci-cd.yml` (tags `latest` + semver) + `bin/updater` en `make build` + tests Go sin docker real (fakes/miniredis)
+  - [ ] Guardrails: NO `docker.sock` en api/worker, NO tocar postgres/redis/updater propio, NO K8s en v1, NO emails (solo SSE+audit), NO reescribir `docker-compose.yml` del usuario, NO auto-update del sidecar
 - [ ] Data export/import strategy to support migration between cloud and self-hosted
 - [ ] Support model definition for self-hosted customers (SLA, update cadence, installation support boundaries)
 
@@ -215,6 +223,7 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
 - [ ] Multi-tenant support (organizations)
 - [ ] **Advanced RBAC** (custom roles, granular permissions) — *partial: capability matrix v1.12.1, team-scoped access v1.29.0, datascope v1.30.2*
 - [ ] Audit log export + SIEM integration
+- *Note: `.omo/plans/enterprise-edition-plan.md` superado — tier limits se implementó OSS con env vars (v1.28.0) y SSO vía OIDC (no módulo enterprise privado/SAML por build tags); no hay repo `henkaipan-enterprise`. Lo único vigente del plan es SAML SSO (arriba). Aplicados del mismo lote: `tier-limits-plan.md`, `team-scoped-access-control.md` (v1.29.0+v1.30.2), `finding-perf-plan.md` (v1.22.0), `ai-notification-summaries.md` Nivel 1+2 backend.*
 
 ### Tech Debt
 
@@ -426,8 +435,22 @@ Vision: a **chained full scan** — static analysis output doesn't stay as an is
 
 ### CI/CD & API Security
 
-- [ ] Token rotation endpoint (optional)
+- [x] Token rotation endpoint — `POST /api/v1/tokens/{id}/rotate` (only creator, old secret revoked, audit `api_token.rotate`)
 - [ ] **Preflight `repo_url` accessibility** before enqueuing external scans — *distinct from SSRF allowlist v1.29.0 (verify the repo is reachable/cloneable)*
+
+### Release Engineering — Patch releases por serie + CVE detection *(moved from `plans/version-series-backport-patch-releases.md`, no iniciado)*
+
+Decisiones: self-hosted sigue `:latest` (solo cloud pinea); versión pineada vía env por cliente; series bajo demanda (`release/X.Y` solo cuando un CVE lo requiere); bloqueo en High/Critical.
+
+- [ ] **CI tags condicionales**: step `Determine if latest release` (highest `git tag --list 'v*'`) y `latest`/`major` solo con `enable: is_latest` — un backport (`v1.20.2`) publica `1.20.2`+`1.20` sin mover `latest`/`1`
+- [ ] **CI `govulncheck` job** (Go, bloqueante en high/critical alcanzables) + targets `make govulncheck` / `make frontend-audit`
+- [ ] **CI `frontend-audit` job**: `pnpm audit --prod --audit-level high` en `frontend/`
+- [ ] **Cron proactivo `cve-scan.yml`**: semanal (lunes 06:00 UTC) por serie mantenida (matrix manual o archivo `SUPPORTED_SERIES`); `govulncheck` + `pnpm audit` con `continue-on-error`; abre/actualiza issue por serie afectada (no falla el build)
+- [ ] **Dependabot**: `gomod /` + `npm /frontend`, semanal, PRs con labels `dependencies, security`
+- [ ] **Infra pineo por cliente**: `compose.cloud.yml` con `${API_IMAGE_TAG:-latest}` / `${WORKER_IMAGE_TAG:-latest}`; documentar en `.env.example`; `clients/<tenant>.env` pineado (generado, no commitear)
+- [ ] **`upgrade.sh <tenant> [tag]`** (respeta pineo en `--all`) + **`deploy.yml` input `image_tag`** (vacío = respeta pineo)
+- [ ] **Runbook backport** (`HenKaiPan-infra/docs/patch-release.md`): detectar alcance → fix en main → `release/X.Y` → cherry-pick mínimo → tag parche → upgrade dirigido; reglas (solo High/Critical con fix, sin features/migraciones, verificar scans limpios antes de taggear)
+- [ ] Alcance ampliado (fase 2): `trivy image` para imágenes base + scanner binaries; SBOM + `osv-scanner`/`trivy fs` por tag
 
 ### Platform Health
 
@@ -440,6 +463,8 @@ Vision: a **chained full scan** — static analysis output doesn't stay as an is
 - [ ] Automated assignment rules beyond existing policies — *auto-triage v1.0.0; ad-hoc rules pending*
 - [ ] SLA customization per project/app — *SLA tracking global v1.0.0*
 - [ ] Custom fields on findings
+- [ ] **Digest scheduler honors `digest_frequency`/`digest_time`** — *remanente de `.omo/plans/ai-notification-summaries.md` (Nivel 1 + narrativa AI `GenerateDigestNarrative` + migraciones 041/042 ya aplicados; `StartWeeklyDigestScheduler` sigue hardcodeado a lunes 9am e ignora los settings)*
+- [ ] **Digest settings UI** (frequency Daily/Weekly/Disabled + time) en settings — *tipos ya en `api.ts`; falta la UI*
 
 ### Reporting & Compliance
 
@@ -460,4 +485,4 @@ Vision: a **chained full scan** — static analysis output doesn't stay as an is
 
 ---
 
-*Last updated: 2026-06-28*
+*Last updated: 2026-09-07*
