@@ -25,40 +25,42 @@ ARG TFSEC_VERSION=1.28.14
 ARG KICS_VERSION=2.1.20
 ARG NUCLEI_VERSION=3.8.0
 ARG GOSEC_VERSION=2.26.1
+ARG SEMGREP_VERSION=1.21.0
+ARG CHECKOV_VERSION=3.2.85
 
 RUN apk add --no-cache \
     ca-certificates curl bash git unzip python3 py3-pip && \
-    # Semgrep + Checkov (Python scanners)
-    pip install --no-cache-dir --break-system-packages semgrep checkov && \
+    # Semgrep + Checkov (Python scanners, pinned for reproducible builds)
+    pip install --no-cache-dir --break-system-packages "semgrep==${SEMGREP_VERSION}" "checkov==${CHECKOV_VERSION}" && \
     # ── Binary scanners ──
     # Trivy (SCA)
-    curl -sL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /tmp && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /tmp && \
     mv /tmp/trivy /usr/local/bin/ && \
     # Gitleaks (Secrets)
-    curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" | tar xz && \
     mv gitleaks /usr/local/bin/ && \
     # Grype (SCA)
-    curl -sL "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/grype /usr/local/bin/ && \
     # OSV-Scanner (SCA)
-    curl -sLo /usr/local/bin/osv-scanner "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" && \
+    curl -fsSL --proto '=https' --tlsv1.2 -o /usr/local/bin/osv-scanner "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64" && \
     chmod +x /usr/local/bin/osv-scanner && \
     # TruffleHog (Secrets)
-    curl -sL "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" | tar xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/trufflesecurity/trufflehog/releases/download/v${TRUFFLEHOG_VERSION}/trufflehog_${TRUFFLEHOG_VERSION}_linux_amd64.tar.gz" | tar xz && \
     mv trufflehog /usr/local/bin/ && \
     # TFSec (IaC)
-    curl -sLo /usr/local/bin/tfsec "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" && \
+    curl -fsSL --proto '=https' --tlsv1.2 -o /usr/local/bin/tfsec "https://github.com/aquasecurity/tfsec/releases/download/v${TFSEC_VERSION}/tfsec-linux-amd64" && \
     chmod +x /usr/local/bin/tfsec && \
     # KICS (IaC)
-    curl -sL "https://github.com/Checkmarx/kics/releases/download/v${KICS_VERSION}/kics_${KICS_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/Checkmarx/kics/releases/download/v${KICS_VERSION}/kics_${KICS_VERSION}_linux_amd64.tar.gz" | tar xz -C /tmp && \
     mv /tmp/kics /usr/local/bin/ && \
     # Nuclei (DAST)
-    curl -sL "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" -o /tmp/nuclei.zip && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/projectdiscovery/nuclei/releases/download/v${NUCLEI_VERSION}/nuclei_${NUCLEI_VERSION}_linux_amd64.zip" -o /tmp/nuclei.zip && \
     unzip -o /tmp/nuclei.zip -d /tmp && \
     mv /tmp/nuclei /usr/local/bin/ && \
     rm /tmp/nuclei.zip && \
     # Gosec (SAST)
-    curl -sL "https://github.com/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz" | tar xz && \
+    curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/securego/gosec/releases/download/v${GOSEC_VERSION}/gosec_${GOSEC_VERSION}_linux_amd64.tar.gz" | tar xz && \
     mv gosec /usr/local/bin/
 
 # Stage 3: Final minimal image

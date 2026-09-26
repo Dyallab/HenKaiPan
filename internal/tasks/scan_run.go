@@ -268,7 +268,11 @@ func cloneRepo(ctx context.Context, apps repository.AppRepository, projectID, ur
 	}
 
 	args = append(args, authURL, dir)
-	cmd := exec.CommandContext(ctx, "git", args...)
+	gitPath, lookErr := exec.LookPath("git")
+	if lookErr != nil {
+		return "", "", fmt.Errorf("git binary not found: %w", lookErr)
+	}
+	cmd := exec.CommandContext(ctx, gitPath, args...)
 	out, cloneErr := cmd.CombinedOutput()
 	execLog = buildSimpleLog("git clone --depth=50 "+branchStr(branch)+" "+cloneURL, out, nil, cloneErr, time.Since(start))
 	if cloneErr != nil {
@@ -292,7 +296,11 @@ func cloneWithPullRef(ctx context.Context, cloneURL, branch, token, dir string, 
 
 	// Step 1: Clone without --branch
 	cloneArgs := []string{"clone", "--depth=50", authURL, dir}
-	cmd := exec.CommandContext(ctx, "git", cloneArgs...)
+	gitPath, lookErr := exec.LookPath("git")
+	if lookErr != nil {
+		return "", "", fmt.Errorf("git binary not found: %w", lookErr)
+	}
+	cmd := exec.CommandContext(ctx, gitPath, cloneArgs...)
 	out, cloneErr := cmd.CombinedOutput()
 	if cloneErr != nil {
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
@@ -306,7 +314,7 @@ func cloneWithPullRef(ctx context.Context, cloneURL, branch, token, dir string, 
 	// Remote URL already contains token from clone step
 	refName := "hkp-pr-ref"
 	fetchArgs := []string{"-C", dir, "fetch", "origin", branch + ":" + refName, "--depth=1"}
-	fetchCmd := exec.CommandContext(ctx, "git", fetchArgs...)
+	fetchCmd := exec.CommandContext(ctx, gitPath, fetchArgs...)
 	fetchOut, fetchErr := fetchCmd.CombinedOutput()
 	if fetchErr != nil {
 		if rmErr := os.RemoveAll(dir); rmErr != nil {
@@ -318,7 +326,7 @@ func cloneWithPullRef(ctx context.Context, cloneURL, branch, token, dir string, 
 
 	// Step 3: Checkout the fetched ref
 	checkoutArgs := []string{"-C", dir, "checkout", refName}
-	checkoutCmd := exec.CommandContext(ctx, "git", checkoutArgs...)
+	checkoutCmd := exec.CommandContext(ctx, gitPath, checkoutArgs...)
 	checkoutOut, checkoutErr := checkoutCmd.CombinedOutput()
 	if checkoutErr != nil {
 		if rmErr := os.RemoveAll(dir); rmErr != nil {

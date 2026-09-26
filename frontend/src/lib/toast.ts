@@ -29,6 +29,27 @@ export function friendlyError(msg: string): string {
 }
 
 /**
+ * Generate a 9-char alphanumeric suffix using a CSPRNG.
+ * Falls back to Math.random only where Web Crypto is unavailable.
+ */
+function randomIdSuffix(): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(9);
+  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
+  }
+  let out = '';
+  for (let i = 0; i < bytes.length; i++) {
+    out += alphabet[bytes[i] % alphabet.length];
+  }
+  return out;
+}
+
+/**
  * Show a toast notification
  */
 export function toast(
@@ -38,7 +59,7 @@ export function toast(
 ) {
   const {
     duration = type === 'error' ? 8000 : 5000,
-    id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id = `toast-${Date.now()}-${randomIdSuffix()}`,
     onClick,
     clickLabel,
   } = options;
