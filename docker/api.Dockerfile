@@ -23,5 +23,10 @@ RUN go build \
 FROM alpine:3.22.4
 RUN apk add --no-cache ca-certificates git
 COPY --from=builder /api /api
+RUN addgroup -g 1000 api && \
+    adduser -D -u 1000 -G api api && \
+    chown api:api /api && \
+    chmod +x /api
+USER api:api
 EXPOSE 8080
 CMD ["/api"]

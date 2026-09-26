@@ -29,6 +29,20 @@ export function friendlyError(msg: string): string {
 }
 
 /**
+ * Generate a 9-char alphanumeric suffix using a CSPRNG.
+ */
+function randomIdSuffix(): string {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  const bytes = new Uint8Array(9);
+  crypto.getRandomValues(bytes);
+  let out = '';
+  for (const b of bytes) {
+    out += alphabet[b % alphabet.length];
+  }
+  return out;
+}
+
+/**
  * Show a toast notification
  */
 export function toast(
@@ -38,7 +52,7 @@ export function toast(
 ) {
   const {
     duration = type === 'error' ? 8000 : 5000,
-    id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    id = `toast-${Date.now()}-${randomIdSuffix()}`,
     onClick,
     clickLabel,
   } = options;

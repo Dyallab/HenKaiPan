@@ -158,7 +158,11 @@ func cloneRepoForSnippet(ctx context.Context, apps repository.AppRepository, pro
 	}
 
 	args = append(args, authURL, dir)
-	cmd := exec.CommandContext(ctx, "git", args...)
+	gitPath, lookErr := exec.LookPath("git")
+	if lookErr != nil {
+		return "", fmt.Errorf("git binary not found: %w", lookErr)
+	}
+	cmd := exec.CommandContext(ctx, gitPath, args...)
 	cmd.Env = append(os.Environ(), "GIT_ASKPASS=echo")
 	out, err := cmd.CombinedOutput()
 	if err != nil {

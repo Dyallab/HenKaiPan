@@ -382,7 +382,11 @@ func validateRepoURL(repoURL string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, "git", "ls-remote", repoURL)
+	gitPath, lookErr := exec.LookPath("git")
+	if lookErr != nil {
+		return fmt.Errorf("git binary not found: %w", lookErr)
+	}
+	cmd := exec.CommandContext(ctx, gitPath, "ls-remote", repoURL)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		// Truncate output to avoid leaking sensitive URLs in error messages
