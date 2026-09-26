@@ -31,7 +31,9 @@ ARG CHECKOV_VERSION=3.3.19
 RUN apk add --no-cache \
     ca-certificates curl bash git unzip python3 py3-pip && \
     # Semgrep + Checkov (Python scanners, pinned for reproducible builds)
-    pip install --no-cache-dir --break-system-packages --only-binary :all: "semgrep==${SEMGREP_VERSION}" "checkov==${CHECKOV_VERSION}" && \
+    pip install --no-cache-dir --break-system-packages --only-binary :all: \
+        "checkov==${CHECKOV_VERSION}" \
+        "semgrep==${SEMGREP_VERSION}" && \
     # ── Binary scanners ──
     # Trivy (SCA)
     curl -fsSL --proto '=https' --tlsv1.2 "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /tmp && \
