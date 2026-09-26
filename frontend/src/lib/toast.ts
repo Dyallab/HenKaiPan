@@ -30,21 +30,14 @@ export function friendlyError(msg: string): string {
 
 /**
  * Generate a 9-char alphanumeric suffix using a CSPRNG.
- * Falls back to Math.random only where Web Crypto is unavailable.
  */
 function randomIdSuffix(): string {
   const alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789';
   const bytes = new Uint8Array(9);
-  if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-    crypto.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
-  }
+  crypto.getRandomValues(bytes);
   let out = '';
-  for (let i = 0; i < bytes.length; i++) {
-    out += alphabet[bytes[i] % alphabet.length];
+  for (const b of bytes) {
+    out += alphabet[b % alphabet.length];
   }
   return out;
 }
