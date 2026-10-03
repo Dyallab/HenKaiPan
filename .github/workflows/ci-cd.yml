@@ -38,7 +38,16 @@ jobs:
           cache: true
 
       - name: Run tests
-        run: go test -race -count=1 ./internal/...
+        run: make test-coverage
+
+      - name: Enforce coverage floor (20%)
+        run: |
+          total=$(go tool cover -func=coverage.out | awk '/^total:/ {gsub("%","",$3); print $3}')
+          echo "Total coverage: ${total}%"
+          awk -v t="$total" 'BEGIN { exit (t+0 >= 20) ? 0 : 1 }' || {
+            echo "::error::Coverage ${total}% is below the 20% floor."
+            exit 1
+          }
 
   # Fast check that migration directories are in sync before building anything.
   # If this fails, run: make sync-migrations

@@ -1,4 +1,4 @@
-.PHONY: dev-api dev-worker dev-api-hot dev-worker-hot up down build test-race test-integration test-smoke seed-full verify-seed
+.PHONY: dev-api dev-worker dev-api-hot dev-worker-hot up down build test test-race test-coverage test-integration test-smoke seed-full verify-seed
 
 ifneq (,$(wildcard .env))
   include .env
@@ -37,8 +37,18 @@ build:
 	go build $(LDFLAGS) -o bin/api ./cmd/api
 	go build $(LDFLAGS) -o bin/worker ./cmd/worker
 
+test:
+	# Mirrors CI exactly: same scope and flags as the test job in ci-cd.yml.
+	go test -race -count=1 ./internal/...
+
 test-race:
+	# All packages (internal/ + cmd/); CI's mirror is `make test`.
 	go test -race -count=1 ./...
+
+test-coverage:
+	# Same run as `make test` plus a coverprofile consumed by the CI floor gate.
+	go test -race -count=1 -coverprofile=coverage.out ./internal/...
+	go tool cover -func=coverage.out | tail -1
 
 test-integration:
 	# -p 1 serializes package binaries: they share one Postgres, so parallel

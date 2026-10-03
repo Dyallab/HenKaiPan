@@ -24,11 +24,11 @@
 | Build Go binaries (quick) | `make build` |
 | Build Go binaries (obfuscated) | `nix run .#build-obfuscated` |
 | Build all (nix) | `nix build .#{api,worker,full}` |
-| Tests (internal/) | `nix run .#test` |
+| Tests (internal/, mirrors CI) | `make test` |
 | Tests (all packages) | `make test-race` |
 | Tests (integration tag) | `make test-integration` |
 | Smoke suite (live API :8080) | `make test-smoke` |
-| Test coverage | `nix run .#test-coverage` |
+| Test coverage | `make test-coverage` |
 | Go mod tidy | `nix run .#tidy` |
 | Run migration | `nix run .#migrate -- migrations/xxx.sql` |
 | Sync migration dirs | `nix run .#sync-migrations` |
@@ -56,8 +56,13 @@
 
 ## Tests
 
-- **27 test files** across internal packages. Most are unit tests with no external dependencies.
-- **No repository integration tests exist yet** (`internal/repository/` has zero test files). The agreed strategy: shared Docker PG (`docker compose up postgres`) with per-test schema isolation.
+- **53 test files** across internal packages (~400 `Test*` funcs). Most are unit tests with no external dependencies.
+- **Unit tests are package-local** (`foo_test.go` next to `foo.go`, same package).
+- **No testify/assert** — use the minimal in-house helpers in `internal/assert/` (`AssertEqual`, `AssertErr`, `AssertTrue`).
+- **Redis-dependent tests** use `miniredis`.
+- **DB-backed tests** are tagged `//go:build integration` and run against a real Postgres (`TEST_DATABASE_URL`, default `postgres://aspm:aspm@localhost:5432/aspm`); `internal/repository/` and `internal/db/` have these. They run via `make test-integration` (`-p 1`, serialized because packages share one PG).
+- **Smoke tests** (`internal/smoke/`) need a live API on :8080 and run via `make test-smoke`.
+- **CI parity**: `make test` (`go test -race -count=1 ./internal/...`) is exactly what the CI test job runs.
 
 ## SQL rules (enforced)
 
@@ -68,7 +73,7 @@
 
 ## CI/CD (`.github/workflows/ci-cd.yml`)
 
-- **test**: `go test -race -count=1 ./internal/...` (Go 1.26).
+- **test**: `make test` → `go test -race -count=1 ./internal/...` (Go 1.26); CI runs `make test-coverage` + awk floor gate (20%).
 - **check-migrations**: `diff -rq migrations/ internal/db/migrations/`.
 - **api / worker**: Docker build+push to `ghcr.io/dyallab/henkaipan-{api,worker}` on tag push (v\*). Cached via GitHub Actions cache.
 
