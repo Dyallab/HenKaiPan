@@ -346,11 +346,12 @@ Items that were open in the backlog but are already in production per [`HenKaiPa
   - [ ] `github/`: `ValidateToken`, `ResolvePattern`, `RepoInfo`
   - [ ] `jira/`: `NewClient`, `CreateIssueRequest`/`Response` serialization
 
-- [ ] **Phase 7 — CI integration & coverage gates**
-  - [x] Run tests in CI — `go test -race -count=1 ./internal/...` in `ci-cd.yml` (v1.28.1+)
-  - [ ] Set coverage floor (start at 20%, increase over time)
-  - [ ] Expand `AGENTS.md` with full test conventions (beyond DB approach)
-  - [ ] Optional: dedicated `make test-race` target mirroring CI
+  - [x] **Phase 7 — CI integration & coverage gates**
+    - [x] Run tests in CI — `go test -race -count=1 ./internal/...` in `ci-cd.yml` (v1.28.1+)
+    - [x] CI runs `make test` — Makefile target is the single source of truth (2026-10-03)
+    - [x] Set coverage floor — 20% gate in `ci-cd.yml` via `make test-coverage` (2026-10-03)
+    - [x] Expand `AGENTS.md` with full test conventions (beyond DB approach) (2026-10-03)
+    - [x] `make test-race` mirrors CI scope for unit tests; CI uses `make test`
 
 - [ ] **Phase 8 — Stress & concurrency tests**
   - [ ] Concurrent scan dispatch correctness
